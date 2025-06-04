@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Резюме-переключатель</title>
+  <style>
+    body { font-family: sans-serif; background: #f5f5f5; padding: 20px; }
+    .resume { display: none; transition: opacity 0.5s ease; }
+    .resume.active { display: block; opacity: 1; }
+    button { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <button onclick="toggleResume()">Сменить резюме</button>
+
+  <div id="resume-creative" class="resume active">
+    <h2>Креативщик</h2>
+    <p>Навыки: After Effects, сайты, логотипы, визуальные концепты.</p>
+    <p>Проекты: 3 сайта, 3 лога, 2 выставки, нейросети.</p>
+  </div>
+
+  <div id="resume-engineer" class="resume">
+    <h2>Сервисный инженер</h2>
+    <p>Навыки: GNSS-приёмники, работа на локации, документация, спецодежда.</p>
+    <p>Опыт: Промгеосервис, монтаж и сопровождение радаров.</p>
+  </div>
+
+  <script>
+    let current = 'creative';
+    function toggleResume() {
+      document.getElementById('resume-creative').classList.toggle('active');
+      document.getElementById('resume-engineer').classList.toggle('active');
+      current = (current === 'creative') ? 'engineer' : 'creative';
+    }
+  </script>
+
+</body>
+</html>
