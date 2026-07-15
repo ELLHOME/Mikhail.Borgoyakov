@@ -180,6 +180,8 @@
     .works-grid{grid-template-columns:1fr}
     .works-sec{height:auto;padding:clamp(80px,11vw,170px) 0}
     .works-stage{position:static;height:auto;display:block;overflow:visible}
+    .works-grid .work{opacity:0;transform:translateY(44px) scale(.95);transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1)}
+    .works-grid .work.dealt{opacity:1;transform:none}
     .about-sec{height:auto;padding:clamp(80px,11vw,170px) 0}
     .about-stage{position:static;height:auto;display:block;overflow:visible}
     .about-grid{grid-template-columns:1fr;gap:34px}
@@ -354,6 +356,8 @@
   /* ---- reveal ---- */
   const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  const cio=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('dealt');cio.unobserve(e.target);}});},{threshold:.18});
+  document.querySelectorAll('.works-grid .work').forEach(el=>cio.observe(el));
   document.querySelectorAll('.lab-row .lr-head').forEach(h=>{
     h.addEventListener('click',()=>{
       const row=h.parentElement, was=row.classList.contains('open');
@@ -448,7 +452,7 @@
   function updateWorks(){
     if(!worksSec||!workCards.length) return;
     const range=worksSec.offsetHeight-window.innerHeight;
-    if(window.innerWidth<=820||range<=0){ workCards.forEach(c=>{c.style.transform='none';c.style.opacity='1';c.style.zIndex='';c.style.boxShadow='none';}); return; }
+    if(window.innerWidth<=820||range<=0){ workCards.forEach(c=>{c.style.transform='';c.style.opacity='';c.style.zIndex='';c.style.boxShadow='';}); return; }
     if(!workBase.length) computeWorks();
     const q=clamp((window.scrollY-worksSec.offsetTop)/range,0,1);
     const N=workCards.length;
