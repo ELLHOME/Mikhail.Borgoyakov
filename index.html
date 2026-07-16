@@ -103,18 +103,19 @@
   .works-inner{width:100%;padding:0 var(--pad)}
   .works-inner .works-grid{margin-top:clamp(22px,4vw,52px)}
   .work{background:var(--panel);border:1px solid var(--line);padding:clamp(24px,2.6vw,40px);min-height:240px;display:flex;flex-direction:column;justify-content:space-between;
-    transition:background .4s;position:relative;overflow:hidden;will-change:transform,opacity;backface-visibility:hidden}
+    position:relative;will-change:transform,opacity;backface-visibility:hidden}
   .works-grid .work{margin:0 -1px -1px 0}
-  .work .w-idx,.work .w-name,.work .w-cat{transition:color .4s}
-  .work:hover{background:#fff}
-  .work:hover .w-name{color:#0a0d13}
-  .work:hover .w-idx{color:#6a7280}
-  .work:hover .w-cat{color:#2b62d6}
   .work .w-idx{font-size:12px;color:var(--muted);letter-spacing:.2em}
   .work .w-name{font-size:clamp(20px,2.2vw,30px);font-weight:300;letter-spacing:.04em;margin-top:auto}
   .work .w-cat{font-size:12px;color:var(--accent-bright);letter-spacing:.16em;margin-top:12px}
-  .work::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--accent);transition:width .5s}
-  .work:hover::after{width:100%}
+  /* glowing border on cursor proximity */
+  .work-glow{position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;
+    --gg:radial-gradient(circle,#dd7bbb 10%,#dd7bbb00 20%),radial-gradient(circle at 40% 40%,#d79f1e 5%,#d79f1e00 15%),radial-gradient(circle at 60% 60%,#5a922c 10%,#5a922c00 20%),radial-gradient(circle at 40% 60%,#4c7894 10%,#4c789400 20%),repeating-conic-gradient(from 236.84deg at 50% 50%,#dd7bbb 0%,#d79f1e 5%,#5a922c 10%,#4c7894 15%,#dd7bbb 20%)}
+  .work-glow::after{content:"";position:absolute;inset:calc(-1*var(--gbw,2px));border-radius:inherit;border:var(--gbw,2px) solid transparent;background:var(--gg);opacity:var(--gactive,0);transition:opacity .3s;
+    -webkit-mask-image:linear-gradient(#0000,#0000),conic-gradient(from calc((var(--gstart,0) - var(--gspread,40))*1deg),#00000000 0deg,#fff,#00000000 calc(var(--gspread,40)*2deg));
+    mask-image:linear-gradient(#0000,#0000),conic-gradient(from calc((var(--gstart,0) - var(--gspread,40))*1deg),#00000000 0deg,#fff,#00000000 calc(var(--gspread,40)*2deg));
+    -webkit-mask-clip:padding-box,border-box;mask-clip:padding-box,border-box;
+    -webkit-mask-composite:source-in;mask-composite:intersect}
 
   /* LAB */
   .lab-list{margin-top:clamp(40px,6vw,70px);border-top:1px solid var(--line)}
@@ -358,6 +359,22 @@
   /* ---- reveal ---- */
   const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+  // glowing border on work cards (follows cursor by proximity)
+  document.querySelectorAll('#works .work').forEach(c=>{const g=document.createElement('span');g.className='work-glow';c.appendChild(g);});
+  (function(){
+    const cards=[].slice.call(document.querySelectorAll('#works .work')); if(!cards.length) return;
+    const PROX=80;
+    document.body.addEventListener('pointermove',(e)=>{
+      const mx=e.clientX,my=e.clientY;
+      for(const c of cards){
+        const r=c.getBoundingClientRect();
+        const on = mx>r.left-PROX && mx<r.right+PROX && my>r.top-PROX && my<r.bottom+PROX;
+        c.style.setProperty('--gactive', on?'1':'0');
+        if(on){ const cx=r.left+r.width/2, cy=r.top+r.height/2;
+          c.style.setProperty('--gstart', String(180*Math.atan2(my-cy,mx-cx)/Math.PI + 90)); }
+      }
+    },{passive:true});
+  })();
   document.querySelectorAll('.lab-row .lr-head').forEach(h=>{
     h.addEventListener('click',()=>{
       const row=h.parentElement, was=row.classList.contains('open');
