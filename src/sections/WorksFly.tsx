@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { PItem } from "./ParticleText";
 
 const PCOUNT = 9000;
@@ -9,7 +9,7 @@ function smooth(a: number, b: number, x: number) {
 
 type Word = { rel: Float32Array; nameSize: number; dSize: number; nameY: number; descY: number };
 
-export default function WorksFly({ id, eyebrow, items }: { id: string; eyebrow: string; items: PItem[] }) {
+export default function WorksFly({ id, eyebrow, items, introTitle, introText }: { id: string; eyebrow: string; items: PItem[]; introTitle?: ReactNode; introText?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [active, setActive] = useState(0);
   const N = items.length;
@@ -145,8 +145,8 @@ export default function WorksFly({ id, eyebrow, items }: { id: string; eyebrow: 
         <canvas ref={canvasRef} className="pt-canvas" />
         <div className="pt-eyebrow track-sm">{eyebrow}</div>
         <div className="works-intro" id="worksIntro">
-          <h2 className="sec-title">Что я <b>делаю</b>.</h2>
-          <p className="sec-intro">Полный цикл цифрового продукта — от идеи и дизайна до кода, движения и запуска.</p>
+          <h2 className="sec-title">{introTitle}</h2>
+          <p className="sec-intro">{introText}</p>
         </div>
         {p.tags && (
           <div className="pt-tags">

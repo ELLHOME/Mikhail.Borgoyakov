@@ -17,10 +17,10 @@ const CHECK = (
 );
 
 export default function LabProcess({
-  id, eyebrow, title, lead, items, stats,
+  id, eyebrow, title, lead, items, stats, contrib = "МОЙ ВКЛАД",
 }: {
   id: string; eyebrow: string; title: React.ReactNode; lead: string;
-  items: LabItem[]; stats: Stat[];
+  items: LabItem[]; stats: Stat[]; contrib?: string;
 }) {
   const [active, setActive] = useState(0);
   const N = items.length;
@@ -86,7 +86,7 @@ export default function LabProcess({
                     <h3 className="lp-name">{it.t}</h3>
                     <p className="lp-tagline">{it.tagline}</p>
                     <p className="lp-desc">{it.about}</p>
-                    <div className="lp-contrib-l track-sm">МОЙ ВКЛАД</div>
+                    <div className="lp-contrib-l track-sm">{contrib}</div>
                     <ul className="lp-points">
                       {it.points.map((p) => <li className="lp-point" key={p}>{CHECK}<span>{p}</span></li>)}
                     </ul>

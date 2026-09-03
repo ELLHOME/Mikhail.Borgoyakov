@@ -1,17 +1,21 @@
+import { useLang, content } from "../i18n";
+
 const BASE = import.meta.env.BASE_URL;
-const chips = ["ДИЗАЙН", "КОД", "МОУШН", "3D", "ИИ", "БРЕНДИНГ"];
 
 export default function About() {
+  const { lang } = useLang();
+  const t = content[lang].about;
+
   return (
     <section id="about" className="about-sec section-light">
       <div className="about-stage">
         <div className="about-inner">
-          <div className="eyebrow track-sm">01 — ОБО МНЕ</div>
+          <div className="eyebrow track-sm">{t.eyebrow}</div>
           <div className="about-grid">
             <div className="about-photo">
               <div className="ba-slider" id="aboutPhoto">
-                <img className="ba-base" src={`${BASE}after.webp`} alt="Михаил" />
-                <div className="ba-before"><img src={`${BASE}before.webp`} alt="Цифровой образ" /></div>
+                <img className="ba-base" src={`${BASE}after.webp`} alt={t.altHuman} />
+                <div className="ba-before"><img src={`${BASE}before.webp`} alt={t.altDigital} /></div>
                 <span className="ba-tag l">DIGITAL</span>
                 <span className="ba-tag r">HUMAN</span>
                 <div className="ba-divider"></div>
@@ -21,22 +25,12 @@ export default function About() {
               </div>
             </div>
             <div className="about-text">
-              <p className="about-lead" id="abL">
-                Привет, я Михаил.<br />Дизайнер и разработчик цифровых продуктов.<br />
-                ELLHOME — моя лаборатория, где идея и технология тянутся навстречу друг другу.
-              </p>
+              <p className="about-lead" id="abL">{t.lead}</p>
               <div className="about-body">
-                <p id="abP1">
-                  Создаю сайты и программное обеспечение, работаю с моушном и 3D — от первой идеи до готового
-                  продукта. Мне интересно соединять технологии и визуальную форму так, чтобы они не просто
-                  работали, а создавали впечатление.
-                </p>
-                <p id="abP2">
-                  Каждый проект начинается с касания — момента, когда идея встречается с воплощением. Именно
-                  это и есть ELLHOME.
-                </p>
+                <p id="abP1">{t.p1}</p>
+                <p id="abP2">{t.p2}</p>
                 <div className="about-tags" id="abT">
-                  {chips.map((c) => <span key={c} className="chip">{c}</span>)}
+                  {t.chips.map((c) => <span key={c} className="chip">{c}</span>)}
                 </div>
               </div>
             </div>

@@ -455,3 +455,20 @@ html.lenis,html.lenis body{height:auto}
   .lp-stats{margin-top:34px;padding-top:26px}
 }
 @media(max-width:520px){ .lp-points{grid-template-columns:1fr} }
+
+/* ===== language switch ===== */
+.nav-right{display:flex;align-items:center;gap:clamp(16px,2.6vw,40px)}
+.lang-switch{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:400;letter-spacing:.16em}
+.lang-switch button{background:none;border:none;padding:2px 1px;margin:0;cursor:pointer;
+  font:inherit;letter-spacing:inherit;color:var(--muted);transition:color .3s}
+.lang-switch button:hover{color:var(--ink)}
+.lang-switch button.on{color:var(--accent-bright)}
+.lang-switch .ls-sep{color:var(--muted);opacity:.5;user-select:none}
+/* light-nav variant */
+.nav.nav-on-light .lang-switch button{color:#49525f}
+.nav.nav-on-light .lang-switch button:hover,.nav.nav-on-light .lang-switch button.on{color:#2b62d6}
+.nav.nav-on-light .lang-switch .ls-sep{color:#9aa1ab}
+@media (max-width:720px){
+  .nav-right{gap:16px}
+  .lang-switch{font-size:11px;gap:6px}
+}
