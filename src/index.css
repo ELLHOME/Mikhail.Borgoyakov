@@ -498,7 +498,8 @@ html.lenis,html.lenis body{height:auto}
 
 /* ===== Chat widget ===== */
 .cw-launcher{
-  position:fixed; right:22px; bottom:22px; z-index:80;
+  position:fixed; right:22px; z-index:80;
+  bottom:calc(22px + env(safe-area-inset-bottom, 0px));
   display:inline-flex; align-items:center; gap:9px; height:52px; padding:0 20px 0 16px;
   border:none; border-radius:30px; cursor:pointer;
   color:#eef2f8; background:linear-gradient(180deg,#232529,#17181c);
@@ -513,7 +514,8 @@ html.lenis,html.lenis body{height:auto}
 .cw-hidden{ opacity:0; pointer-events:none; transform:translateY(10px) scale(.9); }
 
 .cw-panel{
-  position:fixed; right:22px; bottom:22px; z-index:81;
+  position:fixed; right:22px; z-index:81;
+  bottom:calc(22px + env(safe-area-inset-bottom, 0px) + var(--cw-kb, 0px));
   width:min(384px, calc(100vw - 32px));
   opacity:0; transform:translateY(16px) scale(.98); pointer-events:none;
   transition:opacity .28s ease, transform .28s cubic-bezier(.2,.8,.2,1);
@@ -522,7 +524,8 @@ html.lenis,html.lenis body{height:auto}
 
 .cw-card{
   display:flex; flex-direction:column;
-  height:min(596px, calc(100vh - 120px));
+  height:min(596px, calc(100vh - 120px - var(--cw-kb, 0px)));
+  height:min(596px, calc(100dvh - 120px - var(--cw-kb, 0px)));
   background:#171820; color:#e8eaee;
   font-family:"Helvetica Neue",Arial,"Segoe UI",sans-serif;
 }
@@ -550,6 +553,9 @@ html.lenis,html.lenis body{height:auto}
 .cw-a .cw-bubble{ background:#262932; color:#e6e9ef; border-bottom-left-radius:5px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.04) }
 .cw-u .cw-bubble{ background:linear-gradient(180deg,#2f6be0,#2b62d6); color:#fff; border-bottom-right-radius:5px }
 .cw-a .cw-bubble b, .cw-a .cw-bubble strong{ color:#fff }
+.cw-bubble em{ color:#b9c0cd; font-style:italic }
+.cw-link{ color:#7fb0ff; text-decoration:underline; text-underline-offset:2px; word-break:break-word }
+.cw-link:hover{ color:#a9c9ff }
 .cw-typing{ display:inline-flex; gap:5px; align-items:center }
 .cw-typing span{ width:6px; height:6px; border-radius:50%; background:#8b93a2; animation:cw-dot 1.2s infinite ease-in-out }
 .cw-typing span:nth-child(2){ animation-delay:.18s } .cw-typing span:nth-child(3){ animation-delay:.36s }
@@ -568,9 +574,14 @@ html.lenis,html.lenis body{height:auto}
 .cw-send:disabled{ opacity:.4; cursor:default }
 
 @media (max-width:520px){
-  .cw-panel{ right:12px; left:12px; bottom:12px; width:auto }
-  .cw-card{ height:min(72vh, calc(100vh - 96px)) }
-  .cw-launcher{ right:14px; bottom:14px }
+  .cw-panel{ right:12px; left:12px; width:auto;
+    bottom:calc(12px + env(safe-area-inset-bottom, 0px) + var(--cw-kb, 0px)) }
+  .cw-card{ height:min(72vh, calc(100vh - 96px - var(--cw-kb, 0px)));
+            height:min(72dvh, calc(100dvh - 96px - var(--cw-kb, 0px))) }
+  .cw-launcher{ right:14px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)) }
+  /* пальцу нужна цель побольше, чем курсору */
+  .cw-tab{ padding:10px 6px }
+  .cw-input{ font-size:16px }   /* меньше 16px — Safari зумит страницу при фокусе */
 }
 
 /* вкладки режимов чата */

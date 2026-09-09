@@ -104,15 +104,30 @@ function IconSend() {
   );
 }
 
-// Лёгкий рендер разметки бота: **жирный** и списки "* "/"- " -> "• "
+// Лёгкий рендер разметки бота: **жирный**, *курсив*, [ссылка](url)
+// и списки "* "/"- " -> "• "
 function renderRich(text: string) {
   const src = text
     .split("\n")
     .map((l) => l.replace(/^\s*[*-]\s+/, "• "))
     .join("\n");
-  return src
-    .split(/\*\*(.+?)\*\*/g)
-    .map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>));
+  // без lookbehind — Safari на старых iPhone его не понимает
+  const re = /\*\*([^*]+)\*\*|\*([^*\n]+)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src)) !== null) {
+    if (m.index > last) out.push(<span key={key++}>{src.slice(last, m.index)}</span>);
+    if (m[1] !== undefined) out.push(<strong key={key++}>{m[1]}</strong>);
+    else if (m[2] !== undefined) out.push(<em key={key++}>{m[2]}</em>);
+    else out.push(
+      <a key={key++} className="cw-link" href={m[4]} target="_blank" rel="noopener noreferrer">{m[3]}</a>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < src.length) out.push(<span key={key++}>{src.slice(last)}</span>);
+  return out;
 }
 
 export default function ChatWidget() {
@@ -141,6 +156,26 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 150);
+  }, [open]);
+
+  // iOS: при открытой клавиатуре fixed-элементы остаются на месте и поле ввода
+  // уезжает под неё. Меряем visualViewport и поднимаем панель на высоту клавиатуры.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const root = document.documentElement;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.style.setProperty("--cw-kb", (open ? Math.round(inset) : 0) + "px");
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      root.style.setProperty("--cw-kb", "0px");
+    };
   }, [open]);
 
   // переписка переживает перезагрузку страницы
