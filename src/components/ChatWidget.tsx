@@ -13,7 +13,7 @@ const STR = {
     subtitle: "Обычно отвечает за пару секунд",
     greeting:
       "Здравствуйте! Я AI-консультант ELLHOME. Расскажу об услугах, прикину цену и сроки или приму заявку. Чем помочь?",
-    placeholder: "Спросите про услуги, цены или оставьте заявку…",
+    placeholder: "Спросите или оставьте заявку…",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
     send: "Отправить",
@@ -25,7 +25,7 @@ const STR = {
     subtitle: "Usually replies in seconds",
     greeting:
       "Hi! I'm ELLHOME's AI consultant. I can tell you about services, estimate price and timelines, or take a request. How can I help?",
-    placeholder: "Ask about services, prices, or leave a request…",
+    placeholder: "Ask or leave a request…",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
     send: "Send",
@@ -68,6 +68,11 @@ export default function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  function autosize(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 130) + "px";
+  }
+
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -83,6 +88,7 @@ export default function ChatWidget() {
     const history = messages.map((m) => ({ role: m.role, content: m.content }));
     setMessages((m) => [...m, { role: "user", content: text }]);
     setInput("");
+    if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
     setSlow(false);
     const slowTimer = setTimeout(() => setSlow(true), 8000);
@@ -158,7 +164,7 @@ export default function ChatWidget() {
                 rows={1}
                 value={input}
                 placeholder={t.placeholder}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => { setInput(e.target.value); autosize(e.target); }}
                 onKeyDown={onKey}
               />
               <button type="submit" className="cw-send" disabled={!input.trim() || loading} aria-label={t.send}>

@@ -556,12 +556,13 @@ html.lenis,html.lenis body{height:auto}
 @keyframes cw-dot{ 0%,60%,100%{ transform:translateY(0); opacity:.4 } 30%{ transform:translateY(-4px); opacity:1 } }
 .cw-waking{ font-size:11px; color:#8b93a2; text-align:center; padding:2px 8px }
 
-.cw-form{ display:flex; align-items:flex-end; gap:8px; padding:11px 12px; border-top:1px solid rgba(255,255,255,.07); background:#14151c }
-.cw-input{ flex:1; resize:none; max-height:120px; padding:10px 12px; font:inherit; font-size:13.5px; line-height:1.4;
-  color:#e8eaee; background:#20222b; border:1px solid rgba(255,255,255,.08); border-radius:13px; outline:none; }
+.cw-form{ display:flex; align-items:flex-end; gap:9px; padding:12px 12px; border-top:1px solid rgba(255,255,255,.07); background:#14151c }
+.cw-input{ flex:1; resize:none; box-sizing:border-box; min-height:48px; max-height:130px; padding:13px 15px;
+  font:inherit; font-size:14px; line-height:1.45; color:#e8eaee; background:#20222b;
+  border:1px solid rgba(255,255,255,.08); border-radius:14px; outline:none; overflow-y:auto; }
 .cw-input::placeholder{ color:#6b7280 }
 .cw-input:focus{ border-color:rgba(43,98,214,.6) }
-.cw-send{ flex:none; display:grid; place-items:center; width:40px; height:40px; border:none; border-radius:12px; cursor:pointer;
+.cw-send{ flex:none; display:grid; place-items:center; width:48px; height:48px; border:none; border-radius:14px; cursor:pointer;
   color:#fff; background:linear-gradient(180deg,#2f6be0,#2b62d6); transition:opacity .2s, transform .15s }
 .cw-send:hover:not(:disabled){ transform:translateY(-1px) }
 .cw-send:disabled{ opacity:.4; cursor:default }
