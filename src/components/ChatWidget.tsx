@@ -7,6 +7,7 @@ const STORE_KEY = "ellhome_chat";
 const KEEP = 40; // сколько последних сообщений храним
 
 type Msg = { role: "user" | "assistant"; content: string };
+type Mode = "consult" | "lab";
 
 function loadSaved(): Msg[] {
   try {
@@ -27,6 +28,13 @@ const STR = {
     greeting:
       "Здравствуйте! Я AI-консультант ELLHOME. Расскажу об услугах, прикину цену и сроки или приму заявку. Чем помочь?",
     placeholder: "Спросите или оставьте заявку…",
+    tabConsult: "Консультант",
+    tabLab: "Лаборатория",
+    titleLab: "Лаборатория ELLHOME",
+    subtitleLab: "Придумывает названия и идеи",
+    greetingLab:
+      "Это Лаборатория. Придумаю название проекту или подкину идею — скажи, для чего. Чем конкретнее запрос, тем острее выйдет.",
+    placeholderLab: "Название для… / идея для…",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
     send: "Отправить",
@@ -40,6 +48,13 @@ const STR = {
     greeting:
       "Hi! I'm ELLHOME's AI consultant. I can tell you about services, estimate price and timelines, or take a request. How can I help?",
     placeholder: "Ask or leave a request…",
+    tabConsult: "Consultant",
+    tabLab: "Lab",
+    titleLab: "ELLHOME Lab",
+    subtitleLab: "Invents names and ideas",
+    greetingLab:
+      "This is the Lab. I'll name your project or throw you an idea — tell me what for. The more specific, the sharper it gets.",
+    placeholderLab: "A name for… / an idea for…",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
     send: "Send",
@@ -93,6 +108,7 @@ export default function ChatWidget() {
   const t = STR[lang];
 
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<Mode>("consult");
   const [messages, setMessages] = useState<Msg[]>(loadSaved);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -140,9 +156,10 @@ export default function ChatWidget() {
       const r = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, history }),
+        body: JSON.stringify({ message: text, history, mode }),
       });
       const j = await r.json();
+      if (j?.mode === "consult" || j?.mode === "lab") setMode(j.mode);
       setMessages((m) => [...m, { role: "assistant", content: j?.reply || t.error }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: t.error }]);
@@ -178,8 +195,8 @@ export default function ChatWidget() {
             <header className="cw-head">
               <span className="cw-avatar"><IconChat /></span>
               <div className="cw-head-txt">
-                <div className="cw-title">{t.title}</div>
-                <div className="cw-sub"><span className="cw-online" />{t.subtitle}</div>
+                <div className="cw-title">{mode === "lab" ? t.titleLab : t.title}</div>
+                <div className="cw-sub"><span className="cw-online" />{mode === "lab" ? t.subtitleLab : t.subtitle}</div>
               </div>
               {messages.length > 0 && (
                 <button className="cw-x" onClick={clearChat} aria-label={t.clear} title={t.clear}><IconTrash /></button>
@@ -187,9 +204,18 @@ export default function ChatWidget() {
               <button className="cw-x" onClick={() => setOpen(false)} aria-label={t.close}><IconClose /></button>
             </header>
 
+            <div className="cw-tabs" role="tablist">
+              <button role="tab" aria-selected={mode === "consult"}
+                className={`cw-tab${mode === "consult" ? " on" : ""}`}
+                onClick={() => setMode("consult")}>{t.tabConsult}</button>
+              <button role="tab" aria-selected={mode === "lab"}
+                className={`cw-tab${mode === "lab" ? " on" : ""}`}
+                onClick={() => setMode("lab")}>{t.tabLab}</button>
+            </div>
+
             <div className="cw-msgs" ref={scrollRef}>
               <div className="cw-msg cw-a">
-                <div className="cw-bubble">{t.greeting}</div>
+                <div className="cw-bubble">{mode === "lab" ? t.greetingLab : t.greeting}</div>
               </div>
               {messages.map((m, i) => (
                 <div key={i} className={`cw-msg ${m.role === "user" ? "cw-u" : "cw-a"}`}>
@@ -210,7 +236,7 @@ export default function ChatWidget() {
                 className="cw-input"
                 rows={1}
                 value={input}
-                placeholder={t.placeholder}
+                placeholder={mode === "lab" ? t.placeholderLab : t.placeholder}
                 onChange={(e) => { setInput(e.target.value); autosize(e.target); }}
                 onKeyDown={onKey}
               />

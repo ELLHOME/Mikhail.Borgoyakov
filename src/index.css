@@ -572,3 +572,11 @@ html.lenis,html.lenis body{height:auto}
   .cw-card{ height:min(72vh, calc(100vh - 96px)) }
   .cw-launcher{ right:14px; bottom:14px }
 }
+
+/* вкладки режимов чата */
+.cw-tabs{ display:flex; gap:6px; padding:10px 12px 0; background:#171820 }
+.cw-tab{ flex:1; padding:7px 10px; border:1px solid rgba(255,255,255,.08); border-radius:10px; cursor:pointer;
+  font:inherit; font-size:12px; font-weight:600; letter-spacing:.02em; color:#9aa0ac;
+  background:rgba(255,255,255,.03); transition:color .25s, background .25s, border-color .25s }
+.cw-tab:hover{ color:#d6dae2; background:rgba(255,255,255,.06) }
+.cw-tab.on{ color:#fff; background:linear-gradient(180deg,#2f6be0,#2b62d6); border-color:transparent }
