@@ -3,8 +3,21 @@ import { useLang } from "../i18n";
 import BorderBeam from "./BorderBeam";
 
 const API_URL = "https://ellhome-bot-api.onrender.com/chat";
+const STORE_KEY = "ellhome_chat";
+const KEEP = 40; // сколько последних сообщений храним
 
 type Msg = { role: "user" | "assistant"; content: string };
+
+function loadSaved(): Msg[] {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed.slice(-KEEP);
+    }
+  } catch { /* storage unavailable */ }
+  return [];
+}
 
 const STR = {
   ru: {
@@ -18,6 +31,7 @@ const STR = {
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
     send: "Отправить",
     close: "Закрыть",
+    clear: "Очистить переписку",
   },
   en: {
     launch: "Ask AI",
@@ -30,6 +44,7 @@ const STR = {
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
     send: "Send",
     close: "Close",
+    clear: "Clear conversation",
   },
 };
 
@@ -47,6 +62,13 @@ function IconClose() {
     </svg>
   );
 }
+function IconTrash() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v5M14 11v5" />
+    </svg>
+  );
+}
 function IconSend() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
@@ -60,7 +82,7 @@ export default function ChatWidget() {
   const t = STR[lang];
 
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const [messages, setMessages] = useState<Msg[]>(loadSaved);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -81,6 +103,17 @@ export default function ChatWidget() {
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 150);
   }, [open]);
+
+  // переписка переживает перезагрузку страницы
+  useEffect(() => {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(messages.slice(-KEEP))); } catch { /* noop */ }
+  }, [messages]);
+
+  function clearChat() {
+    setMessages([]);
+    try { localStorage.removeItem(STORE_KEY); } catch { /* noop */ }
+    inputRef.current?.focus();
+  }
 
   async function send() {
     const text = input.trim();
@@ -137,6 +170,9 @@ export default function ChatWidget() {
                 <div className="cw-title">{t.title}</div>
                 <div className="cw-sub"><span className="cw-online" />{t.subtitle}</div>
               </div>
+              {messages.length > 0 && (
+                <button className="cw-x" onClick={clearChat} aria-label={t.clear} title={t.clear}><IconTrash /></button>
+              )}
               <button className="cw-x" onClick={() => setOpen(false)} aria-label={t.close}><IconClose /></button>
             </header>
 
