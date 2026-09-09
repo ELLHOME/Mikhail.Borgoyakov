@@ -39,7 +39,7 @@ const STR = {
     titleGuide: "Путеводитель ELLHOME",
     subtitleGuide: "Справочник обо всём на свете",
     greetingGuide:
-      "Путеводитель к вашим услугам. Спросите, что такое что угодно — расскажу. Или задумайте вопрос и скажите «погадай»: энциклопедия ответит случайной статьёй, а я её истолкую.",
+      "Путеводитель к вашим услугам. Спросите, что такое что угодно — расскажу. А хотите погадать — задумайте вопрос и назовите номер страницы и строки: что окажется на этих координатах, то и будет ответом.",
     placeholderGuide: "Что такое… / погадай",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
@@ -65,7 +65,7 @@ const STR = {
     titleGuide: "The ELLHOME Guide",
     subtitleGuide: "An encyclopedia of everything",
     greetingGuide:
-      "The Guide at your service. Ask what anything is — I'll tell you. Or think of a question and say “divine”: the encyclopedia answers with a random entry and I'll interpret it.",
+      "The Guide at your service. Ask what anything is — I'll tell you. Or divine: think of a question and name a page and line number — whatever sits at those coordinates is your answer.",
     placeholderGuide: "What is… / divine",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
