@@ -10,7 +10,7 @@ export default function Contact() {
       <a className="c-mail" href="mailto:ellhome@yandex.ru">ellhome@yandex.ru</a>
       <div className="c-links reveal">
         <a href="https://t.me/M_B_lab" target="_blank" rel="noopener noreferrer">TELEGRAM</a>
-        <a href="https://github.com/ellhome" target="_blank" rel="noopener noreferrer">GITHUB</a>
+        <a href="https://wa.me/79265192777" target="_blank" rel="noopener noreferrer">WHATSAPP</a>
       </div>
     </section>
   );
