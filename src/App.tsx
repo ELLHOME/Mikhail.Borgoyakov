@@ -7,6 +7,7 @@ import Works from "./sections/Works";
 import Lab from "./sections/Lab";
 import Contact from "./sections/Contact";
 import Footer from "./components/Footer";
+import ChatWidget from "./components/ChatWidget";
 import { initSiteEffects } from "./hooks/useSiteEffects";
 
 export default function App() {
@@ -38,6 +39,7 @@ export default function App() {
       <Lab />
       <Contact />
       <Footer />
+      <ChatWidget />
     </>
   );
 }
