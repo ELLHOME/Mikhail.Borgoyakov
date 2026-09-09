@@ -77,6 +77,17 @@ function IconSend() {
   );
 }
 
+// Лёгкий рендер разметки бота: **жирный** и списки "* "/"- " -> "• "
+function renderRich(text: string) {
+  const src = text
+    .split("\n")
+    .map((l) => l.replace(/^\s*[*-]\s+/, "• "))
+    .join("\n");
+  return src
+    .split(/\*\*(.+?)\*\*/g)
+    .map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>));
+}
+
 export default function ChatWidget() {
   const { lang } = useLang();
   const t = STR[lang];
@@ -182,7 +193,7 @@ export default function ChatWidget() {
               </div>
               {messages.map((m, i) => (
                 <div key={i} className={`cw-msg ${m.role === "user" ? "cw-u" : "cw-a"}`}>
-                  <div className="cw-bubble">{m.content}</div>
+                  <div className="cw-bubble">{renderRich(m.content)}</div>
                 </div>
               ))}
               {loading && (
