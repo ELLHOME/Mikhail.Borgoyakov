@@ -7,7 +7,7 @@ const STORE_KEY = "ellhome_chat";
 const KEEP = 40; // сколько последних сообщений храним
 
 type Msg = { role: "user" | "assistant"; content: string };
-type Mode = "consult" | "lab";
+type Mode = "consult" | "lab" | "guide";
 
 function loadSaved(): Msg[] {
   try {
@@ -35,6 +35,12 @@ const STR = {
     greetingLab:
       "Это Лаборатория. Придумаю название проекту или подкину идею — скажи, для чего. Чем конкретнее запрос, тем острее выйдет.",
     placeholderLab: "Название для… / идея для…",
+    tabGuide: "Путеводитель",
+    titleGuide: "Путеводитель ELLHOME",
+    subtitleGuide: "Справочник обо всём на свете",
+    greetingGuide:
+      "Путеводитель к вашим услугам. Спросите, что такое что угодно — расскажу. Или задумайте вопрос и скажите «погадай»: энциклопедия ответит случайной статьёй, а я её истолкую.",
+    placeholderGuide: "Что такое… / погадай",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
     send: "Отправить",
@@ -55,6 +61,12 @@ const STR = {
     greetingLab:
       "This is the Lab. I'll name your project or throw you an idea — tell me what for. The more specific, the sharper it gets.",
     placeholderLab: "A name for… / an idea for…",
+    tabGuide: "Guide",
+    titleGuide: "The ELLHOME Guide",
+    subtitleGuide: "An encyclopedia of everything",
+    greetingGuide:
+      "The Guide at your service. Ask what anything is — I'll tell you. Or think of a question and say “divine”: the encyclopedia answers with a random entry and I'll interpret it.",
+    placeholderGuide: "What is… / divine",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
     send: "Send",
@@ -195,8 +207,8 @@ export default function ChatWidget() {
             <header className="cw-head">
               <span className="cw-avatar"><IconChat /></span>
               <div className="cw-head-txt">
-                <div className="cw-title">{mode === "lab" ? t.titleLab : t.title}</div>
-                <div className="cw-sub"><span className="cw-online" />{mode === "lab" ? t.subtitleLab : t.subtitle}</div>
+                <div className="cw-title">{mode === "guide" ? t.titleGuide : mode === "lab" ? t.titleLab : t.title}</div>
+                <div className="cw-sub"><span className="cw-online" />{mode === "guide" ? t.subtitleGuide : mode === "lab" ? t.subtitleLab : t.subtitle}</div>
               </div>
               {messages.length > 0 && (
                 <button className="cw-x" onClick={clearChat} aria-label={t.clear} title={t.clear}><IconTrash /></button>
@@ -211,11 +223,14 @@ export default function ChatWidget() {
               <button role="tab" aria-selected={mode === "lab"}
                 className={`cw-tab${mode === "lab" ? " on" : ""}`}
                 onClick={() => setMode("lab")}>{t.tabLab}</button>
+              <button role="tab" aria-selected={mode === "guide"}
+                className={`cw-tab${mode === "guide" ? " on" : ""}`}
+                onClick={() => setMode("guide")}>{t.tabGuide}</button>
             </div>
 
             <div className="cw-msgs" ref={scrollRef}>
               <div className="cw-msg cw-a">
-                <div className="cw-bubble">{mode === "lab" ? t.greetingLab : t.greeting}</div>
+                <div className="cw-bubble">{mode === "guide" ? t.greetingGuide : mode === "lab" ? t.greetingLab : t.greeting}</div>
               </div>
               {messages.map((m, i) => (
                 <div key={i} className={`cw-msg ${m.role === "user" ? "cw-u" : "cw-a"}`}>
@@ -236,7 +251,7 @@ export default function ChatWidget() {
                 className="cw-input"
                 rows={1}
                 value={input}
-                placeholder={mode === "lab" ? t.placeholderLab : t.placeholder}
+                placeholder={mode === "guide" ? t.placeholderGuide : mode === "lab" ? t.placeholderLab : t.placeholder}
                 onChange={(e) => { setInput(e.target.value); autosize(e.target); }}
                 onKeyDown={onKey}
               />
