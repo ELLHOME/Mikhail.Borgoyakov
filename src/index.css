@@ -579,8 +579,10 @@ html.lenis,html.lenis body{height:auto}
   .cw-card{ height:min(72vh, calc(100vh - 96px - var(--cw-kb, 0px)));
             height:min(72dvh, calc(100dvh - 96px - var(--cw-kb, 0px))) }
   .cw-launcher{ right:14px; bottom:calc(14px + env(safe-area-inset-bottom, 0px)) }
-  /* пальцу нужна цель побольше, чем курсору */
-  .cw-tab{ padding:10px 6px }
+  /* пальцу нужна цель побольше, чем курсору.
+     .cw-tabs .cw-tab — а не просто .cw-tab: базовое правило идёт ниже по файлу
+     и при равной специфичности перебивало бы этот отступ */
+  .cw-tabs .cw-tab{ padding:10px 6px }
   .cw-input{ font-size:16px }   /* меньше 16px — Safari зумит страницу при фокусе */
 }
 
