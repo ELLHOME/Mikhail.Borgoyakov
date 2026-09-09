@@ -35,11 +35,11 @@ const STR = {
     greetingLab:
       "Это Лаборатория. Придумаю название проекту или подкину идею — скажи, для чего. Чем конкретнее запрос, тем острее выйдет.",
     placeholderLab: "Название для… / идея для…",
-    tabGuide: "Путеводитель",
-    titleGuide: "Путеводитель ELLHOME",
-    subtitleGuide: "Справочник обо всём на свете",
+    tabGuide: "wikiмантия",
+    titleGuide: "wikiмантия",
+    subtitleGuide: "Гадание и справки по энциклопедии",
     greetingGuide:
-      "Путеводитель к вашим услугам. Спросите, что такое что угодно — расскажу. А хотите погадать — задумайте вопрос и назовите номер страницы и строки: что окажется на этих координатах, то и будет ответом.",
+      "wikiмантия — гадание по энциклопедии. Спросите, что такое что угодно, — расскажу. А хотите погадать — задумайте вопрос и назовите номер страницы и строки: что окажется на этих координатах, то и будет ответом.",
     placeholderGuide: "Что такое… / погадай",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
@@ -61,11 +61,11 @@ const STR = {
     greetingLab:
       "This is the Lab. I'll name your project or throw you an idea — tell me what for. The more specific, the sharper it gets.",
     placeholderLab: "A name for… / an idea for…",
-    tabGuide: "Guide",
-    titleGuide: "The ELLHOME Guide",
-    subtitleGuide: "An encyclopedia of everything",
+    tabGuide: "wikimancy",
+    titleGuide: "wikimancy",
+    subtitleGuide: "Divination by encyclopedia",
     greetingGuide:
-      "The Guide at your service. Ask what anything is — I'll tell you. Or divine: think of a question and name a page and line number — whatever sits at those coordinates is your answer.",
+      "wikimancy — divination by encyclopedia. Ask what anything is and I'll tell you. Or divine: think of a question and name a page and line number — whatever sits at those coordinates is your answer.",
     placeholderGuide: "What is… / divine",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
