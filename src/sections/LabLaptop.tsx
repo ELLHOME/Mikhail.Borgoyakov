@@ -79,7 +79,7 @@ export default function LabLaptop({
 
           <div className="ll-caption" key={it.t}>
             <span className="ll-num track-sm">{it.n} / {String(N).padStart(2, "0")}</span>
-            <h3 className="ll-name">{it.t}</h3>
+            <h3 className={`ll-name${it.t.length > 9 ? " long" : ""}`}>{it.t}</h3>
             <p className="ll-tagline">{it.tagline}</p>
             <div className="ll-contrib track-sm">{contrib}</div>
             <ul className="ll-points">{it.points.map((p) => <li key={p}>{p}</li>)}</ul>

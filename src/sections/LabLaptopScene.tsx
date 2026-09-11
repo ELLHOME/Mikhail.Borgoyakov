@@ -15,8 +15,25 @@ const BASE_D = LID_H * 0.94;           // глубина корпуса
 const CLOSED = Math.PI / 2;            // крышка лежит на корпусе
 const OPEN = -0.2;                     // раскрыта, с лёгким наклоном назад
 
-const KB_COLS = 14;
+const KB_COLS = 14;   // ширина ряда в условных единицах клавиши
 const KB_ROWS = 5;
+
+/** Раскладка: ширины в единицах клавиши, сумма каждого ряда = KB_COLS.
+    Одна таблица кормит и рельеф, и текстуру с буквами — иначе надписи
+    разъезжаются с клавишами при любой правке. */
+const KEY_ROWS: { w: number; t: string }[][] = [
+  "` 1 2 3 4 5 6 7 8 9 0 - = ⌫".split(" ").map((t) => ({ w: 1, t })),
+  "⇥ Q W E R T Y U I O P [ ] \\".split(" ").map((t) => ({ w: 1, t })),
+  "⇪ A S D F G H J K L ; ' ⏎".split(" ").map((t, i, a) =>
+    ({ w: i === a.length - 1 ? 2 : 1, t })),
+  "⇧ Z X C V B N M , . / ⇧".split(" ").map((t, i, a) =>
+    ({ w: i === 0 || i === a.length - 1 ? 1.5 : 1, t })),
+  [
+    { w: 1.3, t: "ctrl" }, { w: 1.3, t: "alt" }, { w: 1.3, t: "⌘" },
+    { w: 6, t: "" }, { w: 1.3, t: "⌘" }, { w: 1.3, t: "alt" },
+    { w: 0.75, t: "◂" }, { w: 0.75, t: "▸" },
+  ],
+];
 const KB_W = LID_W * 0.82;
 const KB_D = BASE_D * 0.4;
 
@@ -37,33 +54,70 @@ function phase(t: number) {
 
 /** Клавиши одним instancedMesh: 70 отдельных мешей стоили бы столько же
     вызовов отрисовки, а так — один. Без клавиш площадка читается плитой. */
+/** Надписи одной текстурой: рисуем их на холсте по той же раскладке
+    и кладём плёнкой поверх клавиш. Семьдесят отдельных надписей стоили бы
+    семьдесят вызовов отрисовки, а так — один. */
+function makeLegends() {
+  const cw = 2048;
+  const ch = Math.round((cw * KB_D) / KB_W);
+  const c = document.createElement("canvas");
+  c.width = cw; c.height = ch;
+  const ctx = c.getContext("2d")!;
+  const unit = cw / KB_COLS, rowH = ch / KB_ROWS;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(226,232,242,.92)";
+  KEY_ROWS.forEach((row, r) => {
+    let u = 0;
+    row.forEach((k) => {
+      if (k.t) {
+        const size = k.t.length > 1 ? rowH * 0.24 : rowH * 0.38;
+        ctx.font = `500 ${size}px "Helvetica Neue", Arial, sans-serif`;
+        ctx.fillText(k.t, (u + k.w / 2) * unit, (r + 0.5) * rowH);
+      }
+      u += k.w;
+    });
+  });
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 function Keyboard() {
   const ref = useRef<THREE.InstancedMesh>(null);
-  const count = KB_COLS * KB_ROWS;
+  const count = useMemo(() => KEY_ROWS.reduce((n, r) => n + r.length, 0), []);
+  const legends = useMemo(makeLegends, []);
   useEffect(() => {
     if (!ref.current) return;
     const m = new THREE.Object3D();
-    const kw = KB_W / KB_COLS, kd = KB_D / KB_ROWS;
+    const unit = KB_W / KB_COLS, kd = KB_D / KB_ROWS;
     let i = 0;
-    for (let r = 0; r < KB_ROWS; r++) {
-      for (let c = 0; c < KB_COLS; c++) {
+    KEY_ROWS.forEach((row, r) => {
+      let u = 0;
+      row.forEach((k) => {
         m.position.set(
-          -KB_W / 2 + kw * (c + 0.5),
+          -KB_W / 2 + unit * (u + k.w / 2),
           0.062,
           -BASE_D * 0.1 - KB_D / 2 + kd * (r + 0.5),
         );
-        m.scale.set(kw * 0.82, 1, kd * 0.78);
+        m.scale.set(unit * k.w * 0.88, 1, kd * 0.8);
         m.updateMatrix();
-        ref.current.setMatrixAt(i++, m.matrix);
-      }
-    }
+        ref.current!.setMatrixAt(i++, m.matrix);
+        u += k.w;
+      });
+    });
     ref.current.instanceMatrix.needsUpdate = true;
   }, [count]);
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, count]} castShadow>
-      <boxGeometry args={[1, 0.012, 1]} />
-      <meshStandardMaterial color="#34383f" metalness={0.42} roughness={0.58} />
-    </instancedMesh>
+    <group>
+      <instancedMesh ref={ref} args={[undefined, undefined, count]} castShadow>
+        <boxGeometry args={[1, 0.012, 1]} />
+        <meshStandardMaterial color="#34383f" metalness={0.42} roughness={0.58} />
+      </instancedMesh>
+      <mesh position={[0, 0.0695, -BASE_D * 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[KB_W, KB_D]} />
+        <meshBasicMaterial map={legends} transparent depthWrite={false} toneMapped={false} />
+      </mesh>
+    </group>
   );
 }
 
@@ -207,9 +261,10 @@ function Rig({ children }: { children: React.ReactNode }) {
     // координатах, чтобы он не лез на текст, — подбор наугад: на другой
     // ширине он снова наезжал. Холст сам начинается правее колонки с текстом.
     cam.position.set(0, dist * 0.27, dist);
-    // в одноколоночной раскладке смотрим ниже объекта: ноутбук уходит вверх,
-    // под него встаёт текст. В двухколоночной он стоит по центру своего холста.
-    cam.lookAt(0, stacked ? -1.75 : 0.45, 0);
+    // Ноутбук всегда по центру своего холста. Разводит его с текстом вёрстка:
+    // на широком экране холст начинается правее колонки, на узком — занимает
+    // верхнюю полосу. Двигать объект внутри сцены для этого не нужно.
+    cam.lookAt(0, 0.45, 0);
     cam.updateProjectionMatrix();
     if (g.current) g.current.position.x = 0;
   }, [camera, size]);

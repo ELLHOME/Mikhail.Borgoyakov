@@ -720,7 +720,10 @@ html.lenis,html.lenis body{height:auto}
 .ll-ui{position:absolute;inset:0;z-index:2;pointer-events:none;
   display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2.2vh,26px);
   padding:clamp(84px,10vh,112px) var(--pad) clamp(22px,4vh,44px)}
-.ll-ui > *{max-width:min(38ch,29vw)}
+/* Ширину колонки задаём в vw, а не в ch: ch считается от размера шрифта
+   самого блока и оказывается куда уже, чем кажется — из-за этого «МонТерра»
+   переносилась по слогам. */
+.ll-ui > *{max-width:min(30vw,560px)}
 .ll-eyebrow{align-self:flex-start;font-size:12px;color:#2b62d6;padding:6px 13px;
   border:1px solid rgba(43,98,214,.35);border-radius:2px}
 .ll-head{transition:opacity .5s ease}
@@ -732,8 +735,12 @@ html.lenis,html.lenis body{height:auto}
 .ll-caption{animation:ll-text .5s cubic-bezier(.22,1,.36,1) both}
 @keyframes ll-text{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .ll-num{font-size:12px;color:#2b62d6}
+/* overflow-wrap:anywhere рвал слово в любом месте — отсюда «МонТерр / а».
+   Внутри слова не переносим вовсе, а длинным названиям даём свой размер. */
 .ll-name{margin-top:6px;font-weight:600;font-size:clamp(34px,5vw,84px);line-height:.94;
-  letter-spacing:-.035em;color:#0c1220;max-width:100%;overflow-wrap:anywhere}
+  letter-spacing:-.035em;color:#0c1220;max-width:100%;
+  overflow-wrap:normal;word-break:keep-all;hyphens:none}
+.ll-name.long{font-size:clamp(28px,3.3vw,54px);letter-spacing:-.025em}
 .ll-tagline{margin-top:14px;font-size:clamp(13px,1vw,16px);line-height:1.5;color:#3d4759;max-width:32ch}
 .ll-contrib{margin-top:16px;font-size:11px;color:#8a95a8}
 .ll-points{margin-top:8px;display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0}
@@ -751,17 +758,26 @@ html.lenis,html.lenis body{height:auto}
 .ll-stat-v{font-size:clamp(17px,1.5vw,23px);font-weight:600;color:#101728}
 .ll-stat-l{font-size:10.5px;color:#8a95a8}
 
-/* узкие экраны: подписи внизу, ноутбук выше */
+/* Узкие экраны: холст занимает верхнюю полосу, текст — нижнюю.
+   Раньше холст был на весь экран, а подписи лежали поверх: на невысоком
+   телефоне колонка не помещалась и наезжала на ноутбук. Теперь это
+   две непересекающиеся полосы, и наложение невозможно в принципе. */
 @media (max-width:1100px){
-  .ll-ui{justify-content:flex-end;padding-bottom:clamp(26px,5vh,52px)}
+  .ll-scene{inset:0 0 auto 0;height:42vh}
+  .ll-ui{justify-content:flex-start;padding:calc(42vh + clamp(10px,2vh,20px)) var(--pad) clamp(20px,4vh,40px)}
   .ll-ui > *{max-width:none}
   .ll-name{font-size:clamp(28px,7vw,48px)}
-  .ll-head.off{display:none}
+  /* заголовок секции на телефоне не показываем вовсе — места нет,
+     своё он уже сказал в шапке */
+  .ll-head{display:none}
 }
 @media (max-width:620px){
-  .ll-lead{display:none}
   .ll-points li:nth-child(n+4){display:none}
-  .ll-stats{gap:18px}
   .ll-dot{width:20px}
   .ll-dot.on{width:40px}
+}
+/* на низких экранах убираем цифры — они наименее полезны */
+@media (max-width:1100px) and (max-height:720px){
+  .ll-stats{display:none}
+  .ll-tagline{font-size:13px}
 }
