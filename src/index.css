@@ -603,95 +603,99 @@ html.lenis,html.lenis body{height:auto}
 .cw-tab:hover{ color:#d6dae2; background:rgba(255,255,255,.06) }
 .cw-tab.on{ color:#fff; background:linear-gradient(180deg,#2f6be0,#2b62d6); border-color:transparent }
 
-/* ===== Lab: лента проектов (крупный кадр + миникарта) ===== */
+/* ===== Lab: лента проектов ===== */
 /* Секция светлая — она держит чередование: герой тёмный, «обо мне» светлый,
    «работы» тёмные, лаборатория светлая, контакты тёмные.
    Высота задаётся инлайном (N × 72vh): сцена липнет, прокрутка выбирает проект. */
-.ls-sec{position:relative}
+/* padding:0 — глобальное правило для section вжимает секцию на var(--pad)
+   с каждой стороны, и кадр не доходил до края экрана */
+.ls-sec{position:relative;padding:0}
 .ls-stage{position:sticky;top:0;height:100vh;overflow:hidden;
   background:repeating-linear-gradient(135deg,rgba(20,30,55,.028) 0 2px,transparent 2px 9px),
              linear-gradient(180deg,#eef1f7 0%,#e6eaf3 60%,#eef1f7 100%);
   color:#101728;
-  display:grid;grid-template-columns:minmax(275px,.82fr) minmax(0,1.75fr) auto;
-  gap:clamp(20px,2.6vw,52px);align-items:center;
-  padding:clamp(90px,11vh,118px) var(--pad) clamp(22px,4vh,44px)}
+  display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.25fr);
+  gap:clamp(24px,3vw,60px);align-items:center;
+  /* справа паддинга нет: кадр должен дойти до края экрана */
+  padding:clamp(84px,10vh,112px) 0 clamp(22px,4vh,44px) var(--pad)}
 
 .ls-left{height:100%;min-width:0;display:flex;flex-direction:column;justify-content:center;
-  gap:clamp(20px,3.4vh,40px)}
-.ls-eyebrow{align-self:flex-start;display:inline-block;font-size:12px;color:#2b62d6;padding:6px 13px;
+  gap:clamp(14px,2.2vh,26px);padding-right:clamp(12px,1.5vw,28px)}
+.ls-eyebrow{align-self:flex-start;font-size:12px;color:#2b62d6;padding:6px 13px;
   border:1px solid rgba(43,98,214,.35);border-radius:2px}
-.ls-title{margin-top:14px;font-weight:600;font-size:clamp(20px,2vw,32px);line-height:1.07;letter-spacing:-.01em}
-.ls-title b{color:#2b62d6;font-weight:600}
-.ls-lead{margin-top:10px;font-size:clamp(12.5px,.92vw,14.5px);line-height:1.5;color:#54607a}
 
-.ls-caption{animation:ls-text .45s cubic-bezier(.22,1,.36,1) both}
-@keyframes ls-text{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.ls-head{transition:opacity .5s ease}
+.ls-head.off{opacity:0;pointer-events:none}
+.ls-title{font-weight:600;font-size:clamp(20px,1.9vw,30px);line-height:1.07;letter-spacing:-.01em}
+.ls-title b{color:#2b62d6;font-weight:600}
+.ls-lead{margin-top:9px;font-size:clamp(12.5px,.9vw,14px);line-height:1.5;color:#54607a}
+
+.ls-caption{animation:ls-text .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes ls-text{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 .ls-num{font-size:12px;color:#2b62d6}
-.ls-name{margin-top:8px;font-weight:600;font-size:clamp(26px,3.1vw,48px);line-height:1.02;letter-spacing:-.02em}
-.ls-tagline{margin-top:12px;font-size:clamp(13px,1vw,16px);line-height:1.5;color:#3d4759}
-.ls-contrib{margin-top:18px;font-size:11px;color:#8a95a8}
-.ls-points{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0}
+/* главное на экране — имя проекта, как «Motion design» в соседней секции */
+.ls-name{margin-top:6px;font-weight:600;font-size:clamp(36px,5.4vw,90px);line-height:.94;
+  letter-spacing:-.035em;color:#0c1220;max-width:100%;overflow-wrap:anywhere}
+.ls-tagline{margin-top:14px;font-size:clamp(13px,1vw,16px);line-height:1.5;color:#3d4759;max-width:34ch}
+.ls-contrib{margin-top:16px;font-size:11px;color:#8a95a8}
+.ls-points{margin-top:8px;display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0}
 .ls-points li{font-size:11.5px;letter-spacing:.04em;color:#3d4759;padding:5px 11px;border-radius:999px;
-  border:1px solid rgba(20,30,55,.14);background:rgba(255,255,255,.75)}
+  border:1px solid rgba(20,30,55,.14);background:rgba(255,255,255,.7)}
+
+/* один навигатор вместо двух: миникарта и вертикальный прогресс дублировались */
+.ls-nav{display:flex;align-items:center;gap:10px}
+.ls-dot{width:26px;height:9px;padding:0;border:none;border-radius:999px;cursor:pointer;
+  background:rgba(20,30,55,.18);transition:background .35s,width .35s cubic-bezier(.22,1,.36,1)}
+.ls-dot:hover{background:rgba(20,30,55,.34)}
+.ls-dot.on{width:52px;background:#2b62d6}
 
 .ls-stats{display:flex;flex-wrap:wrap;gap:clamp(20px,2.4vw,44px)}
 .ls-stat{display:flex;flex-direction:column;gap:2px}
-.ls-stat-v{font-size:clamp(17px,1.6vw,24px);font-weight:600;color:#101728}
+.ls-stat-v{font-size:clamp(17px,1.5vw,23px);font-weight:600;color:#101728}
 .ls-stat-l{font-size:10.5px;color:#8a95a8}
 
-/* Кадр. Высоту задаёт САМА картинка (width:100%, height:auto), а не aspect-ratio:
-   свойство поддержано не везде, и там, где его нет, коробка схлопывалась в полоску,
-   а снимок растягивался. Собственные пропорции работают в любом браузере,
-   и обрезки при этом нет — кадр ложится целиком. */
-.ls-frame{position:relative;min-width:0;width:100%;margin:0 auto}
-.ls-slide{display:block;position:relative;border-radius:14px;overflow:hidden;background:#fff;
-  border:1px solid rgba(20,30,55,.12);
-  box-shadow:0 26px 70px rgba(20,30,55,.16),0 0 0 1px rgba(43,98,214,.12);
+/* Кадр — до самого края экрана, без рамки и тени.
+   Высоту задаёт сама картинка (width:100%, height:auto): aspect-ratio
+   поддержан не везде, и там коробка схлопывалась в полоску. */
+.ls-frame{position:relative;min-width:0;width:100%;max-height:100%;perspective:1500px}
+.ls-slide{display:block;position:relative;overflow:hidden;border-radius:12px 0 0 12px;
+  transform:rotateY(var(--ls-ry,0deg)) rotateX(var(--ls-rx,0deg));
+  transform-style:preserve-3d;transition:transform .5s cubic-bezier(.22,1,.36,1);
   /* раскрытие из горизонтальной линии: шторка расходится от середины */
   animation:ls-unfold .62s cubic-bezier(.22,1,.36,1) both}
-.ls-slide img{display:block;width:100%;height:auto}
+.ls-slide img{display:block;width:100%;height:auto;
+  /* медленный проезд с приближением: секция живёт, а не стоит между переходами */
+  animation:ls-drift 22s ease-in-out infinite alternate}
 @keyframes ls-unfold{
-  0%{opacity:0;clip-path:inset(49.4% 0 49.4% 0);transform:scale(.985)}
-  16%{opacity:1;clip-path:inset(49.4% 0 49.4% 0);transform:scale(.985)}
-  100%{opacity:1;clip-path:inset(0 0 0 0);transform:scale(1)}
+  0%{opacity:0;clip-path:inset(49.4% 0 49.4% 0)}
+  16%{opacity:1;clip-path:inset(49.4% 0 49.4% 0)}
+  100%{opacity:1;clip-path:inset(0 0 0 0)}
+}
+@keyframes ls-drift{
+  from{transform:scale(1.015) translate3d(0,0,0)}
+  to{transform:scale(1.075) translate3d(-1.4%,-1.8%,0)}
 }
 @media (prefers-reduced-motion:reduce){
-  .ls-slide{animation:none}
-  .ls-caption{animation:none}
+  .ls-slide,.ls-caption{animation:none}
+  .ls-slide img{animation:none}
+  .ls-slide{transition:none;transform:none}
 }
 
-/* Миникарта и вертикальный прогресс */
-.ls-side{display:flex;align-items:center;gap:18px;height:100%}
-.ls-map-win{height:270px;overflow:hidden;position:relative}
-.ls-map-win::before,.ls-map-win::after{content:"";position:absolute;left:0;right:0;height:62px;z-index:2;pointer-events:none}
-.ls-map-win::before{top:0;background:linear-gradient(180deg,#eaeef5,transparent)}
-.ls-map-win::after{bottom:0;background:linear-gradient(0deg,#eef1f7,transparent)}
-.ls-map-strip{transition:transform .55s cubic-bezier(.22,1,.36,1)}
-.ls-map-item{height:90px;display:grid;place-items:center}
-.ls-map-item img{width:86px;height:63px;object-fit:cover;border-radius:6px;
-  border:1px solid rgba(20,30,55,.14);opacity:.5;transition:opacity .35s,border-color .35s}
-.ls-map-item.on img{opacity:1;border-color:rgba(43,98,214,.55);box-shadow:0 6px 18px rgba(20,30,55,.16)}
-
-.ls-rail{position:relative;width:1px;height:56%;background:rgba(20,30,55,.16);flex:none}
-.ls-rail-fill{position:absolute;left:0;top:0;width:1px;background:var(--accent-bright,#2b62d6);
-  transition:height .5s cubic-bezier(.22,1,.36,1)}
-.ls-dot{position:absolute;left:50%;width:9px;height:9px;padding:0;border-radius:50%;cursor:pointer;
-  transform:translate(-50%,-50%);background:#fff;border:1px solid rgba(20,30,55,.3);transition:.3s}
-.ls-dot.on{background:#2b62d6;border-color:#2b62d6;box-shadow:0 0 10px rgba(43,98,214,.45)}
-
-/* Планшет и телефон: кадр сверху, текст под ним, миникарта прячется */
+/* Планшет и телефон: кадр сверху, текст под ним */
 @media (max-width:1100px){
-  .ls-stage{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:start;
-    gap:clamp(14px,2.4vh,24px);padding-top:clamp(84px,11vh,110px)}
-  .ls-side{display:none}
-  .ls-left{order:2;justify-content:flex-start;gap:clamp(14px,2.4vh,26px)}
-  .ls-frame{order:1}
-  .ls-stage{align-items:start}
+  .ls-stage{grid-template-columns:1fr;grid-template-rows:auto auto;align-items:start;align-content:start;
+    gap:clamp(14px,2.4vh,24px);padding:clamp(84px,11vh,110px) var(--pad) clamp(22px,4vh,44px)}
+  .ls-left{order:2;justify-content:flex-start;padding-right:0;gap:clamp(12px,2.2vh,22px)}
+  .ls-frame{order:1;perspective:none}
+  .ls-slide{border-radius:12px;transform:none}
   .ls-title{font-size:clamp(19px,4.2vw,28px)}
-  .ls-name{font-size:clamp(24px,5.6vw,38px)}
+  .ls-name{font-size:clamp(32px,8vw,56px)}
+  .ls-head.off{display:none}
 }
 @media (max-width:620px){
   .ls-lead{display:none}
   .ls-points li:nth-child(n+4){display:none}
   .ls-stats{gap:18px}
+  .ls-dot{width:20px}
+  .ls-dot.on{width:40px}
 }

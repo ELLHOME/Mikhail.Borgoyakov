@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import type { LabItem, Stat } from "./LabProcess";
 
 /**
- * Лента проектов: один кадр за раз, крупно, плюс миникарта.
+ * Лента проектов: один кадр за раз, в край экрана, с постоянным движением.
  *
- * Слайды НЕ едут непрерывным полотном. Раньше кадр был привязан к прокрутке
- * напрямую, и почти всё время в рамке висели два разных сайта, состыкованных
- * швом. Теперь прокрутка выбирает только номер проекта, а сам кадр появляется
- * разом — раскрывается из горизонтальной линии. Промежуточных состояний нет.
+ * Слайды НЕ едут непрерывным полотном: прокрутка выбирает только номер проекта,
+ * а кадр раскрывается разом из горизонтальной линии. Раньше кадр был привязан
+ * к прокрутке напрямую, и почти всё время в рамке висели два разных сайта,
+ * состыкованных швом.
  *
  * Листание привязано к прокрутке страницы, а не к перехвату колеса: исходный
  * компонент вешал wheel с preventDefault на window, и это заглушило бы скролл
@@ -21,7 +21,9 @@ export default function LabSlider({
 }) {
   const N = items.length;
   const [active, setActive] = useState(0);
+  const stageRef = useRef<HTMLDivElement>(null);
 
+  // прокрутка выбирает проект
   useEffect(() => {
     const sec = document.getElementById(id);
     if (!sec) return;
@@ -39,6 +41,38 @@ export default function LabSlider({
     return () => cancelAnimationFrame(raf);
   }, [id, N]);
 
+  // наклон кадра за курсором — только там, где курсор есть,
+  // и только если человек не просил убрать анимации
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    if (matchMedia("(hover: none)").matches) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0, nx = 0, ny = 0;
+    const onMove = (e: MouseEvent) => {
+      const r = stage.getBoundingClientRect();
+      nx = (e.clientX - r.left) / r.width - 0.5;
+      ny = (e.clientY - r.top) / r.height - 0.5;
+      if (!raf) raf = requestAnimationFrame(apply);
+    };
+    const apply = () => {
+      raf = 0;
+      stage.style.setProperty("--ls-ry", (nx * 5).toFixed(2) + "deg");
+      stage.style.setProperty("--ls-rx", (-ny * 3.2).toFixed(2) + "deg");
+    };
+    const onLeave = () => {
+      stage.style.setProperty("--ls-ry", "0deg");
+      stage.style.setProperty("--ls-rx", "0deg");
+    };
+    stage.addEventListener("mousemove", onMove);
+    stage.addEventListener("mouseleave", onLeave);
+    return () => {
+      stage.removeEventListener("mousemove", onMove);
+      stage.removeEventListener("mouseleave", onLeave);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   const jump = (i: number) => {
     const sec = document.getElementById(id);
     if (!sec) return;
@@ -51,12 +85,13 @@ export default function LabSlider({
 
   return (
     <section id={id} className="ls-sec section-light" style={{ height: `${N * 72}vh` }}>
-      {/* Сетка в три колонки: текст, кадр, миникарта с прогрессом.
-          Абсолютное позиционирование давало наезды колонок на части ширин. */}
-      <div className="ls-stage">
+      <div className="ls-stage" ref={stageRef}>
         <div className="ls-left">
-          <div className="ls-head">
-            <span className="ls-eyebrow track-sm">{eyebrow}</span>
+          <span className="ls-eyebrow track-sm">{eyebrow}</span>
+
+          {/* заголовок секции говорит своё на первом проекте и уходит,
+              освобождая воздух под крупное имя */}
+          <div className={`ls-head${active === 0 ? "" : " off"}`}>
             <h2 className="ls-title">{title}</h2>
             <p className="ls-lead">{lead}</p>
           </div>
@@ -71,6 +106,16 @@ export default function LabSlider({
             </ul>
           </div>
 
+          {/* единственный навигатор: миникарта и вертикальный прогресс
+              говорили одно и то же, осталась одна строка точек */}
+          <nav className="ls-nav" aria-label={typeof title === "string" ? title : "projects"}>
+            {items.map((p, i) => (
+              <button key={p.t} className={`ls-dot${i === active ? " on" : ""}`}
+                      onClick={() => jump(i)} aria-label={p.t}
+                      aria-current={i === active ? "true" : undefined} />
+            ))}
+          </nav>
+
           <div className="ls-stats">
             {stats.map((s) => (
               <div className="ls-stat" key={s.l}>
@@ -81,34 +126,12 @@ export default function LabSlider({
           </div>
         </div>
 
-        {/* Соотношение рамки равно соотношению самих превью (1680×1225),
-            поэтому кадр ложится целиком: ничего не режется и полей нет. */}
+        {/* Кадр уходит в правый край экрана — без рамки и тени, как полосные
+            картинки в соседних секциях. Высоту задаёт сама картинка:
+            aspect-ratio поддержан не везде, и там коробка схлопывалась. */}
         <div className="ls-frame">
           <div className="ls-slide" key={active}>
             <img src={it.img} alt={it.t} loading={active < 2 ? "eager" : "lazy"} />
-          </div>
-        </div>
-
-        <div className="ls-side">
-          <div className="ls-map" aria-hidden="true">
-            <div className="ls-map-win">
-              <div className="ls-map-strip" style={{ transform: `translateY(${-active * 90}px)` }}>
-                {items.map((p, i) => (
-                  <div className={`ls-map-item${i === active ? " on" : ""}`} key={p.t}>
-                    <img src={p.img} alt="" loading="lazy" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="ls-rail">
-            <span className="ls-rail-fill" style={{ height: `${(active / (N - 1)) * 100}%` }} />
-            {items.map((p, i) => (
-              <button key={p.t} className={`ls-dot${i === active ? " on" : ""}`}
-                      style={{ top: `${(i / (N - 1)) * 100}%` }}
-                      onClick={() => jump(i)} aria-label={p.t} />
-            ))}
           </div>
         </div>
       </div>
