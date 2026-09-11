@@ -125,13 +125,13 @@ export const content: Record<Lang, Dict> = {
           points: ["Креативная концепция", "UX/UI дизайн", "Веб-разработка", "Графический дизайн"],
         },
         {
-          n: "04", t: "СКАЛА", img: `${BASE}works/04.webp`,
+          n: "04", t: "СКАЛА", img: `${BASE}works/04.webp`, kind: "product",
           tagline: "Интерферометрический радар для дистанционного мониторинга деформаций.",
           about: "Создал визуальный язык продукта: от 3D-моделей до рекламных роликов и презентационных материалов. Главная задача — сделать высокотехнологичное оборудование понятным и визуально привлекательным.",
           points: ["Арт-дирекшн", "3D-визуализация", "Motion Design", "Рекламные материалы"],
         },
         {
-          n: "05", t: "Lynq", img: `${BASE}works/05.webp`,
+          n: "05", t: "Lynq", img: `${BASE}works/05.webp`, kind: "product",
           tagline: "Линейка профессиональных GNSS-приёмников.",
           about: "Разработал визуальную концепцию продуктовой линейки, подготовил 3D-визуализации, графические материалы и единый стиль представления оборудования для различных цифровых и печатных носителей.",
           points: ["Арт-дирекшн", "3D-визуализация", "Графический дизайн", "Продуктовая презентация"],
@@ -233,13 +233,13 @@ export const content: Record<Lang, Dict> = {
           points: ["Creative concept", "UX/UI design", "Web development", "Graphic design"],
         },
         {
-          n: "04", t: "SKALA", img: `${BASE}works/04.webp`,
+          n: "04", t: "SKALA", img: `${BASE}works/04.webp`, kind: "product",
           tagline: "An interferometric radar for remote deformation monitoring.",
           about: "Created the product's visual language: from 3D models to promo reels and presentation materials. The main goal was to make high-tech equipment clear and visually appealing.",
           points: ["Art direction", "3D visualization", "Motion design", "Promotional materials"],
         },
         {
-          n: "05", t: "Lynq", img: `${BASE}works/05.webp`,
+          n: "05", t: "Lynq", img: `${BASE}works/05.webp`, kind: "product",
           tagline: "A line of professional GNSS receivers.",
           about: "Developed the visual concept for the product line, prepared 3D visualizations, graphic materials and a unified style for presenting the equipment across digital and print media.",
           points: ["Art direction", "3D visualization", "Graphic design", "Product presentation"],

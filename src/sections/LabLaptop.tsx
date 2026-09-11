@@ -56,6 +56,7 @@ export default function LabLaptop({
 
   const it = items[active];
   const imgs = useMemo(() => items.map((x) => x.img), [items]);
+  const kinds = useMemo(() => items.map((x) => x.kind ?? "web"), [items]);
 
   return (
     <section id={id} className="ll-sec section-light" style={{ height: `${N * 100}vh` }}>
@@ -65,7 +66,7 @@ export default function LabLaptop({
             <img className="ll-flat" src={it.img} alt={it.t} />
           ) : near ? (
             <Suspense fallback={null}>
-              <LaptopScene imgs={imgs} getP={() => prog.current} />
+              <LaptopScene imgs={imgs} kinds={kinds} getP={() => prog.current} />
             </Suspense>
           ) : null}
         </div>

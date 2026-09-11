@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
-export type LabItem = { n: string; t: string; tagline: string; about: string; points: string[]; img: string };
+// kind: «web» — скриншот сайта, показываем на экране ноутбука;
+// «product» — рендер изделия, ноутбук ему не нужен, показываем кадром.
+export type LabItem = { n: string; t: string; tagline: string; about: string;
+  points: string[]; img: string; kind?: "web" | "product" };
 export type Stat = { v: string; l: string };
 
 const ICONS: React.ReactNode[] = [

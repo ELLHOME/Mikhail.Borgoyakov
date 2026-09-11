@@ -37,6 +37,13 @@ const KEY_ROWS: { w: number; t: string }[][] = [
 const KB_W = LID_W * 0.82;
 const KB_D = BASE_D * 0.4;
 
+// Кадр изделия вписываем в ту же область, под которую камера считает
+// расстояние, — иначе на узком холсте он вылезал бы за края.
+const FIT_W = LID_W + 0.6;
+const FIT_H = LID_H + 1.2;
+const PROD_H = Math.min(FIT_H * 0.92, ((FIT_W * 0.92) * 1225) / 1680);
+const PROD_W = (PROD_H * 1680) / 1225;
+
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 // плавный старт и плавный конец — без него крышка дёргается на границах
 const smooth = (v: number) => { const t = clamp01(v); return t * t * (3 - 2 * t); };
@@ -122,9 +129,13 @@ function Keyboard() {
 }
 
 function Laptop({
-  imgs, getP,
-}: { imgs: string[]; getP: () => number }) {
+  imgs, kinds, getP,
+}: { imgs: string[]; kinds: string[]; getP: () => number }) {
   const lid = useRef<THREE.Group>(null);
+  const body = useRef<THREE.Group>(null);
+  const shot = useRef<THREE.Mesh>(null);
+  const bodyScale = useRef(1);
+  const shotShow = useRef(0);
   const rig = useRef<THREE.Group>(null);
   const { gl } = useThree();
 
@@ -163,6 +174,25 @@ function Laptop({
     const i = Math.min(imgs.length - 1, Math.floor(p));
     const open = phase(p - i);
 
+    const product = kinds[i] === "product";
+    if (body.current) {
+      // Изделию ноутбук не нужен: СКАЛА и Lynq — это радар и приёмники,
+      // а не сайты. Корпус убираем, рендер показываем кадром.
+      const want = product ? 0 : 1;
+      bodyScale.current += (want - bodyScale.current) * Math.min(1, dt * 8);
+      body.current.scale.setScalar(Math.max(0.0001, bodyScale.current));
+      body.current.visible = bodyScale.current > 0.02;
+    }
+    if (shot.current) {
+      const mat = shot.current.material as THREE.MeshBasicMaterial;
+      const want = product ? open : 0;
+      shotShow.current += (want - shotShow.current) * Math.min(1, dt * 8);
+      mat.opacity = shotShow.current;
+      shot.current.visible = shotShow.current > 0.02;
+      const sc = 0.9 + 0.1 * shotShow.current;
+      shot.current.scale.set(sc, sc, 1);
+      if (mat.map !== textures[i]) { mat.map = textures[i]; mat.needsUpdate = true; }
+    }
     if (lid.current) {
       const target = CLOSED + (OPEN - CLOSED) * open;
       lid.current.rotation.x += (target - lid.current.rotation.x) * Math.min(1, dt * 9);
@@ -197,6 +227,7 @@ function Laptop({
 
   return (
     <group ref={rig} position={[0, -0.5, 0]}>
+      <group ref={body}>
       {/* корпус */}
       <RoundedBox args={[LID_W, 0.11, BASE_D]} radius={0.045} smoothness={4} castShadow receiveShadow>
         <meshStandardMaterial color="#23262d" metalness={0.72} roughness={0.34} />
@@ -234,6 +265,13 @@ function Laptop({
           </mesh>
         </group>
       </group>
+      </group>
+
+      {/* кадр изделия — вместо ноутбука, со своим появлением */}
+      <mesh ref={shot} position={[0, 0.95, 0]}>
+        <planeGeometry args={[PROD_W, PROD_H]} />
+        <meshBasicMaterial transparent opacity={0} toneMapped={false} />
+      </mesh>
     </group>
   );
 }
@@ -279,7 +317,8 @@ function Rig({ children }: { children: React.ReactNode }) {
   return <group ref={g}>{children}</group>;
 }
 
-export default function LaptopScene({ imgs, getP }: { imgs: string[]; getP: () => number }) {
+export default function LaptopScene({ imgs, kinds, getP }:
+  { imgs: string[]; kinds: string[]; getP: () => number }) {
   return (
     <Canvas
       dpr={[1, 1.75]}
@@ -294,7 +333,7 @@ export default function LaptopScene({ imgs, getP }: { imgs: string[]; getP: () =
       <directionalLight position={[-4, 2.4, -2]} intensity={0.5} color="#a8c4ff" />
       <Rig>
         <Suspense fallback={null}>
-          <Laptop imgs={imgs} getP={getP} />
+          <Laptop imgs={imgs} kinds={kinds} getP={getP} />
         </Suspense>
         <ContactShadows position={[0, -0.92, 0]} opacity={0.42} scale={9} blur={2.6} far={4} />
       </Rig>
