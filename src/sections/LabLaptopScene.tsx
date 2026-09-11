@@ -189,11 +189,15 @@ function Rig({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
     const aspect = size.width / size.height;
-    const narrow = aspect < 1.15;
+    // Форма холста и тип раскладки — разные вещи, и путать их нельзя.
+    // Холст на широком экране занимает только 66% ширины, его пропорции
+    // могут быть около единицы — но раскладка при этом двухколоночная,
+    // и поднимать ноутбук вверх (как на телефоне) не надо.
+    const stacked = window.innerWidth <= 1100;
     // расстояние считаем из угла обзора, а не подбираем: при узком кадре
     // горизонтальный угол сильно меньше вертикального, и ноутбук вылезал за края
     const vfov = (cam.fov * Math.PI) / 180;
-    const needW = narrow ? LID_W + 0.9 : LID_W + 0.5;
+    const needW = stacked ? LID_W + 0.9 : LID_W + 0.6;
     const needH = LID_H + 1.2;
     const dist = Math.max(
       needW / 2 / (Math.tan(vfov / 2) * aspect),
@@ -203,8 +207,9 @@ function Rig({ children }: { children: React.ReactNode }) {
     // координатах, чтобы он не лез на текст, — подбор наугад: на другой
     // ширине он снова наезжал. Холст сам начинается правее колонки с текстом.
     cam.position.set(0, dist * 0.27, dist);
-    // на узком кадре смотрим ниже объекта: ноутбук уходит вверх, под него встаёт текст
-    cam.lookAt(0, narrow ? -1.75 : 0.15, 0);
+    // в одноколоночной раскладке смотрим ниже объекта: ноутбук уходит вверх,
+    // под него встаёт текст. В двухколоночной он стоит по центру своего холста.
+    cam.lookAt(0, stacked ? -1.75 : 0.45, 0);
     cam.updateProjectionMatrix();
     if (g.current) g.current.position.x = 0;
   }, [camera, size]);
