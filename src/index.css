@@ -206,14 +206,22 @@
     color:var(--muted);font-size:13px;letter-spacing:.16em}
   .contact .c-links a:hover{color:var(--ink)}
 
+  /* 1fr auto 1fr — средняя надпись центрируется по странице, а не по остатку места.
+     При space-between её сдвигал вправо длинный копирайт слева. */
   footer{background:var(--bg);border-top:1px solid var(--line);padding:26px var(--pad);
-    display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:11px;letter-spacing:.18em;font-weight:400}
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;
+    color:var(--muted);font-size:11px;letter-spacing:.18em;font-weight:400}
+  footer>span:nth-child(2){text-align:center}
+  footer>span:last-child{text-align:right}
   footer a:hover{color:var(--accent-bright)}
 
   .reveal{opacity:0;transform:translateY(26px);transition:opacity .9s cubic-bezier(.22,1,.36,1),transform .9s cubic-bezier(.22,1,.36,1)}
   .reveal.in{opacity:1;transform:none}
 
   @media(max-width:820px){
+    footer{grid-template-columns:1fr;justify-items:center;gap:8px}
+    footer>span:last-child{text-align:center}
+
     .hero{height:260vh}
 
     .works-sec{height:520vh}
