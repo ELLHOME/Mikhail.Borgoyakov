@@ -2,8 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 // kind: «web» — скриншот сайта, показываем на экране ноутбука;
 // «product» — рендер изделия, ноутбук ему не нужен, показываем кадром.
+// kind: «web» — скриншот сайта, показываем на экране ноутбука;
+// «product» — изделие, ноутбук ему не нужен.
+// video + keyOn: ролик изделия и фон, который из него выбивается по яркости
+// (у СКАЛЫ фон чёрный, у Lynq белый). img остаётся запасным кадром.
 export type LabItem = { n: string; t: string; tagline: string; about: string;
-  points: string[]; img: string; kind?: "web" | "product" };
+  points: string[]; img: string; kind?: "web" | "product";
+  video?: string; keyOn?: "black" | "white" };
 export type Stat = { v: string; l: string };
 
 const ICONS: React.ReactNode[] = [

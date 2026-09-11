@@ -41,8 +41,6 @@ const KB_D = BASE_D * 0.4;
 // расстояние, — иначе на узком холсте он вылезал бы за края.
 const FIT_W = LID_W + 0.6;
 const FIT_H = LID_H + 1.2;
-const PROD_H = Math.min(FIT_H * 0.92, ((FIT_W * 0.92) * 1225) / 1680);
-const PROD_W = (PROD_H * 1680) / 1225;
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 // плавный старт и плавный конец — без него крышка дёргается на границах
@@ -129,8 +127,12 @@ function Keyboard() {
 }
 
 function Laptop({
-  imgs, kinds, getP,
-}: { imgs: string[]; kinds: string[]; getP: () => number }) {
+  imgs, kinds, vids, keys, getP,
+}: {
+  imgs: string[]; kinds: string[];
+  vids: (string | undefined)[]; keys: (string | undefined)[];
+  getP: () => number;
+}) {
   const lid = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const shot = useRef<THREE.Mesh>(null);
@@ -153,6 +155,53 @@ function Laptop({
       return t;
     });
   }, [imgs, gl]);
+
+  // Ролики изделий: видео как текстура, фон выбивается по яркости прямо
+  // в шейдере. У СКАЛЫ фон идеально чёрный, у Lynq белый — в обоих случаях
+  // порог отделяет фон от предмета, замеряли по кадрам.
+  const videos = useMemo(() => vids.map((src) => {
+    if (!src) return null;
+    const v = document.createElement("video");
+    v.loop = true; v.muted = true; v.playsInline = true;
+    v.preload = "auto"; v.crossOrigin = "anonymous";
+    // Две дорожки: H.264 понимают все настоящие браузеры, VP9 — запасная
+    // (и единственная, которую умеет headless-Chromium, где я это проверяю).
+    for (const [url, type] of [
+      [src, "video/mp4"],
+      [src.replace(/\.mp4$/, ".webm"), "video/webm"],
+    ] as const) {
+      const el = document.createElement("source");
+      el.src = url; el.type = type;
+      v.appendChild(el);
+    }
+    v.load();
+    const t = new THREE.VideoTexture(v);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return { v, t };
+  }), [vids]);
+
+  useEffect(() => () => videos.forEach((x) => { if (x) { x.v.pause(); x.t.dispose(); } }), [videos]);
+
+  const keyMat = useMemo(() => new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: {
+      map: { value: null }, opacity: { value: 0 },
+      invert: { value: 0 }, lo: { value: 0.004 }, hi: { value: 0.05 },
+    },
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      uniform sampler2D map; uniform float opacity, invert, lo, hi;
+      varying vec2 vUv;
+      void main(){
+        vec4 c = texture2D(map, vUv);
+        float luma = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+        float k = mix(luma, 1.0 - luma, invert);
+        float a = smoothstep(lo, hi, k) * opacity;
+        if (a < 0.01) discard;
+        gl_FragColor = vec4(c.rgb, a);
+      }`,
+  }), []);
 
   const screenMat = useRef<THREE.MeshBasicMaterial>(null);
   const shown = useRef(-1);
@@ -184,14 +233,44 @@ function Laptop({
       body.current.visible = bodyScale.current > 0.02;
     }
     if (shot.current) {
-      const mat = shot.current.material as THREE.MeshBasicMaterial;
       const want = product ? open : 0;
       shotShow.current += (want - shotShow.current) * Math.min(1, dt * 8);
-      mat.opacity = shotShow.current;
       shot.current.visible = shotShow.current > 0.02;
-      const sc = 0.9 + 0.1 * shotShow.current;
-      shot.current.scale.set(sc, sc, 1);
-      if (mat.map !== textures[i]) { mat.map = textures[i]; mat.needsUpdate = true; }
+
+      const clip = videos[i];
+      const tex = clip ? clip.t : textures[i];
+      keyMat.uniforms.map.value = tex;
+      keyMat.uniforms.opacity.value = shotShow.current;
+      // без ролика ключ не нужен: показываем кадр как есть
+      // Фон выбит не здесь, а при экспорте кадров: он залит тем же цветом,
+      // что и холст сцены. Поэтому ключ в шейдере выключен — он давал
+      // рваную кромку на шуме сжатия и съедал тёмные детали изделия.
+      keyMat.uniforms.invert.value = 0;
+      keyMat.uniforms.lo.value = -1;
+      keyMat.uniforms.hi.value = 0;
+
+      // Ролик не играет сам: прокрутка перематывает его покадрово, как и
+      // раскрытие крышки у сайтов. Так вся секция подчиняется одному движению.
+      videos.forEach((x, j) => {
+        if (!x) return;
+        if (!x.v.paused) x.v.pause();
+        if (j !== i || !product) return;
+        const dur = x.v.duration;
+        if (!dur || !isFinite(dur)) return;
+        const t = clamp01(p - i) * (dur - 0.05);
+        if (Math.abs(x.v.currentTime - t) > 0.02 && x.v.readyState >= 1) x.v.currentTime = t;
+      });
+
+      // вписываем кадр в область, под которую камера считает расстояние
+      const src = clip ? clip.v : (textures[i].image as HTMLImageElement | undefined);
+      const aspect = clip
+        ? (src as HTMLVideoElement).videoWidth / ((src as HTMLVideoElement).videoHeight || 1)
+        : 1680 / 1225;
+      const a = aspect > 0.1 ? aspect : 1680 / 1225;
+      const h = Math.min(FIT_H * 0.92, FIT_W * 0.92 / a);
+      const w = h * a;
+      const sc = 0.92 + 0.08 * shotShow.current;
+      shot.current.scale.set(w * sc, h * sc, 1);
     }
     if (lid.current) {
       const target = CLOSED + (OPEN - CLOSED) * open;
@@ -267,10 +346,10 @@ function Laptop({
       </group>
       </group>
 
-      {/* кадр изделия — вместо ноутбука, со своим появлением */}
-      <mesh ref={shot} position={[0, 0.95, 0]}>
-        <planeGeometry args={[PROD_W, PROD_H]} />
-        <meshBasicMaterial transparent opacity={0} toneMapped={false} />
+      {/* кадр изделия — вместо ноутбука, со своим появлением.
+          Плоскость единичная, размер задаётся масштабом под пропорции ролика. */}
+      <mesh ref={shot} position={[0, 0.95, 0]} material={keyMat}>
+        <planeGeometry args={[1, 1]} />
       </mesh>
     </group>
   );
@@ -317,8 +396,11 @@ function Rig({ children }: { children: React.ReactNode }) {
   return <group ref={g}>{children}</group>;
 }
 
-export default function LaptopScene({ imgs, kinds, getP }:
-  { imgs: string[]; kinds: string[]; getP: () => number }) {
+export default function LaptopScene({ imgs, kinds, vids, keys, getP }: {
+  imgs: string[]; kinds: string[];
+  vids: (string | undefined)[]; keys: (string | undefined)[];
+  getP: () => number;
+}) {
   return (
     <Canvas
       dpr={[1, 1.75]}
@@ -333,7 +415,7 @@ export default function LaptopScene({ imgs, kinds, getP }:
       <directionalLight position={[-4, 2.4, -2]} intensity={0.5} color="#a8c4ff" />
       <Rig>
         <Suspense fallback={null}>
-          <Laptop imgs={imgs} kinds={kinds} getP={getP} />
+          <Laptop imgs={imgs} kinds={kinds} vids={vids} keys={keys} getP={getP} />
         </Suspense>
         <ContactShadows position={[0, -0.92, 0]} opacity={0.42} scale={9} blur={2.6} far={4} />
       </Rig>
