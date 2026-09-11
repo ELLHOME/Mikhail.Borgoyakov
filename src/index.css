@@ -639,15 +639,17 @@ html.lenis,html.lenis body{height:auto}
 .ls-stat-v{font-size:clamp(17px,1.6vw,24px);font-weight:600;color:#101728}
 .ls-stat-l{font-size:10.5px;color:#8a95a8}
 
-/* Кадр. Соотношение = соотношению исходников (1680/1225), поэтому обрезки нет. */
-.ls-frame{position:relative;min-width:0;width:100%;aspect-ratio:1680/1225;max-height:100%;
-  margin:0 auto;border-radius:14px;overflow:hidden;background:#fff;
+/* Кадр. Высоту задаёт САМА картинка (width:100%, height:auto), а не aspect-ratio:
+   свойство поддержано не везде, и там, где его нет, коробка схлопывалась в полоску,
+   а снимок растягивался. Собственные пропорции работают в любом браузере,
+   и обрезки при этом нет — кадр ложится целиком. */
+.ls-frame{position:relative;min-width:0;width:100%;margin:0 auto}
+.ls-slide{display:block;position:relative;border-radius:14px;overflow:hidden;background:#fff;
   border:1px solid rgba(20,30,55,.12);
-  box-shadow:0 26px 70px rgba(20,30,55,.16),0 0 0 1px rgba(43,98,214,.12)}
-.ls-slide{position:absolute;inset:0;
+  box-shadow:0 26px 70px rgba(20,30,55,.16),0 0 0 1px rgba(43,98,214,.12);
   /* раскрытие из горизонтальной линии: шторка расходится от середины */
   animation:ls-unfold .62s cubic-bezier(.22,1,.36,1) both}
-.ls-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.ls-slide img{display:block;width:100%;height:auto}
 @keyframes ls-unfold{
   0%{opacity:0;clip-path:inset(49.4% 0 49.4% 0);transform:scale(.985)}
   16%{opacity:1;clip-path:inset(49.4% 0 49.4% 0);transform:scale(.985)}
@@ -684,6 +686,7 @@ html.lenis,html.lenis body{height:auto}
   .ls-side{display:none}
   .ls-left{order:2;justify-content:flex-start;gap:clamp(14px,2.4vh,26px)}
   .ls-frame{order:1}
+  .ls-stage{align-items:start}
   .ls-title{font-size:clamp(19px,4.2vw,28px)}
   .ls-name{font-size:clamp(24px,5.6vw,38px)}
 }
