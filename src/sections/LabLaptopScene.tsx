@@ -213,9 +213,17 @@ function Laptop({
       </mesh>
       <Keyboard />
 
+      {/* Сама петля. Без неё между корпусом и крышкой оставался просвет:
+          у обеих деталей скруглённые рёбра, и они соприкасались только углами. */}
+      <mesh position={[0, 0.055, -BASE_D / 2]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.058, 0.058, LID_W * 0.99, 24]} />
+        <meshStandardMaterial color="#1b1e24" metalness={0.6} roughness={0.42} />
+      </mesh>
+
       {/* крышка на петле у задней кромки */}
       <group ref={lid} position={[0, 0.055, -BASE_D / 2]} rotation={[CLOSED, 0, 0]}>
-        <group position={[0, LID_H / 2, 0]}>
+        {/* чуть утоплена в петлю, чтобы стыка не было видно ни под каким углом */}
+        <group position={[0, LID_H / 2 - 0.035, 0]}>
           <RoundedBox args={[LID_W, LID_H, 0.055]} radius={0.04} smoothness={4} castShadow>
             <meshStandardMaterial color="#23262d" metalness={0.72} roughness={0.34} />
           </RoundedBox>
