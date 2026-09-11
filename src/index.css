@@ -594,3 +594,76 @@ html.lenis,html.lenis body{height:auto}
   background:rgba(255,255,255,.03); transition:color .25s, background .25s, border-color .25s }
 .cw-tab:hover{ color:#d6dae2; background:rgba(255,255,255,.06) }
 .cw-tab.on{ color:#fff; background:linear-gradient(180deg,#2f6be0,#2b62d6); border-color:transparent }
+
+/* ===== Lab: лента проектов (крупный кадр + миникарта) ===== */
+/* Высота секции задаётся инлайном (N × 85vh) — сцена липнет и листается прокруткой. */
+.ls-sec{position:relative;background:#05070c}
+.ls-stage{position:sticky;top:0;height:100vh;overflow:hidden;color:#eef2f8;
+  background:radial-gradient(120% 90% at 76% 42%,rgba(43,98,214,.13),transparent 62%),#05070c;
+  display:grid;grid-template-columns:minmax(275px,.82fr) minmax(0,1.75fr) auto;
+  gap:clamp(20px,2.6vw,52px);align-items:center;
+  padding:clamp(90px,11vh,118px) var(--pad) clamp(22px,4vh,44px)}
+
+.ls-left{height:100%;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:16px}
+.ls-eyebrow{display:inline-block;font-size:12px;color:#7fb0ff;padding:6px 13px;
+  border:1px solid rgba(127,176,255,.38);border-radius:2px}
+.ls-title{margin-top:14px;font-weight:600;font-size:clamp(20px,2vw,32px);line-height:1.07;letter-spacing:-.01em}
+.ls-title b{color:#7fb0ff;font-weight:600}
+.ls-lead{margin-top:10px;font-size:clamp(12.5px,.92vw,14.5px);line-height:1.5;color:#9fb0c8}
+
+.ls-caption{animation:ls-in .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes ls-in{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.ls-num{font-size:12px;color:#7fb0ff}
+.ls-name{margin-top:8px;font-weight:600;font-size:clamp(26px,3.1vw,48px);line-height:1.02;letter-spacing:-.02em}
+.ls-tagline{margin-top:12px;font-size:clamp(13px,1vw,16px);line-height:1.5;color:#c6d2e4}
+.ls-contrib{margin-top:18px;font-size:11px;color:#7c8ba3}
+.ls-points{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0}
+.ls-points li{font-size:11.5px;letter-spacing:.04em;color:#c6d2e4;padding:5px 11px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05)}
+
+.ls-stats{display:flex;flex-wrap:wrap;gap:clamp(20px,2.4vw,44px)}
+.ls-stat{display:flex;flex-direction:column;gap:2px}
+.ls-stat-v{font-size:clamp(17px,1.6vw,24px);font-weight:600;color:#fff}
+.ls-stat-l{font-size:10.5px;color:#7c8ba3}
+
+/* кадр проекта */
+.ls-frame{position:relative;min-width:0;width:100%;aspect-ratio:16/11;max-height:100%;
+  overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:#0b0f18;
+  box-shadow:0 40px 90px rgba(0,0,0,.55),0 0 0 1px rgba(43,98,214,.18)}
+.ls-slide{position:absolute;inset:0;overflow:hidden;will-change:transform}
+.ls-slide img{width:100%;height:100%;object-fit:cover;object-position:top center;will-change:transform}
+
+/* миникарта и вертикальный прогресс */
+.ls-side{display:flex;align-items:center;gap:18px;height:100%}
+.ls-map-win{height:270px;overflow:hidden;position:relative}
+.ls-map-win::before,.ls-map-win::after{content:"";position:absolute;left:0;right:0;height:64px;z-index:2;pointer-events:none}
+.ls-map-win::before{top:0;background:linear-gradient(180deg,#05070c,transparent)}
+.ls-map-win::after{bottom:0;background:linear-gradient(0deg,#05070c,transparent)}
+.ls-map-strip{will-change:transform}
+.ls-map-item{height:90px;display:grid;place-items:center}
+.ls-map-item img{width:86px;height:60px;object-fit:cover;object-position:top center;border-radius:6px;
+  border:1px solid rgba(255,255,255,.16);opacity:.45;transition:opacity .35s,border-color .35s}
+.ls-map-item.on img{opacity:1;border-color:rgba(127,176,255,.65);box-shadow:0 0 0 1px rgba(127,176,255,.3)}
+.ls-map-text{display:none}
+
+.ls-rail{position:relative;width:1px;height:56%;background:rgba(255,255,255,.16);flex:none}
+.ls-rail-fill{position:absolute;left:0;top:0;width:1px;background:#7fb0ff;height:0}
+.ls-dot{position:absolute;left:50%;width:9px;height:9px;padding:0;border-radius:50%;cursor:pointer;
+  transform:translate(-50%,-50%);background:#05070c;border:1px solid rgba(255,255,255,.4);transition:.3s}
+.ls-dot.on{background:#7fb0ff;border-color:#7fb0ff;box-shadow:0 0 12px rgba(127,176,255,.6)}
+
+/* планшет и телефон: кадр сверху, текст под ним, миникарта прячется */
+@media (max-width:1100px){
+  .ls-stage{grid-template-columns:1fr;grid-template-rows:auto auto;align-content:start;
+    gap:clamp(14px,2.4vh,24px);padding-top:clamp(84px,11vh,110px)}
+  .ls-side{display:none}
+  .ls-left{order:2;justify-content:flex-start;gap:clamp(14px,2.4vh,26px)}
+  .ls-frame{order:1;aspect-ratio:16/10}
+  .ls-title{font-size:clamp(19px,4.2vw,28px)}
+  .ls-name{font-size:clamp(24px,5.6vw,38px)}
+}
+@media (max-width:620px){
+  .ls-lead{display:none}
+  .ls-points li:nth-child(n+4){display:none}
+  .ls-stats{gap:18px}
+}
