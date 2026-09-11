@@ -39,7 +39,7 @@ const STR = {
     titleGuide: "wikiмантия",
     subtitleGuide: "Гадание по энциклопедии",
     greetingGuide:
-      "wikiмантия — гадание по энциклопедии. Сначала напишите свой вопрос, потом назовёте страницу и строку: что окажется на этих координатах, то и будет ответом.",
+      "wikiмантия — гадание по энциклопедии. Сначала напишите свой вопрос, потом назовёте страницу (1–11 500) и строку (1–99): что окажется на этих координатах, то и будет ответом.",
     placeholderGuide: "Напишите свой вопрос…",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
@@ -65,7 +65,7 @@ const STR = {
     titleGuide: "wikimancy",
     subtitleGuide: "Divination by encyclopedia",
     greetingGuide:
-      "wikimancy — divination by encyclopedia. First write your question, then you\u2019ll name a page and a line — whatever sits at those coordinates is your answer.",
+      "wikimancy — divination by encyclopedia. First write your question, then you\u2019ll name a page (1–11,500) and a line (1–99) — whatever sits at those coordinates is your answer.",
     placeholderGuide: "Write your question…",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
