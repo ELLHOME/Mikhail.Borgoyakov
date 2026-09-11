@@ -699,3 +699,66 @@ html.lenis,html.lenis body{height:auto}
   .ls-dot{width:20px}
   .ls-dot.on{width:40px}
 }
+
+
+/* ===== Lab: ноутбук раскрывается на прокрутке ===== */
+/* Секция светлая — держит чередование: герой тёмный, «обо мне» светлый,
+   «работы» тёмные, лаборатория светлая, контакты тёмные.
+   padding:0 — глобальное правило для section вжимало бы сцену от краёв.
+   Высота N × 100vh: на каждый проект нужен ход «открылась — держится — закрылась». */
+.ll-sec{position:relative;padding:0}
+.ll-stage{position:sticky;top:0;height:100vh;overflow:hidden;color:#101728;background:#eaeef5}
+.ll-scene{position:absolute;inset:0}
+.ll-scene canvas{display:block;width:100%;height:100%}
+.ll-flat{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(72vw,900px);height:auto;border-radius:10px;box-shadow:0 30px 70px rgba(20,30,55,.22)}
+
+/* подписи поверх сцены */
+.ll-ui{position:absolute;inset:0;z-index:2;pointer-events:none;
+  display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2.2vh,26px);
+  padding:clamp(84px,10vh,112px) var(--pad) clamp(22px,4vh,44px)}
+.ll-ui > *{max-width:min(38ch,29vw)}
+.ll-eyebrow{align-self:flex-start;font-size:12px;color:#2b62d6;padding:6px 13px;
+  border:1px solid rgba(43,98,214,.35);border-radius:2px}
+.ll-head{transition:opacity .5s ease}
+.ll-head.off{opacity:0}
+.ll-title{font-weight:600;font-size:clamp(20px,1.9vw,30px);line-height:1.07;letter-spacing:-.01em}
+.ll-title b{color:#2b62d6;font-weight:600}
+.ll-lead{margin-top:9px;font-size:clamp(12.5px,.9vw,14px);line-height:1.5;color:#54607a}
+
+.ll-caption{animation:ll-text .5s cubic-bezier(.22,1,.36,1) both}
+@keyframes ll-text{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.ll-num{font-size:12px;color:#2b62d6}
+.ll-name{margin-top:6px;font-weight:600;font-size:clamp(34px,5vw,84px);line-height:.94;
+  letter-spacing:-.035em;color:#0c1220;max-width:100%;overflow-wrap:anywhere}
+.ll-tagline{margin-top:14px;font-size:clamp(13px,1vw,16px);line-height:1.5;color:#3d4759;max-width:32ch}
+.ll-contrib{margin-top:16px;font-size:11px;color:#8a95a8}
+.ll-points{margin-top:8px;display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0}
+.ll-points li{font-size:11.5px;letter-spacing:.04em;color:#3d4759;padding:5px 11px;border-radius:999px;
+  border:1px solid rgba(20,30,55,.14);background:rgba(255,255,255,.7)}
+
+.ll-nav{display:flex;align-items:center;gap:10px;pointer-events:auto}
+.ll-dot{width:26px;height:9px;padding:0;border:none;border-radius:999px;cursor:pointer;
+  background:rgba(20,30,55,.18);transition:background .35s,width .35s cubic-bezier(.22,1,.36,1)}
+.ll-dot:hover{background:rgba(20,30,55,.34)}
+.ll-dot.on{width:52px;background:#2b62d6}
+
+.ll-stats{display:flex;flex-wrap:wrap;gap:clamp(20px,2.4vw,44px)}
+.ll-stat{display:flex;flex-direction:column;gap:2px}
+.ll-stat-v{font-size:clamp(17px,1.5vw,23px);font-weight:600;color:#101728}
+.ll-stat-l{font-size:10.5px;color:#8a95a8}
+
+/* узкие экраны: подписи внизу, ноутбук выше */
+@media (max-width:1100px){
+  .ll-ui{justify-content:flex-end;padding-bottom:clamp(26px,5vh,52px)}
+  .ll-ui > *{max-width:none}
+  .ll-name{font-size:clamp(28px,7vw,48px)}
+  .ll-head.off{display:none}
+}
+@media (max-width:620px){
+  .ll-lead{display:none}
+  .ll-points li:nth-child(n+4){display:none}
+  .ll-stats{gap:18px}
+  .ll-dot{width:20px}
+  .ll-dot.on{width:40px}
+}

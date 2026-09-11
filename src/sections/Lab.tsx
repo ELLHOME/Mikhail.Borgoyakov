@@ -1,11 +1,11 @@
-import LabSlider from "./LabSlider";
+import LabLaptop from "./LabLaptop";
 import { useLang, content } from "../i18n";
 
 export default function Lab() {
   const { lang } = useLang();
   const t = content[lang].lab;
   return (
-    <LabSlider
+    <LabLaptop
       id="lab"
       eyebrow={t.eyebrow}
       title={t.title}
