@@ -2,14 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import type { LabItem, Stat } from "./LabProcess";
 
 /**
- * Лента проектов: крупный кадр на весь экран, справа миникарта с превью и метаданными.
+ * Лента проектов: один кадр за раз, крупно, плюс миникарта.
  *
- * Отличие от исходного компонента с 21st.dev — листание привязано к прокрутке страницы,
- * а не к перехвату колеса. Оригинал вешал wheel с preventDefault на window, и это
- * заглушило бы скролл всего сайта (у нас вся страница — прокруточный нарратив на Lenis).
+ * Слайды НЕ едут непрерывным полотном. Раньше кадр был привязан к прокрутке
+ * напрямую, и почти всё время в рамке висели два разных сайта, состыкованных
+ * швом. Теперь прокрутка выбирает только номер проекта, а сам кадр появляется
+ * разом — раскрывается из горизонтальной линии. Промежуточных состояний нет.
  *
- * Позиции пишем напрямую в style из requestAnimationFrame, без setState на каждый кадр:
- * React перерисовывается только когда меняется активный проект.
+ * Листание привязано к прокрутке страницы, а не к перехвату колеса: исходный
+ * компонент вешал wheel с preventDefault на window, и это заглушило бы скролл
+ * всего сайта (вся страница — прокруточный нарратив на Lenis).
  */
 export default function LabSlider({
   id, eyebrow, title, lead, items, stats, contrib = "МОЙ ВКЛАД",
@@ -20,48 +22,18 @@ export default function LabSlider({
   const N = items.length;
   const [active, setActive] = useState(0);
 
-  const slides = useRef<(HTMLDivElement | null)[]>([]);
-  const shots = useRef<(HTMLImageElement | null)[]>([]);
-  const minis = useRef<HTMLDivElement>(null);
-  const infos = useRef<HTMLDivElement>(null);
-  const fill = useRef<HTMLSpanElement>(null);
-
   useEffect(() => {
     const sec = document.getElementById(id);
     if (!sec) return;
-    const slow = matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    let raf = 0, lastIdx = -1;
+    let raf = 0, last = -1;
     const frame = () => {
       raf = requestAnimationFrame(frame);
       const range = sec.offsetHeight - window.innerHeight;
       const q = range > 0
-        ? Math.max(0, Math.min(1, (window.scrollY - sec.offsetTop) / range))
+        ? Math.max(0, Math.min(0.999, (window.scrollY - sec.offsetTop) / range))
         : 0;
-      const p = q * (N - 1);                       // дробная позиция в ленте
-
-      for (let i = 0; i < N; i++) {
-        const d = i - p;                           // -1 = ушёл вверх, +1 = ждёт снизу
-        const el = slides.current[i];
-        if (!el) continue;
-        const near = Math.abs(d) < 1.15;
-        el.style.visibility = near ? "visible" : "hidden";
-        if (!near) continue;
-        // без прозрачности: это не кроссфейд, а листание сплошных панелей.
-        // Полупрозрачные соседи просвечивали друг через друга и мазали кадр.
-        el.style.transform = `translate3d(0,${d * 100}%,0)`;
-        const img = shots.current[i];
-        // кадр едет медленнее слайда — тот самый параллакс
-        if (img) img.style.transform = slow ? "none" : `translate3d(0,${d * -14}%,0) scale(1.18)`;
-      }
-
-      const step = minis.current?.firstElementChild?.clientHeight || 0;
-      if (minis.current) minis.current.style.transform = `translate3d(0,${-p * step}px,0)`;
-      if (infos.current) infos.current.style.transform = `translate3d(0,${-p * step}px,0)`;
-      if (fill.current) fill.current.style.height = `${(p / (N - 1)) * 100}%`;
-
-      const idx = Math.round(p);
-      if (idx !== lastIdx) { lastIdx = idx; setActive(idx); }
+      const idx = Math.max(0, Math.min(N - 1, Math.floor(q * N)));
+      if (idx !== last) { last = idx; setActive(idx); }
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
@@ -71,14 +43,16 @@ export default function LabSlider({
     const sec = document.getElementById(id);
     if (!sec) return;
     const range = sec.offsetHeight - window.innerHeight;
-    window.scrollTo({ top: sec.offsetTop + (i / (N - 1)) * range, behavior: "smooth" });
+    // середина отрезка, отведённого проекту, — чтобы не встать на границу
+    window.scrollTo({ top: sec.offsetTop + ((i + 0.5) / N) * range, behavior: "smooth" });
   };
 
+  const it = items[active];
+
   return (
-    <section id={id} className="ls-sec" style={{ height: `${N * 85}vh` }}>
-      {/* Сцена — сетка в три колонки: текст, кадр, миникарта с прогрессом.
-          Раньше всё лежало абсолютом и колонки наезжали друг на друга при
-          некоторых ширинах; сетка делает это невозможным. */}
+    <section id={id} className="ls-sec section-light" style={{ height: `${N * 72}vh` }}>
+      {/* Сетка в три колонки: текст, кадр, миникарта с прогрессом.
+          Абсолютное позиционирование давало наезды колонок на части ширин. */}
       <div className="ls-stage">
         <div className="ls-left">
           <div className="ls-head">
@@ -87,13 +61,13 @@ export default function LabSlider({
             <p className="ls-lead">{lead}</p>
           </div>
 
-          <div className="ls-caption" key={items[active].t}>
-            <span className="ls-num track-sm">{items[active].n} / {String(N).padStart(2, "0")}</span>
-            <h3 className="ls-name">{items[active].t}</h3>
-            <p className="ls-tagline">{items[active].tagline}</p>
+          <div className="ls-caption" key={it.t}>
+            <span className="ls-num track-sm">{it.n} / {String(N).padStart(2, "0")}</span>
+            <h3 className="ls-name">{it.t}</h3>
+            <p className="ls-tagline">{it.tagline}</p>
             <div className="ls-contrib track-sm">{contrib}</div>
             <ul className="ls-points">
-              {items[active].points.map((p) => <li key={p}>{p}</li>)}
+              {it.points.map((p) => <li key={p}>{p}</li>)}
             </ul>
           </div>
 
@@ -107,25 +81,21 @@ export default function LabSlider({
           </div>
         </div>
 
-        {/* кадр проекта. Полноэкранная подача тут не годится: превью —
-            светлые скриншоты сайтов, и затемнение под белый текст поверх
-            превращало бы их в серую муть. */}
+        {/* Соотношение рамки равно соотношению самих превью (1680×1225),
+            поэтому кадр ложится целиком: ничего не режется и полей нет. */}
         <div className="ls-frame">
-          {items.map((it, i) => (
-            <div key={it.t} className="ls-slide" ref={(el) => { slides.current[i] = el; }}>
-              <img src={it.img} alt={it.t} loading={i < 2 ? "eager" : "lazy"}
-                   ref={(el) => { shots.current[i] = el; }} />
-            </div>
-          ))}
+          <div className="ls-slide" key={active}>
+            <img src={it.img} alt={it.t} loading={active < 2 ? "eager" : "lazy"} />
+          </div>
         </div>
 
         <div className="ls-side">
           <div className="ls-map" aria-hidden="true">
             <div className="ls-map-win">
-              <div className="ls-map-strip" ref={minis}>
-                {items.map((it, i) => (
-                  <div className={`ls-map-item${i === active ? " on" : ""}`} key={it.t}>
-                    <img src={it.img} alt="" loading="lazy" />
+              <div className="ls-map-strip" style={{ transform: `translateY(${-active * 90}px)` }}>
+                {items.map((p, i) => (
+                  <div className={`ls-map-item${i === active ? " on" : ""}`} key={p.t}>
+                    <img src={p.img} alt="" loading="lazy" />
                   </div>
                 ))}
               </div>
@@ -133,11 +103,11 @@ export default function LabSlider({
           </div>
 
           <div className="ls-rail">
-            <span className="ls-rail-fill" ref={fill} />
-            {items.map((it, i) => (
-              <button key={it.t} className={`ls-dot${i === active ? " on" : ""}`}
+            <span className="ls-rail-fill" style={{ height: `${(active / (N - 1)) * 100}%` }} />
+            {items.map((p, i) => (
+              <button key={p.t} className={`ls-dot${i === active ? " on" : ""}`}
                       style={{ top: `${(i / (N - 1)) * 100}%` }}
-                      onClick={() => jump(i)} aria-label={it.t} />
+                      onClick={() => jump(i)} aria-label={p.t} />
             ))}
           </div>
         </div>
