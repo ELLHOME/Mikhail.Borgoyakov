@@ -91,6 +91,7 @@ function Laptop({
 
   const screenMat = useRef<THREE.MeshBasicMaterial>(null);
   const shown = useRef(-1);
+  const wrongSince = useRef(0);
 
   // первая картинка должна встать сразу: если войти в секцию с уже открытой
   // крышкой, условие «менять только на закрытой» не срабатывало и экран белел
@@ -112,16 +113,31 @@ function Laptop({
       const target = CLOSED + (OPEN - CLOSED) * open;
       lid.current.rotation.x += (target - lid.current.rotation.x) * Math.min(1, dt * 9);
     }
-    // картинку меняем только когда крышка закрыта — подмена не видна
-    if (screenMat.current && shown.current !== i && open < 0.06) {
-      shown.current = i;
-      screenMat.current.map = textures[i];
-      screenMat.current.needsUpdate = true;
+    // Картинку меняем, когда крышка закрыта — подмена не видна.
+    // Но если прокрутку дёрнули резко, закрытые мгновения проскакивают и на
+    // экране остаётся чужой проект. Поэтому есть срок: провисела неправильная
+    // картинка полсекунды — меняем всё равно, пусть и заметно.
+    if (screenMat.current && shown.current !== i) {
+      const now = performance.now();
+      if (!wrongSince.current) wrongSince.current = now;
+      if (open < 0.12 || now - wrongSince.current > 450) {
+        shown.current = i;
+        screenMat.current.map = textures[i];
+        screenMat.current.needsUpdate = true;
+        wrongSince.current = 0;
+      }
+    } else if (wrongSince.current) {
+      wrongSince.current = 0;
     }
     if (rig.current) {
-      // еле заметный доворот по ходу ленты, чтобы объект жил
-      const a = (p / imgs.length - 0.5) * 0.22;
-      rig.current.rotation.y += (a - rig.current.rotation.y) * Math.min(1, dt * 4);
+      // Ноутбук поворачивается вокруг своей оси по ходу всей ленты:
+      // от +26° в начале до -26° в конце. Раньше амплитуда была 6° —
+      // это не читалось как поворот вовсе.
+      const yaw = (0.5 - p / imgs.length) * 0.92;
+      rig.current.rotation.y += (yaw - rig.current.rotation.y) * Math.min(1, dt * 3.5);
+      // и лёгкий подъём носа, пока крышка открыта
+      const tilt = -0.06 * open;
+      rig.current.rotation.x += (tilt - rig.current.rotation.x) * Math.min(1, dt * 3.5);
     }
   });
 
@@ -183,12 +199,14 @@ function Rig({ children }: { children: React.ReactNode }) {
       needW / 2 / (Math.tan(vfov / 2) * aspect),
       needH / 2 / Math.tan(vfov / 2),
     ) * 1.05;
-    const x = narrow ? 0 : 1.45;
-    cam.position.set(narrow ? 0 : x * 0.24, dist * 0.27, dist);
+    // Объект всегда по центру своего холста. Сдвигать его в мировых
+    // координатах, чтобы он не лез на текст, — подбор наугад: на другой
+    // ширине он снова наезжал. Холст сам начинается правее колонки с текстом.
+    cam.position.set(0, dist * 0.27, dist);
     // на узком кадре смотрим ниже объекта: ноутбук уходит вверх, под него встаёт текст
-    cam.lookAt(x, narrow ? -1.75 : 0.15, 0);
+    cam.lookAt(0, narrow ? -1.75 : 0.15, 0);
     cam.updateProjectionMatrix();
-    if (g.current) g.current.position.x = x;
+    if (g.current) g.current.position.x = 0;
   }, [camera, size]);
   return <group ref={g}>{children}</group>;
 }

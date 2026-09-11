@@ -708,7 +708,10 @@ html.lenis,html.lenis body{height:auto}
    Высота N × 100vh: на каждый проект нужен ход «открылась — держится — закрылась». */
 .ll-sec{position:relative;padding:0}
 .ll-stage{position:sticky;top:0;height:100vh;overflow:hidden;color:#101728;background:#eaeef5}
+/* На широком экране холст начинается правее текстовой колонки — тогда
+   ноутбук физически не может на неё наехать ни при какой ширине. */
 .ll-scene{position:absolute;inset:0}
+@media (min-width:1101px){ .ll-scene{left:34%} }
 .ll-scene canvas{display:block;width:100%;height:100%}
 .ll-flat{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   width:min(72vw,900px);height:auto;border-radius:10px;box-shadow:0 30px 70px rgba(20,30,55,.22)}
