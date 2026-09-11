@@ -1,7 +1,23 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { LabItem, Stat } from "./LabProcess";
 
 const LaptopScene = lazy(() => import("./LabLaptopScene"));
+
+/**
+ * Предохранитель вокруг ленивой сцены.
+ * Без него сорвавшаяся загрузка куска (устаревший кеш после деплоя, плохая
+ * связь) роняла всё дерево React — белой становилась вся страница, а не одна
+ * секция. Теперь в этом случае показывается обычный кадр.
+ */
+class SceneBoundary extends Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(err: unknown) { console.warn("Lab: сцена не загрузилась", err); }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
 
 export default function LabLaptop({
   id, eyebrow, title, lead, items, stats, contrib = "МОЙ ВКЛАД",
@@ -67,9 +83,11 @@ export default function LabLaptop({
           {flat ? (
             <img className="ll-flat" src={it.img} alt={it.t} />
           ) : near ? (
-            <Suspense fallback={null}>
-              <LaptopScene imgs={imgs} kinds={kinds} vids={vids} keys={keys} getP={() => prog.current} />
-            </Suspense>
+            <SceneBoundary fallback={<img className="ll-flat" src={it.img} alt={it.t} />}>
+              <Suspense fallback={null}>
+                <LaptopScene imgs={imgs} kinds={kinds} vids={vids} keys={keys} getP={() => prog.current} />
+              </Suspense>
+            </SceneBoundary>
           ) : null}
         </div>
 

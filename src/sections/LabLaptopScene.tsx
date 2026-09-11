@@ -257,7 +257,9 @@ function Laptop({
         if (j !== i || !product) return;
         const dur = x.v.duration;
         if (!dur || !isFinite(dur)) return;
-        const t = clamp01(p - i) * (dur - 0.05);
+        // Задом наперёд: ноутбук по ходу ленты поворачивается в одну сторону,
+        // а изделия на съёмке крутились в другую. Реверс сводит их в одно вращение.
+        const t = (1 - clamp01(p - i)) * (dur - 0.05);
         if (Math.abs(x.v.currentTime - t) > 0.02 && x.v.readyState >= 1) x.v.currentTime = t;
       });
 
