@@ -8,7 +8,10 @@ import { useEffect, useRef, useState } from "react";
 // (у СКАЛЫ фон чёрный, у Lynq белый). img остаётся запасным кадром.
 export type LabItem = { n: string; t: string; tagline: string; about: string;
   points: string[]; img: string; kind?: "web" | "product";
-  video?: string; keyOn?: "black" | "white" };
+  video?: string; keyOn?: "black" | "white";
+  // page: длинный снимок страницы целиком. Если он выше экрана ноутбука,
+  // сайт прокручивается на экране, пока крышка открыта.
+  page?: string };
 export type Stat = { v: string; l: string };
 
 const ICONS: React.ReactNode[] = [

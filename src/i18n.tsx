@@ -120,12 +120,14 @@ export const content: Record<Lang, Dict> = {
         },
         {
           n: "03", t: "Промгеосервис", img: `${BASE}works/03.webp`,
+          page: `${BASE}works/page-promgeo.webp`,
           tagline: "Сервисный центр геодезического и мониторингового оборудования.",
           about: "Полностью обновил цифровое присутствие компании: разработал современный сайт, переработал структуру информации и создал визуальную систему, которая помогает просто рассказывать о сложных технических услугах.",
           points: ["Креативная концепция", "UX/UI дизайн", "Веб-разработка", "Графический дизайн"],
         },
         {
           n: "04", t: "КГР", img: `${BASE}works/06.webp`,
+          page: `${BASE}works/page-kgr.webp`,
           tagline: "Инженерные изыскания и геотехническое сопровождение строительства.",
           about: "Создал корпоративный сайт и современную визуальную коммуникацию компании, объединив техническую информацию, услуги и проекты в понятную цифровую структуру.",
           points: ["Креативная концепция", "UX/UI дизайн", "Веб-разработка", "Графический дизайн"],
@@ -230,12 +232,14 @@ export const content: Record<Lang, Dict> = {
         },
         {
           n: "03", t: "Promgeoservice", img: `${BASE}works/03.webp`,
+          page: `${BASE}works/page-promgeo.webp`,
           tagline: "A service center for geodetic and monitoring equipment.",
           about: "Fully renewed the company's digital presence: built a modern website, reworked the information structure and created a visual system that helps explain complex technical services simply.",
           points: ["Creative concept", "UX/UI design", "Web development", "Graphic design"],
         },
         {
           n: "04", t: "KGR", img: `${BASE}works/06.webp`,
+          page: `${BASE}works/page-kgr.webp`,
           tagline: "Engineering surveys and geotechnical support for construction.",
           about: "Built a corporate website and modern visual communication for the company, bringing technical information, services and projects into a clear digital structure.",
           points: ["Creative concept", "UX/UI design", "Web development", "Graphic design"],

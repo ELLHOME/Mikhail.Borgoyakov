@@ -75,6 +75,7 @@ export default function LabLaptop({
   const kinds = useMemo(() => items.map((x) => x.kind ?? "web"), [items]);
   const vids = useMemo(() => items.map((x) => x.video), [items]);
   const keys = useMemo(() => items.map((x) => x.keyOn), [items]);
+  const pages = useMemo(() => items.map((x) => x.page), [items]);
 
   return (
     <section id={id} className="ll-sec section-light" style={{ height: `${N * 100}vh` }}>
@@ -85,7 +86,7 @@ export default function LabLaptop({
           ) : near ? (
             <SceneBoundary fallback={<img className="ll-flat" src={it.img} alt={it.t} />}>
               <Suspense fallback={null}>
-                <LaptopScene imgs={imgs} kinds={kinds} vids={vids} keys={keys} getP={() => prog.current} />
+                <LaptopScene imgs={imgs} kinds={kinds} vids={vids} keys={keys} pages={pages} getP={() => prog.current} />
               </Suspense>
             </SceneBoundary>
           ) : null}

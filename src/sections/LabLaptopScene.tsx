@@ -127,10 +127,11 @@ function Keyboard() {
 }
 
 function Laptop({
-  imgs, kinds, vids, keys, getP,
+  imgs, kinds, vids, keys, pages, getP,
 }: {
   imgs: string[]; kinds: string[];
   vids: (string | undefined)[]; keys: (string | undefined)[];
+  pages: (string | undefined)[];
   getP: () => number;
 }) {
   const lid = useRef<THREE.Group>(null);
@@ -148,9 +149,6 @@ function Laptop({
     return imgs.map((src) => {
       const t = loader.load(src);
       t.colorSpace = THREE.SRGBColorSpace;
-      const keep = (1680 * 10 / 16) / 1225;        // какую долю высоты оставляем
-      t.repeat.set(1, keep);
-      t.offset.set(0, 1 - keep);                   // прижимаем к верху кадра
       t.anisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
       return t;
     });
@@ -177,7 +175,25 @@ function Laptop({
     v.load();
     const t = new THREE.VideoTexture(v);
     t.colorSpace = THREE.SRGBColorSpace;
-    return { v, t };
+    const rec = { v, t, ready: false, failed: false };
+    // Firefox: пока не декодирован первый кадр, текстура пустая, и плоскость
+    // рисуется чёрным прямоугольником — он и проскакивал при прокрутке.
+    // Показываем кадр только после того, как браузер отдал настоящий кадр.
+    const mark = () => {
+      if (v.readyState >= 2) { rec.ready = true; t.needsUpdate = true; }
+    };
+    v.addEventListener("loadeddata", mark);
+    v.addEventListener("canplay", mark);
+    v.addEventListener("seeked", mark);
+    // Лента отматывает ролик с конца, поэтому первый нужный кадр —
+    // последний: декодируем его заранее, ещё до подхода к слайду.
+    v.addEventListener("loadedmetadata", () => {
+      const d = v.duration;
+      if (d && isFinite(d)) { try { v.currentTime = d - 0.05; } catch { /* ignore */ } }
+    });
+    // Не проигрался совсем — вместо пустоты покажем обычный кадр проекта.
+    v.addEventListener("error", () => { rec.failed = true; });
+    return rec;
   }), [vids]);
 
   useEffect(() => () => videos.forEach((x) => { if (x) { x.v.pause(); x.t.dispose(); } }), [videos]);
@@ -203,6 +219,26 @@ function Laptop({
       }`,
   }), []);
 
+  // Длинный снимок страницы целиком: кладём на экран и ведём по нему
+  // вертикально, пока крышка открыта. Получается, что сайт прокручивается
+  // вместе со страницей — без видео, текст остаётся чётким.
+  const pageTex = useMemo(() => {
+    const loader = new THREE.TextureLoader();
+    return pages.map((src) => {
+      if (!src) return null;
+      const t = loader.load(src);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = Math.min(8, gl.capabilities.getMaxAnisotropy());
+      return t;
+    });
+  }, [pages, gl]);
+
+  // Пустая текстура (картинка ещё летит по сети) рисуется чёрным.
+  // Пока снимок не пришёл, на экран лучше не класть ничего — материал
+  // остаётся белым, как погашенная матрица.
+  const ready = (t: THREE.Texture | null | undefined) =>
+    !!(t && t.image && (t.image as { width?: number }).width);
+
   const screenMat = useRef<THREE.MeshBasicMaterial>(null);
   const shown = useRef(-1);
   const wrongSince = useRef(0);
@@ -212,9 +248,11 @@ function Laptop({
   useEffect(() => {
     if (screenMat.current && shown.current < 0) {
       const i = Math.min(imgs.length - 1, Math.max(0, Math.floor(getP())));
-      shown.current = i;
-      screenMat.current.map = textures[i];
-      screenMat.current.needsUpdate = true;
+      if (ready(textures[i])) {
+        shown.current = i;
+        screenMat.current.map = textures[i];
+        screenMat.current.needsUpdate = true;
+      }
     }
   }, [textures, imgs.length, getP]);
 
@@ -233,12 +271,14 @@ function Laptop({
       body.current.visible = bodyScale.current > 0.02;
     }
     if (shot.current) {
-      const want = product ? open : 0;
+      const clipReady = !videos[i] || videos[i]!.failed || videos[i]!.ready;
+      const want = product && clipReady ? open : 0;
       shotShow.current += (want - shotShow.current) * Math.min(1, dt * 8);
       shot.current.visible = shotShow.current > 0.02;
 
-      const clip = videos[i];
+      const clip = videos[i] && !videos[i]!.failed ? videos[i] : null;
       const tex = clip ? clip.t : textures[i];
+      if (!clip) { tex.repeat.set(1, 1); tex.offset.set(0, 0); }
       keyMat.uniforms.map.value = tex;
       keyMat.uniforms.opacity.value = shotShow.current;
       // без ролика ключ не нужен: показываем кадр как есть
@@ -282,17 +322,32 @@ function Laptop({
     // Но если прокрутку дёрнули резко, закрытые мгновения проскакивают и на
     // экране остаётся чужой проект. Поэтому есть срок: провисела неправильная
     // картинка полсекунды — меняем всё равно, пусть и заметно.
-    if (screenMat.current && shown.current !== i) {
+    const want = ready(pageTex[i]) ? pageTex[i]! : textures[i];
+    if (screenMat.current && ready(want) && screenMat.current.map !== want) {
       const now = performance.now();
       if (!wrongSince.current) wrongSince.current = now;
       if (open < 0.12 || now - wrongSince.current > 450) {
         shown.current = i;
-        screenMat.current.map = textures[i];
+        screenMat.current.map = want;
         screenMat.current.needsUpdate = true;
         wrongSince.current = 0;
       }
     } else if (wrongSince.current) {
       wrongSince.current = 0;
+    }
+
+    // Кадрирование под матрицу и прокрутка страницы.
+    const shownTex = screenMat.current?.map as THREE.Texture | null;
+    const pic = shownTex?.image as { width?: number; height?: number } | undefined;
+    if (shownTex && pic?.width && pic.height) {
+      // какая доля высоты снимка помещается на экране
+      const keep = Math.min(1, (SCREEN_H / SCREEN_W) * (pic.width / pic.height));
+      shownTex.repeat.set(1, keep);
+      // ведём сверху вниз, но только пока крышка открыта: на створках
+      // страница должна стоять в начале
+      const local = clamp01(p - i);
+      const go = clamp01((local - 0.3) / 0.42);
+      shownTex.offset.set(0, (1 - keep) * (1 - go));
     }
     if (rig.current) {
       // Ноутбук поворачивается вокруг своей оси по ходу всей ленты:
@@ -398,9 +453,10 @@ function Rig({ children }: { children: React.ReactNode }) {
   return <group ref={g}>{children}</group>;
 }
 
-export default function LaptopScene({ imgs, kinds, vids, keys, getP }: {
+export default function LaptopScene({ imgs, kinds, vids, keys, pages, getP }: {
   imgs: string[]; kinds: string[];
   vids: (string | undefined)[]; keys: (string | undefined)[];
+  pages: (string | undefined)[];
   getP: () => number;
 }) {
   return (
@@ -417,7 +473,7 @@ export default function LaptopScene({ imgs, kinds, vids, keys, getP }: {
       <directionalLight position={[-4, 2.4, -2]} intensity={0.5} color="#a8c4ff" />
       <Rig>
         <Suspense fallback={null}>
-          <Laptop imgs={imgs} kinds={kinds} vids={vids} keys={keys} getP={getP} />
+          <Laptop imgs={imgs} kinds={kinds} vids={vids} keys={keys} pages={pages} getP={getP} />
         </Suspense>
         <ContactShadows position={[0, -0.92, 0]} opacity={0.42} scale={9} blur={2.6} far={4} />
       </Rig>
