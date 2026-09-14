@@ -111,6 +111,7 @@ export const content: Record<Lang, Dict> = {
           tagline: "Экосистема цифровых решений для геотехнического мониторинга и контроля деформаций.",
           about: "Создал единый цифровой образ бренда: от корпоративного сайта до презентаций, 3D-визуализации и анимации. Основной задачей было показать сложные инженерные технологии современным, понятным и визуально выразительным языком.",
           points: ["Креативная концепция", "UX/UI дизайн", "Веб-разработка", "3D-визуализация", "Motion Design"],
+          page: `${BASE}works/page-monterra.webp`,
         },
         {
           n: "02", t: "SmartNet", img: `${BASE}works/02.webp`,
@@ -223,6 +224,7 @@ export const content: Record<Lang, Dict> = {
           tagline: "An ecosystem of digital solutions for geotechnical monitoring and deformation control.",
           about: "Created a unified digital identity for the brand: from the corporate site to presentations, 3D visualization and animation. The main goal was to present complex engineering technology in a modern, clear and visually expressive language.",
           points: ["Creative concept", "UX/UI design", "Web development", "3D visualization", "Motion design"],
+          page: `${BASE}works/page-monterra.webp`,
         },
         {
           n: "02", t: "SmartNet", img: `${BASE}works/02.webp`,
