@@ -29,12 +29,12 @@ const STR = {
       "Здравствуйте! Я AI-консультант ELLHOME. Расскажу об услугах, прикину цену и сроки или приму заявку. Чем помочь?",
     placeholder: "Спросите или оставьте заявку…",
     tabConsult: "Консультант",
-    tabLab: "Лаборатория",
-    titleLab: "Лаборатория ELLHOME",
-    subtitleLab: "Придумывает названия и идеи",
+    tabLab: "Михаил",
+    titleLab: "Михаил, цифровой двойник",
+    subtitleLab: "Бот, собранный по его текстам",
     greetingLab:
-      "Это Лаборатория. Придумаю название проекту или подкину идею — скажите, для чего. Чем конкретнее запрос, тем острее выйдет.",
-    placeholderLab: "Попросите название или идею…",
+      "Привет. Я бот, склеенный из текстов Михаила: он полтора года вёл канал про кофе и наговорил достаточно.\n\nСпрашивай что хочешь — про работу, про кофейню, про то, как сливают рекламный бюджет за десять минут. Про цены и сроки не ко мне, это к «Консультанту» на соседней вкладке.",
+    placeholderLab: "Спросите о чём угодно…",
     tabGuide: "wikiмантия",
     titleGuide: "wikiмантия",
     subtitleGuide: "Гадание по энциклопедии",
@@ -55,12 +55,12 @@ const STR = {
       "Hi! I'm ELLHOME's AI consultant. I can tell you about services, estimate price and timelines, or take a request. How can I help?",
     placeholder: "Ask or leave a request…",
     tabConsult: "Consultant",
-    tabLab: "Lab",
-    titleLab: "ELLHOME Lab",
-    subtitleLab: "Invents names and ideas",
+    tabLab: "Mikhail",
+    titleLab: "Mikhail, digital double",
+    subtitleLab: "A bot built from his own writing",
     greetingLab:
-      "This is the Lab. I'll name your project or throw you an idea — tell me what for. The more specific, the sharper it gets.",
-    placeholderLab: "Ask for a name or an idea…",
+      "Hi. I'm a bot glued together from Mikhail's texts: he ran a coffee channel for a year and a half and said quite enough.\n\nAsk me anything — his work, his coffee shop, how to burn an ad budget in ten minutes. Prices and deadlines aren't mine: that's the Consultant tab.",
+    placeholderLab: "Ask me anything…",
     tabGuide: "wikimancy",
     titleGuide: "wikimancy",
     subtitleGuide: "Divination by encyclopedia",
@@ -104,15 +104,16 @@ function IconSend() {
   );
 }
 
-// Лёгкий рендер разметки бота: **жирный**, *курсив*, [ссылка](url)
-// и списки "* "/"- " -> "• "
+// Лёгкий рендер разметки бота: **жирный**, *курсив*, ~~зачёркнутый~~,
+// [ссылка](url) и списки "* "/"- " -> "• ".
+// Зачёркивание — фирменный приём двойника: сначала честная версия, потом приличная.
 function renderRich(text: string) {
   const src = text
     .split("\n")
     .map((l) => l.replace(/^\s*[*-]\s+/, "• "))
     .join("\n");
   // без lookbehind — Safari на старых iPhone его не понимает
-  const re = /\*\*([^*]+)\*\*|\*([^*\n]+)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  const re = /\*\*([^*]+)\*\*|~~([^~\n]+)~~|\*([^*\n]+)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
   const out: React.ReactNode[] = [];
   let last = 0;
   let key = 0;
@@ -120,9 +121,10 @@ function renderRich(text: string) {
   while ((m = re.exec(src)) !== null) {
     if (m.index > last) out.push(<span key={key++}>{src.slice(last, m.index)}</span>);
     if (m[1] !== undefined) out.push(<strong key={key++}>{m[1]}</strong>);
-    else if (m[2] !== undefined) out.push(<em key={key++}>{m[2]}</em>);
+    else if (m[2] !== undefined) out.push(<s key={key++}>{m[2]}</s>);
+    else if (m[3] !== undefined) out.push(<em key={key++}>{m[3]}</em>);
     else out.push(
-      <a key={key++} className="cw-link" href={m[4]} target="_blank" rel="noopener noreferrer">{m[3]}</a>
+      <a key={key++} className="cw-link" href={m[5]} target="_blank" rel="noopener noreferrer">{m[4]}</a>
     );
     last = m.index + m[0].length;
   }
