@@ -30,10 +30,10 @@ const STR = {
     placeholder: "Спросите или оставьте заявку…",
     tabConsult: "Консультант",
     tabLab: "Михаил",
-    titleLab: "Михаил, цифровой двойник",
-    subtitleLab: "Бот, собранный по его текстам",
+    titleLab: "Михаил",
+    subtitleLab: "Заменитель — хозяин отошёл",
     greetingLab:
-      "Привет. Я бот, склеенный из текстов Михаила: он полтора года вёл канал про кофе и наговорил достаточно.\n\nСпрашивай что хочешь — про работу, про кофейню, про то, как сливают рекламный бюджет за десять минут. Про цены и сроки не ко мне, это к «Консультанту» на соседней вкладке.",
+      "~~Тебя ебать не должно.~~ Я заменитель хозяина, он отошёл.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
     placeholderLab: "Спросите о чём угодно…",
     tabGuide: "wikiмантия",
     titleGuide: "wikiмантия",
@@ -56,10 +56,10 @@ const STR = {
     placeholder: "Ask or leave a request…",
     tabConsult: "Consultant",
     tabLab: "Mikhail",
-    titleLab: "Mikhail, digital double",
-    subtitleLab: "A bot built from his own writing",
+    titleLab: "Mikhail",
+    subtitleLab: "Stand-in — the owner stepped out",
     greetingLab:
-      "Hi. I'm a bot glued together from Mikhail's texts: he ran a coffee channel for a year and a half and said quite enough.\n\nAsk me anything — his work, his coffee shop, how to burn an ad budget in ten minutes. Prices and deadlines aren't mine: that's the Consultant tab.",
+      "~~None of your damn business.~~ I'm the stand-in, the owner stepped out.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
     placeholderLab: "Ask me anything…",
     tabGuide: "wikimancy",
     titleGuide: "wikimancy",
@@ -267,7 +267,7 @@ export default function ChatWidget() {
 
             <div className="cw-msgs" ref={scrollRef}>
               <div className="cw-msg cw-a">
-                <div className="cw-bubble">{mode === "guide" ? t.greetingGuide : mode === "lab" ? t.greetingLab : t.greeting}</div>
+                <div className="cw-bubble">{renderRich(mode === "guide" ? t.greetingGuide : mode === "lab" ? t.greetingLab : t.greeting)}</div>
               </div>
               {messages.map((m, i) => (
                 <div key={i} className={`cw-msg ${m.role === "user" ? "cw-u" : "cw-a"}`}>
