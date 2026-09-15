@@ -33,7 +33,7 @@ const STR = {
     titleLab: "Михаил",
     subtitleLab: "Заменитель — хозяин отошёл",
     greetingLab:
-      "~~Тебя ебать не должно.~~ Я заменитель хозяина, он отошёл.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
+      "~~Хозяин вышел за сигаретами.~~ Хозяин отошёл, я за него.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
     placeholderLab: "Спросите о чём угодно…",
     tabGuide: "wikiмантия",
     titleGuide: "wikiмантия",
@@ -59,7 +59,7 @@ const STR = {
     titleLab: "Mikhail",
     subtitleLab: "Stand-in — the owner stepped out",
     greetingLab:
-      "~~None of your damn business.~~ I'm the stand-in, the owner stepped out.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
+      "~~The owner went out for cigarettes.~~ The owner stepped out, I'm covering for him.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
     placeholderLab: "Ask me anything…",
     tabGuide: "wikimancy",
     titleGuide: "wikimancy",
