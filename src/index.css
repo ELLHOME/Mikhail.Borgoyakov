@@ -590,7 +590,7 @@ html.lenis,html.lenis body{height:auto}
 .cw-edit s{ position:relative; text-decoration:none }
 .cw-edit s::after{
   content:""; position:absolute; left:-42%; right:-42%; top:-28%; bottom:-34%;
-  background:linear-gradient(to top right,
+  background:linear-gradient(to top left,
     transparent calc(50% - .9px), #ff5c7a calc(50% - .9px),
     #ff5c7a calc(50% + .9px), transparent calc(50% + .9px));
   pointer-events:none;
