@@ -29,8 +29,8 @@ const STR = {
       "Здравствуйте! Я AI-консультант ELLHOME. Расскажу об услугах, прикину цену и сроки или приму заявку. Чем помочь?",
     placeholder: "Спросите или оставьте заявку…",
     tabConsult: "Консультант",
-    tabLab: "Соб~~у~~еседник",
-    titleLab: "Соб~~у~~еседник",
+    tabLab: "Соб~~у~~^е^седник",
+    titleLab: "Соб~~у~~^е^седник",
     subtitleLab: "Хозяин отошёл, я за него",
     greetingLab:
       "~~Хозяин вышел за сигаретами.~~ Хозяин отошёл, я за него.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
@@ -115,13 +115,15 @@ function IconSend() {
 // Лёгкий рендер разметки бота: **жирный**, *курсив*, ~~зачёркнутый~~,
 // [ссылка](url) и списки "* "/"- " -> "• ".
 // Зачёркивание — фирменный приём двойника: сначала честная версия, потом приличная.
+// Отдельно ~~у~~^е^ — школьная правка: буква вычеркнута, верная вписана сверху.
+// Живёт только в названии вкладки, в репликах бот такой разметки не пишет.
 function renderRich(text: string) {
   const src = text
     .split("\n")
     .map((l) => l.replace(/^\s*[*-]\s+/, "• "))
     .join("\n");
   // без lookbehind — Safari на старых iPhone его не понимает
-  const re = /\*\*([^*]+)\*\*|~~([^~\n]+)~~|\*([^*\n]+)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+  const re = /\*\*([^*]+)\*\*|~~([^~\n]+)~~\^([^^\n]+)\^|~~([^~\n]+)~~|\*([^*\n]+)\*|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
   const out: React.ReactNode[] = [];
   let last = 0;
   let key = 0;
@@ -129,10 +131,16 @@ function renderRich(text: string) {
   while ((m = re.exec(src)) !== null) {
     if (m.index > last) out.push(<span key={key++}>{src.slice(last, m.index)}</span>);
     if (m[1] !== undefined) out.push(<strong key={key++}>{m[1]}</strong>);
-    else if (m[2] !== undefined) out.push(<s key={key++}>{m[2]}</s>);
-    else if (m[3] !== undefined) out.push(<em key={key++}>{m[3]}</em>);
+    else if (m[2] !== undefined && m[3] !== undefined) out.push(
+      <span className="cw-edit" key={key++}>
+        <s>{m[2]}</s>
+        <i className="cw-fix" aria-hidden="true">{m[3]}</i>
+      </span>
+    );
+    else if (m[4] !== undefined) out.push(<s key={key++}>{m[4]}</s>);
+    else if (m[5] !== undefined) out.push(<em key={key++}>{m[5]}</em>);
     else out.push(
-      <a key={key++} className="cw-link" href={m[5]} target="_blank" rel="noopener noreferrer">{m[4]}</a>
+      <a key={key++} className="cw-link" href={m[7]} target="_blank" rel="noopener noreferrer">{m[6]}</a>
     );
     last = m.index + m[0].length;
   }
@@ -146,6 +154,7 @@ function toPlain(text: string) {
   return text
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1: $2")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/~~([^~\n]+)~~\^([^^\n]+)\^/g, "$2")
     .replace(/~~([^~\n]+)~~/g, "$1")
     .replace(/\*([^*\n]+)\*/g, "$1");
 }

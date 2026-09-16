@@ -583,6 +583,26 @@ html.lenis,html.lenis body{height:auto}
   background-position:center;
 }
 
+/* Школьная правка в названии вкладки: «у» перечёркнута наискось красным,
+   сверху вписана «е». Черта — градиент, а не text-decoration: горизонтальная
+   линия выглядит типографской, а нужна от руки. Живёт только здесь. */
+.cw-edit{ position:relative; display:inline-block }
+.cw-edit s{ position:relative; text-decoration:none }
+.cw-edit s::after{
+  content:""; position:absolute; left:-42%; right:-42%; top:-28%; bottom:-34%;
+  background:linear-gradient(to top right,
+    transparent calc(50% - .9px), #ff5c7a calc(50% - .9px),
+    #ff5c7a calc(50% + .9px), transparent calc(50% + .9px));
+  pointer-events:none;
+}
+.cw-fix{
+  position:absolute; left:52%; bottom:92%; transform:translateX(-50%) rotate(-7deg);
+  font-style:italic; font-weight:600; font-size:.82em; line-height:1; color:#ff5c7a;
+}
+/* правке нужен воздух над строкой — и во вкладке, и в заголовке */
+.cw-tab{ padding-top:12px }
+.cw-title{ padding-top:7px }
+
 /* колонка под пузырём — чтобы кнопка «скопировать» вставала под гаданием */
 .cw-col{ display:flex; flex-direction:column; align-items:flex-start; max-width:82%; min-width:0 }
 .cw-col .cw-bubble{ max-width:100% }
