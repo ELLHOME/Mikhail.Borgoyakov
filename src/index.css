@@ -570,6 +570,19 @@ html.lenis,html.lenis body{height:auto}
 @keyframes cw-dot{ 0%,60%,100%{ transform:translateY(0); opacity:.4 } 30%{ transform:translateY(-4px); opacity:1 } }
 .cw-waking{ font-size:11px; color:#8b93a2; text-align:center; padding:2px 8px }
 
+/* Зачёркнутая «у» в названии вкладки — не типографская черта, а помарка:
+   диагональный штрих, как ручкой в письме. Линия рисуется градиентом,
+   поэтому берёт цвет самого текста и не спорит с активной вкладкой. */
+.cw-tab s, .cw-title s{
+  position:relative; text-decoration:none; padding:0 .06em;
+  background-image:linear-gradient(to top right,
+    transparent calc(50% - .9px), currentColor calc(50% - .9px),
+    currentColor calc(50% + .9px), transparent calc(50% + .9px));
+  background-repeat:no-repeat;
+  background-size:100% 88%;
+  background-position:center;
+}
+
 /* колонка под пузырём — чтобы кнопка «скопировать» вставала под гаданием */
 .cw-col{ display:flex; flex-direction:column; align-items:flex-start; max-width:82%; min-width:0 }
 .cw-col .cw-bubble{ max-width:100% }
