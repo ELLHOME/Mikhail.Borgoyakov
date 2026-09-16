@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLang } from "../i18n";
 import BorderBeam from "./BorderBeam";
+import { track } from "../lib/track";
 
 const API_URL = "https://ellhome-bot-api.onrender.com/chat";
 const STORE_KEY = "ellhome_chat";
@@ -253,6 +254,8 @@ export default function ChatWidget() {
     if (inputRef.current) inputRef.current.style.height = "auto";
     setLoading(true);
     setSlow(false);
+    // считаем сам факт вопроса и длину — текст переписки наружу не уходит
+    track("chat_message", { tab: mode, len: text.length });
     const slowTimer = setTimeout(() => setSlow(true), 8000);
     try {
       const r = await fetch(API_URL, {
@@ -294,6 +297,7 @@ export default function ChatWidget() {
       + toPlain(answer).trim()
       + `\n\n${t.copyTail} ${link}`;
     if (await copyText(text)) {
+      track("chat_copy", { tab: mode });
       setCopied(i);
       window.setTimeout(() => setCopied((cur) => (cur === i ? null : cur)), 1800);
     }
@@ -303,7 +307,7 @@ export default function ChatWidget() {
     <>
       <button
         className={`cw-launcher${open ? " cw-hidden" : ""}`}
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); track("chat_open", {}, "chat_open"); }}
         aria-label={t.launch}
       >
         <IconChat />
@@ -329,13 +333,13 @@ export default function ChatWidget() {
             <div className="cw-tabs" role="tablist">
               <button role="tab" aria-selected={mode === "consult"}
                 className={`cw-tab${mode === "consult" ? " on" : ""}`}
-                onClick={() => setMode("consult")}>{t.tabConsult}</button>
+                onClick={() => { setMode("consult"); track("chat_tab", { tab: "consult" }); }}>{t.tabConsult}</button>
               <button role="tab" aria-selected={mode === "lab"}
                 className={`cw-tab${mode === "lab" ? " on" : ""}`}
-                onClick={() => setMode("lab")}>{renderRich(t.tabLab)}</button>
+                onClick={() => { setMode("lab"); track("chat_tab", { tab: "lab" }); }}>{renderRich(t.tabLab)}</button>
               <button role="tab" aria-selected={mode === "guide"}
                 className={`cw-tab${mode === "guide" ? " on" : ""}`}
-                onClick={() => setMode("guide")}>{t.tabGuide}</button>
+                onClick={() => { setMode("guide"); track("chat_tab", { tab: "guide" }); }}>{t.tabGuide}</button>
             </div>
 
             <div className="cw-msgs" ref={scrollRef}>

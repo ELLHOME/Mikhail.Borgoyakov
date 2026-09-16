@@ -7,6 +7,7 @@ import {
 } from "react";
 import type { PItem } from "./sections/ParticleText";
 import type { LabItem, Stat } from "./sections/LabProcess";
+import { track } from "./lib/track";
 
 export type Lang = "ru" | "en";
 
@@ -151,7 +152,6 @@ export const content: Record<Lang, Dict> = {
       stats: [
         { v: "06", l: "ПРОЕКТОВ" },
         { v: "100%", l: "ВОВЛЕЧЁННОСТЬ" },
-        { v: "∞", l: "ИДЕЙ" },
       ],
     },
     contact: {
@@ -264,7 +264,6 @@ export const content: Record<Lang, Dict> = {
       stats: [
         { v: "06", l: "PROJECTS" },
         { v: "100%", l: "INVOLVEMENT" },
-        { v: "∞", l: "IDEAS" },
       ],
     },
     contact: {
@@ -302,6 +301,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
   const setLang = (l: Lang) => {
     setLangState(l);
     try { localStorage.setItem(STORE_KEY, l); } catch { /* noop */ }
+    track("lang_switch", { to: l });
   };
 
   useEffect(() => {
