@@ -31,9 +31,9 @@ const STR = {
     tabConsult: "Консультант",
     tabLab: "Соб~~у~~^е^седник",
     titleLab: "Соб~~у~~^е^седник",
-    subtitleLab: "Хозяин отошёл, я за него",
+    subtitleLab: "Начальник отошёл, я за него",
     greetingLab:
-      "~~Хозяин вышел за сигаретами.~~ Хозяин отошёл, я за него.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
+      "~~Начальник вышел за сигаретами.~~ Начальник отошёл, я за него.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
     placeholderLab: "Спросите о чём угодно…",
     tabGuide: "wikiмантия",
     titleGuide: "wikiмантия",
@@ -61,9 +61,9 @@ const STR = {
     tabConsult: "Consultant",
     tabLab: "Stand-in",
     titleLab: "Stand-in",
-    subtitleLab: "The owner stepped out, I'm covering",
+    subtitleLab: "The boss stepped out, I'm covering",
     greetingLab:
-      "~~The owner went out for cigarettes.~~ The owner stepped out, I'm covering for him.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
+      "~~The boss went out for cigarettes.~~ The boss stepped out, I'm covering for him.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
     placeholderLab: "Ask me anything…",
     tabGuide: "wikimancy",
     titleGuide: "wikimancy",
