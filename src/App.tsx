@@ -30,11 +30,19 @@ export default function App() {
     const cleanup = initSiteEffects();
 
     // Счётчик: заход и то, докуда человек реально доскроллил.
-    track("page_view", {
-      lang: document.documentElement.lang || "ru",
-      w: window.innerWidth,
-      ref: document.referrer ? new URL(document.referrer).hostname : "",
-    }, "page_view");
+    // Заход отмечаем, только когда вкладку показали: в фоне браузер отдаёт
+    // нулевые размеры, а предзагруженную и не открытую страницу считать нечестно.
+    const reportVisit = () => {
+      if (document.hidden) return;
+      document.removeEventListener("visibilitychange", reportVisit);
+      track("page_view", {
+        lang: document.documentElement.lang || "ru",
+        w: window.innerWidth || 0,
+        ref: document.referrer ? new URL(document.referrer).hostname : "",
+      }, "page_view");
+    };
+    reportVisit();
+    document.addEventListener("visibilitychange", reportVisit);
 
     // Секция считается просмотренной, когда закрыла половину экрана.
     // Порог в долях самой секции тут не годится: блоки высотой в пять
@@ -64,6 +72,7 @@ export default function App() {
       cancelAnimationFrame(rafId); lenis.destroy();
       document.removeEventListener("click", onClick);
       document.removeEventListener("click", onContact);
+      document.removeEventListener("visibilitychange", reportVisit);
       io.disconnect();
       cleanup();
     };

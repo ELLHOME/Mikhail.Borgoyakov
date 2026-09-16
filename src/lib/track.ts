@@ -27,6 +27,8 @@ export function track(
   // с локальной машины не шумим — иначе своя же разработка испортит статистику
   const host = location.hostname;
   if (host === "localhost" || host === "127.0.0.1" || host === "") return;
+  // страница, которую браузер предзагрузил, но человек не открыл, — не визит
+  if (typeof document !== "undefined" && document.hidden) return;
   if (onceKey) {
     if (already.has(onceKey)) return;
     already.add(onceKey);
