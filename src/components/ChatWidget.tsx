@@ -29,8 +29,8 @@ const STR = {
       "Здравствуйте! Я AI-консультант ELLHOME. Расскажу об услугах, прикину цену и сроки или приму заявку. Чем помочь?",
     placeholder: "Спросите или оставьте заявку…",
     tabConsult: "Консультант",
-    tabLab: "Соб~~у~~^е^седник",
-    titleLab: "Соб~~у~~^е^седник",
+    tabLab: "Соб~~утыльник~~^еседник^",
+    titleLab: "Соб~~утыльник~~^еседник^",
     subtitleLab: "Начальник отошёл, я за него",
     greetingLab:
       "~~Начальник вышел за сигаретами.~~ Начальник отошёл, я за него.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
@@ -59,8 +59,8 @@ const STR = {
       "Hi! I'm ELLHOME's AI consultant. I can tell you about services, estimate price and timelines, or take a request. How can I help?",
     placeholder: "Ask or leave a request…",
     tabConsult: "Consultant",
-    tabLab: "Stand-in",
-    titleLab: "Stand-in",
+    tabLab: "~~Drinking~~^Talking^ buddy",
+    titleLab: "~~Drinking~~^Talking^ buddy",
     subtitleLab: "The boss stepped out, I'm covering",
     greetingLab:
       "~~The boss went out for cigarettes.~~ The boss stepped out, I'm covering for him.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
