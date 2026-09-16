@@ -29,9 +29,9 @@ const STR = {
       "Здравствуйте! Я AI-консультант ELLHOME. Расскажу об услугах, прикину цену и сроки или приму заявку. Чем помочь?",
     placeholder: "Спросите или оставьте заявку…",
     tabConsult: "Консультант",
-    tabLab: "Михаил",
-    titleLab: "Михаил",
-    subtitleLab: "Заменитель — хозяин отошёл",
+    tabLab: "Соб~~у~~еседник",
+    titleLab: "Соб~~у~~еседник",
+    subtitleLab: "Хозяин отошёл, я за него",
     greetingLab:
       "~~Хозяин вышел за сигаретами.~~ Хозяин отошёл, я за него.\n\nСпрашивай что хочешь. Про цены и сроки — это к «Консультанту» на соседней вкладке.",
     placeholderLab: "Спросите о чём угодно…",
@@ -41,6 +41,10 @@ const STR = {
     greetingGuide:
       "wikiмантия — гадание по энциклопедии. Сначала напишите свой вопрос, потом назовёте страницу (1–11 500) и строку (1–99): что окажется на этих координатах, то и будет ответом.",
     placeholderGuide: "Напишите свой вопрос…",
+    copy: "Скопировать",
+    copied: "Скопировано",
+    copyQ: "Вопрос:",
+    copyTail: "Погадать самому:",
     waking: "Бот просыпается (первый запрос может занять до минуты)…",
     error: "Не удалось связаться. Попробуйте ещё раз или напишите в Telegram @M_B_lab.",
     send: "Отправить",
@@ -55,9 +59,9 @@ const STR = {
       "Hi! I'm ELLHOME's AI consultant. I can tell you about services, estimate price and timelines, or take a request. How can I help?",
     placeholder: "Ask or leave a request…",
     tabConsult: "Consultant",
-    tabLab: "Mikhail",
-    titleLab: "Mikhail",
-    subtitleLab: "Stand-in — the owner stepped out",
+    tabLab: "Stand-in",
+    titleLab: "Stand-in",
+    subtitleLab: "The owner stepped out, I'm covering",
     greetingLab:
       "~~The owner went out for cigarettes.~~ The owner stepped out, I'm covering for him.\n\nAsk me anything. Prices and deadlines aren't mine — that's the Consultant tab.",
     placeholderLab: "Ask me anything…",
@@ -67,6 +71,10 @@ const STR = {
     greetingGuide:
       "wikimancy — divination by encyclopedia. First write your question, then you\u2019ll name a page (1–11,500) and a line (1–99) — whatever sits at those coordinates is your answer.",
     placeholderGuide: "Write your question…",
+    copy: "Copy",
+    copied: "Copied",
+    copyQ: "Question:",
+    copyTail: "Try it yourself:",
     waking: "Waking the bot up (the first request can take up to a minute)…",
     error: "Couldn't reach the assistant. Try again or message Telegram @M_B_lab.",
     send: "Send",
@@ -132,6 +140,41 @@ function renderRich(text: string) {
   return out;
 }
 
+// Разметку бота в буфер не тащим: в мессенджере звёздочки и тильды
+// выглядят мусором. Ссылку разворачиваем в «текст: адрес».
+function toPlain(text: string) {
+  return text
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, "$1: $2")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/~~([^~\n]+)~~/g, "$1")
+    .replace(/\*([^*\n]+)\*/g, "$1");
+}
+
+// clipboard API есть не везде (старый Safari, страница без https) —
+// поэтому запасной путь через скрытое поле и execCommand
+async function copyText(text: string) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch { /* пробуем запасной путь */ }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export default function ChatWidget() {
   const { lang } = useLang();
   const t = STR[lang];
@@ -142,6 +185,7 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [slow, setSlow] = useState(false);
+  const [copied, setCopied] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -226,6 +270,26 @@ export default function ChatWidget() {
     }
   }
 
+  // Гадание копируется целиком: вопрос человека, координаты, статья и толкование.
+  // Вопрос ищем выше по переписке — рядом с ответом лежат только числа.
+  async function copyReading(i: number) {
+    const answer = messages[i]?.content || "";
+    let question = "";
+    for (let k = i - 1; k >= 0; k--) {
+      const m = messages[k];
+      if (m.role !== "user") continue;
+      if (/[\p{L}]{3,}/u.test(m.content)) { question = m.content.trim(); break; }
+    }
+    const link = window.location.href.split("#")[0];
+    const text = (question ? `${t.copyQ} ${question}\n\n` : "")
+      + toPlain(answer).trim()
+      + `\n\n${t.copyTail} ${link}`;
+    if (await copyText(text)) {
+      setCopied(i);
+      window.setTimeout(() => setCopied((cur) => (cur === i ? null : cur)), 1800);
+    }
+  }
+
   return (
     <>
       <button
@@ -244,7 +308,7 @@ export default function ChatWidget() {
             <header className="cw-head">
               <span className="cw-avatar"><IconChat /></span>
               <div className="cw-head-txt">
-                <div className="cw-title">{mode === "guide" ? t.titleGuide : mode === "lab" ? t.titleLab : t.title}</div>
+                <div className="cw-title">{renderRich(mode === "guide" ? t.titleGuide : mode === "lab" ? t.titleLab : t.title)}</div>
                 <div className="cw-sub"><span className="cw-online" />{mode === "guide" ? t.subtitleGuide : mode === "lab" ? t.subtitleLab : t.subtitle}</div>
               </div>
               {messages.length > 0 && (
@@ -259,7 +323,7 @@ export default function ChatWidget() {
                 onClick={() => setMode("consult")}>{t.tabConsult}</button>
               <button role="tab" aria-selected={mode === "lab"}
                 className={`cw-tab${mode === "lab" ? " on" : ""}`}
-                onClick={() => setMode("lab")}>{t.tabLab}</button>
+                onClick={() => setMode("lab")}>{renderRich(t.tabLab)}</button>
               <button role="tab" aria-selected={mode === "guide"}
                 className={`cw-tab${mode === "guide" ? " on" : ""}`}
                 onClick={() => setMode("guide")}>{t.tabGuide}</button>
@@ -269,11 +333,23 @@ export default function ChatWidget() {
               <div className="cw-msg cw-a">
                 <div className="cw-bubble">{renderRich(mode === "guide" ? t.greetingGuide : mode === "lab" ? t.greetingLab : t.greeting)}</div>
               </div>
-              {messages.map((m, i) => (
-                <div key={i} className={`cw-msg ${m.role === "user" ? "cw-u" : "cw-a"}`}>
-                  <div className="cw-bubble">{renderRich(m.content)}</div>
-                </div>
-              ))}
+              {messages.map((m, i) => {
+                // кнопка только у ответов гадания: там есть что унести с собой
+                const canCopy = mode === "guide" && m.role !== "user"
+                  && !m.content.startsWith("⚠️");
+                return (
+                  <div key={i} className={`cw-msg ${m.role === "user" ? "cw-u" : "cw-a"}`}>
+                    <div className="cw-col">
+                      <div className="cw-bubble">{renderRich(m.content)}</div>
+                      {canCopy && (
+                        <button type="button" className="cw-copy" onClick={() => copyReading(i)}>
+                          {copied === i ? t.copied : t.copy}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
               {loading && (
                 <div className="cw-msg cw-a">
                   <div className="cw-bubble cw-typing"><span></span><span></span><span></span></div>
