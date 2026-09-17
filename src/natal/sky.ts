@@ -33,6 +33,8 @@ export type Chart = {
   stations?: string[];
   lilith?: { lon: number; label: string; house: number } | null;
   lilith_true?: { lon: number; label: string; house: number } | null;
+  /* точки без физических тел — в колесо и в аспекты они не идут */
+  fictional?: { name: string; lon: number; label: string; retro: boolean; house: number }[];
 };
 
 /** Сегодняшнее небо против карты рождения. Карта не меняется, небо — каждый день. */

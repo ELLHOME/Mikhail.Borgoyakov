@@ -82,6 +82,7 @@ export default function Natal() {
   const [asking, setAsking] = useState(false);
   const [thread, setThread] = useState<{ q: string; a: string }[]>([]);
   const [qError, setQError] = useState("");
+  const [fict, setFict] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -100,6 +101,7 @@ export default function Natal() {
     try { saved = localStorage.getItem("ef-field") !== "0"; } catch { /* приватный режим */ }
     setFieldOn(saved);
     sky.setField(saved);
+    try { setFict(localStorage.getItem("ef-fict") === "1"); } catch { /* приватный режим */ }
     track("page_view", { page: "natal", w: window.innerWidth || 0 }, "page_view");
     return () => { sky.destroy(); skyRef.current = null; };
   }, []);
@@ -453,6 +455,42 @@ export default function Natal() {
                         </li>
                       ))}
                     </ul>
+                  </>
+                )}
+
+                {!!result.chart.fictional?.length && (
+                  <>
+                    <h2>Гипотетические точки</h2>
+                    <label className="ef-fict-switch">
+                      <input type="checkbox" checked={fict}
+                             onChange={(e) => {
+                               setFict(e.target.checked);
+                               try { localStorage.setItem("ef-fict", e.target.checked ? "1" : "0"); }
+                               catch { /* ничего страшного */ }
+                             }} />
+                      показывать
+                    </label>
+                    {fict && (
+                      <>
+                        <ul className="ef-houses">
+                          {result.chart.fictional.map((f) => (
+                            <li key={f.name}>
+                              <span className="g">{f.name}</span>
+                              <span className="v">{f.label}</span>
+                              <span className="r">{f.retro ? "R" : ""}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="ef-fict-note">
+                          Это не тела. Прозерпину, Вулкан и Селену никто не наблюдал —
+                          их считают по орбитам, которые назначены астрологическими школами.
+                          Файл этих орбит идёт в составе Swiss Ephemeris и начинается
+                          предупреждением самих её авторов: «Warning! These planets do not exist!»
+                          Поэтому здесь они стоят отдельно: ни в колесо, ни в аспекты,
+                          ни в разбор они не входят.
+                        </p>
+                      </>
+                    )}
                   </>
                 )}
 

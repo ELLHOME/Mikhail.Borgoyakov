@@ -188,6 +188,15 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
 .ef-data .h, .ef-data .t { color: var(--faint); }
 .ef-data .d, .ef-data .r { color: var(--spark); }
 
+/* Гипотетические точки: выключены по умолчанию и подписаны честно. */
+.ef-fict-switch { display: flex; align-items: center; gap: 8px; margin: -6px 0 16px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--dim); cursor: pointer; user-select: none; }
+.ef-fict-switch input { accent-color: #5b6f9d; }
+.ef-fict-note { font-family: var(--mono); font-size: 11.5px; line-height: 1.65;
+  color: var(--faint); border-left: 2px solid var(--rule); padding-left: 13px;
+  margin: -18px 0 34px; }
+
 .ef-foot { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule);
   font-family: var(--mono); font-size: 11.5px; line-height: 1.8; color: var(--faint);
   letter-spacing: .04em; }
