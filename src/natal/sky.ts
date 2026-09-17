@@ -146,39 +146,55 @@ function makeField(cv: HTMLCanvasElement) {
   });
   if (!gl) { cv.style.display = "none"; return null; }
 
-  const compile = (type: number, src: string) => {
-    const sh = gl.createShader(type)!;
-    gl.shaderSource(sh, src); gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-      console.error(gl.getShaderInfoLog(sh)); gl.deleteShader(sh); return null;
-    }
-    return sh;
+  type Res = {
+    prog: WebGLProgram; vao: WebGLVertexArrayObject; vbo: WebGLBuffer;
+    uRes: WebGLUniformLocation | null;
+    uTime: WebGLUniformLocation | null;
+    uGain: WebGLUniformLocation | null;
   };
-  const vs = compile(gl.VERTEX_SHADER, FIELD_VS);
-  const fs = vs && compile(gl.FRAGMENT_SHADER, FIELD_FS);
-  if (!vs || !fs) { cv.style.display = "none"; return null; }
-  const prog = gl.createProgram()!;
-  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  gl.deleteShader(vs); gl.deleteShader(fs);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-    console.error(gl.getProgramInfoLog(prog)); cv.style.display = "none"; return null;
-  }
 
-  const vao = gl.createVertexArray(), vbo = gl.createBuffer();
-  gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  // Всё, что живёт в видеопамяти, собирается здесь и только здесь. Потеря
+  // контекста уничтожает и программу, и буферы, и адреса переменных — значит
+  // после восстановления их надо собрать заново, а не просто снять флаг.
+  const build = (): Res | null => {
+    const compile = (type: number, src: string) => {
+      const sh = gl.createShader(type)!;
+      gl.shaderSource(sh, src); gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(sh)); gl.deleteShader(sh); return null;
+      }
+      return sh;
+    };
+    const vs = compile(gl.VERTEX_SHADER, FIELD_VS);
+    const fs = vs && compile(gl.FRAGMENT_SHADER, FIELD_FS);
+    if (!vs || !fs) return null;
+    const prog = gl.createProgram()!;
+    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    gl.deleteShader(vs); gl.deleteShader(fs);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error(gl.getProgramInfoLog(prog)); return null;
+    }
+    const vao = gl.createVertexArray()!, vbo = gl.createBuffer()!;
+    gl.bindVertexArray(vao); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    return {
+      prog, vao, vbo,
+      uRes: gl.getUniformLocation(prog, "iResolution"),
+      uTime: gl.getUniformLocation(prog, "iTime"),
+      uGain: gl.getUniformLocation(prog, "uGain"),
+    };
+  };
 
-  const uRes = gl.getUniformLocation(prog, "iResolution");
-  const uTime = gl.getUniformLocation(prog, "iTime");
-  const uGain = gl.getUniformLocation(prog, "uGain");
+  let res = build();
+  if (!res) { cv.style.display = "none"; return null; }
 
   // Рейтрейс дорогой: считаем в половину экранного разрешения и даём браузеру
   // растянуть. Поле мягкое, потери не видно, а кадр дешевле вчетверо.
   const scale0 = window.innerWidth < 700 ? 0.4 : 0.5;
   let scale = scale0;
   let cw = 0, ch = 0, clock = 0;
-  let lost = false, off = false;
+  let dead = false, off = false;
   // Меряем длительность кадра, а не время вызова отрисовки. Время вызова
   // ничего не говорит о шейдере: команды уходят в очередь и выполняются
   // потом, поэтому цифра оставалась маленькой на любой видеокарте и росла
@@ -198,15 +214,24 @@ function makeField(cv: HTMLCanvasElement) {
     return v[v.length >> 1];
   };
 
+  const restart = () => { samples = []; winStart = performance.now(); badRuns = goodRuns = 0; };
+
   // После возвращения на вкладку первые кадры всегда длинные — судить
   // по ним нельзя, поэтому окно замеров начинаем заново.
-  const onVisible = () => {
-    if (!document.hidden) { samples = []; winStart = performance.now(); badRuns = goodRuns = 0; }
-  };
+  const onVisible = () => { if (!document.hidden) restart(); };
   document.addEventListener("visibilitychange", onVisible);
 
-  const onLost = (e: Event) => { e.preventDefault(); lost = true; };
-  const onRestored = () => { lost = false; cw = ch = 0; };
+  // Браузер отбирает контекст сам: уснул ноутбук, перезапустился драйвер,
+  // вкладка провисела фоном полдня. Раньше мы на это только поднимали флаг,
+  // а восстановление сводилось к его снятию — и поле оставалось чёрным
+  // навсегда, потому что рисовать было уже нечем. Пересобираем.
+  const revive = () => {
+    res = build();
+    if (!res) return;            // шейдер не собрался — пробуем в следующий раз
+    cw = ch = 0; restart();
+  };
+  const onLost = (e: Event) => { e.preventDefault(); res = null; };
+  const onRestored = () => revive();
   cv.addEventListener("webglcontextlost", onLost);
   cv.addEventListener("webglcontextrestored", onRestored);
 
@@ -226,15 +251,23 @@ function makeField(cv: HTMLCanvasElement) {
     },
     resize: size,
     draw(dt: number, chaos: number) {
-      if (lost || off) return;
+      if (off || dead) return;
+      if (!res) {
+        // Событие webglcontextrestored приходит не всегда — на части машин
+        // контекст оживает молча. Поэтому не ждём события, а спрашиваем сам
+        // контекст, и пересобираемся, как только он готов.
+        if (gl.isContextLost()) return;
+        revive();
+        if (!res) return;
+      }
       size();
       // Спокойная карта — поле медленное и приглушённое; распад его будит.
       clock += (dt / 1000) * (0.32 + chaos * 0.85);
-      gl.useProgram(prog);
-      gl.uniform3f(uRes, cw, ch, 1);
-      gl.uniform1f(uTime, clock);
-      gl.uniform1f(uGain, 1.02 + chaos * 0.6);
-      gl.bindVertexArray(vao);
+      gl.useProgram(res.prog);
+      gl.uniform3f(res.uRes, cw, ch, 1);
+      gl.uniform1f(res.uTime, clock);
+      gl.uniform1f(res.uGain, 1.02 + chaos * 0.6);
+      gl.bindVertexArray(res.vao);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       // Не укладываемся в кадр — роняем разрешение, а не частоту.
       const now = performance.now();
@@ -265,10 +298,14 @@ function makeField(cv: HTMLCanvasElement) {
       }
     },
     destroy() {
+      dead = true;
       document.removeEventListener("visibilitychange", onVisible);
       cv.removeEventListener("webglcontextlost", onLost);
       cv.removeEventListener("webglcontextrestored", onRestored);
-      gl.deleteBuffer(vbo); gl.deleteVertexArray(vao); gl.deleteProgram(prog);
+      if (res && !gl.isContextLost()) {
+        gl.deleteBuffer(res.vbo); gl.deleteVertexArray(res.vao); gl.deleteProgram(res.prog);
+      }
+      res = null;
     },
   };
 }
