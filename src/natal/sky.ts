@@ -15,12 +15,23 @@ export type Planet = {
   name: string; lon: number; sign: string; deg: number;
   label: string; retro: boolean; house: number;
 };
+export type Aspect = { a: string; b: string; type: string; exact: number };
 export type Chart = {
   planets: Planet[];
   houses: { n: number; lon: number; label: string }[];
   asc: { lon: number; label: string };
   mc: { lon: number; label: string };
-  aspects: { a: string; b: string; type: string; exact: number }[];
+  aspects: Aspect[];
+  /* всё ниже даёт та же эфемерида, колесу оно не нужно — только тексту */
+  angle_aspects?: Aspect[];
+  moon_phase?: { angle: number; illum: number; name: string };
+  day_chart?: boolean;
+  ruler?: { sign: string; planet: string; classic: string; label: string; house: number };
+  elements?: Record<string, number>;
+  modes?: Record<string, number>;
+  stelliums?: { where: string; who: string[] }[];
+  stations?: string[];
+  lilith?: { lon: number; label: string; house: number } | null;
 };
 
 type Item = {

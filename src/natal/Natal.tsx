@@ -21,6 +21,28 @@ function bold(text: string) {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
+
+/** Сводка под колесом: по одному факту в клетке, все посчитанные.
+ *  Без времени рождения дома неизвестны, поэтому всё, что от них зависит,
+ *  из сводки выпадает — показывать недостоверное хуже, чем не показывать. */
+function summary(c: Chart, timeKnown: boolean): [string, string][] {
+  const out: [string, string][] = [];
+  const order = ["огонь", "земля", "воздух", "вода"];
+  if (c.moon_phase) out.push(["фаза луны", `${c.moon_phase.name}, ${c.moon_phase.illum}%`]);
+  if (timeKnown && c.day_chart !== undefined) out.push(["карта", c.day_chart ? "дневная" : "ночная"]);
+  if (timeKnown && c.ruler?.planet)
+    out.push(["управитель", `${c.ruler.planet}, дом ${c.ruler.house}`]);
+  if (c.elements)
+    out.push(["стихии", order.filter((e) => c.elements![e])
+      .map((e) => `${e} ${c.elements![e]}`).join(" · ")]);
+  if (c.modes)
+    out.push(["кресты", Object.entries(c.modes).map(([k, v]) => `${k} ${v}`).join(" · ")]);
+  const st = (c.stelliums || []).filter((g) => timeKnown || g.where.startsWith("знак"));
+  if (st.length) out.push(["скопления", st.map((g) => `${g.where} ×${g.who.length}`).join(", ")]);
+  if (c.stations?.length) out.push(["на станции", c.stations.join(", ")]);
+  if (c.lilith?.label) out.push(["чёрная луна", c.lilith.label]);
+  return out;
+}
 const offsetLabel = (h: number) =>
   "UTC" + (h < 0 ? "−" : "+") + (Number.isInteger(h) ? h : h.toFixed(1)).toString().replace("-", "");
 
@@ -231,6 +253,17 @@ export default function Natal() {
              aria-label={result ? "Натальная карта" : undefined} />
 
         {result && (
+          <dl className="ef-sum">
+            {summary(result.chart, result.time_known).map(([k, v]) => (
+              <div key={k}>
+                <dt>{k}</dt>
+                <dd>{v}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+
+        {result && (
           <>
             <div className="ef-grid">
               <section className="ef-read">
@@ -265,6 +298,37 @@ export default function Natal() {
                     </li>
                   ))}
                 </ul>
+
+                {/* Углы карты держатся на времени рождения: без него их нет. */}
+                {result.time_known && !!result.chart.angle_aspects?.length && (
+                  <>
+                    <h2>Аспекты к углам</h2>
+                    <ul className="ef-asp">
+                      {result.chart.angle_aspects.slice(0, 8).map((a, i) => (
+                        <li key={i}>
+                          <span className="a">{a.a}</span>
+                          <span className="t">{a.type}</span>
+                          <span className="a">{a.b}</span>
+                          <span className="d">{a.exact.toFixed(2)}°</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+
+                {result.time_known && (
+                  <>
+                    <h2>Дома</h2>
+                    <ul className="ef-houses">
+                      {result.chart.houses.map((h) => (
+                        <li key={h.n}>
+                          <span className="g">дом {h.n}</span>
+                          <span className="v">{h.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </section>
             </div>
 

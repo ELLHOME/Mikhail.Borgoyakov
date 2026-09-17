@@ -104,6 +104,20 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
   margin: 28px auto 0; }
 .ef-box[data-empty="1"] { height: 0; aspect-ratio: auto; margin: 0 auto; }
 
+/* ── сводка под колесом ──────────────────────────────────────────── */
+/* Гибкий ряд, а не сетка: в сетке последняя строка оставляла пустые клетки,
+   и они читались как дырки в таблице. Здесь строка просто кончается. */
+.ef-sum { display: flex; flex-wrap: wrap; margin: 34px auto 0; max-width: 980px; padding: 6px;
+  background: rgba(7,9,15,.78); border: 1px solid var(--rule); border-radius: 12px; }
+.ef-sum > div { flex: 1 1 190px; padding: 11px 15px 12px;
+  display: flex; flex-direction: column; gap: 5px; }
+.ef-sum dt { font-family: var(--mono); font-size: 10px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--faint); }
+.ef-sum dd { margin: 0; font-family: var(--mono); font-size: 13px; color: var(--ink);
+  line-height: 1.5; }
+
+.ef-data .ef-houses li { grid-template-columns: 5.6em 1fr; }
+
 /* ── разбор ──────────────────────────────────────────────────────── */
 .ef-grid { display: grid; gap: 48px 56px; grid-template-columns: minmax(0, 62ch) minmax(0, 1fr);
   align-items: start; margin-top: 56px; }
