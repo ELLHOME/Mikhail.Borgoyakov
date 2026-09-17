@@ -55,7 +55,10 @@ function summary(c: Chart, timeKnown: boolean): [string, string][] {
   const st = (c.stelliums || []).filter((g) => timeKnown || g.where.startsWith("знак"));
   if (st.length) out.push(["скопления", st.map((g) => `${g.where} ×${g.who.length}`).join(", ")]);
   if (c.stations?.length) out.push(["на станции", c.stations.join(", ")]);
-  if (c.lilith?.label) out.push(["чёрная луна", c.lilith.label]);
+  // Апогей лунной орбиты считают двумя способами, и расходятся они заметно.
+  // Показываем оба: выбирать за человека, какая «правильная», не наше дело.
+  if (c.lilith?.label) out.push(["чёрная луна · средняя", c.lilith.label]);
+  if (c.lilith_true?.label) out.push(["чёрная луна · истинная", c.lilith_true.label]);
   return out;
 }
 const offsetLabel = (h: number) =>

@@ -32,6 +32,7 @@ export type Chart = {
   stelliums?: { where: string; who: string[] }[];
   stations?: string[];
   lilith?: { lon: number; label: string; house: number } | null;
+  lilith_true?: { lon: number; label: string; house: number } | null;
 };
 
 /** Сегодняшнее небо против карты рождения. Карта не меняется, небо — каждый день. */
@@ -283,8 +284,21 @@ export function createSky(
   let chart: Chart | null = null;
   const ang = (lon: number) => (lon - (chart ? chart.asc.lon : 0) + 360) % 360;
 
+  /* Чертёж карты считается один раз: из него и частицы, и чёткие линии.
+     Так обе картинки заведомо совпадают точка в точку, и переход между
+     ними читается как гранулирование линии, а не как подмена рисунка. */
+  type Plan = {
+    s: number; R: number; rSign: number; rHouse: number; rAsp: number;
+    rings: { r: number; color: string; a: number; w: number }[];
+    spokes: { x1: number; y1: number; x2: number; y2: number; color: string; a: number; w: number }[];
+    lines: { x1: number; y1: number; x2: number; y2: number; color: string; a: number; w: number }[];
+    texts: { x: number; y: number; t: string; color: string; size: number; a: number }[];
+  };
+  let plan: Plan | null = null;
+
   function build() {
     items = [];
+    plan = null;
     if (!chart) return;
     const c = chart;
     const s = Math.min(ww, wh), cx = ww / 2, cy = wh / 2;
@@ -294,6 +308,8 @@ export function createSky(
       const a = ((180 + deg) * Math.PI) / 180;
       return [cx + r * Math.cos(a), cy - r * Math.sin(a)];
     };
+    const P: Plan = { s, R, rSign, rHouse, rAsp, rings: [], spokes: [], lines: [], texts: [] };
+
     // t и off — место частицы в общем потоке: та же змейка и те же скорости,
     // что у фоновых цифр. В хаосе карта не «похожа» на поток, а плывёт в нём.
     const scatter = () => ({
@@ -319,63 +335,104 @@ export function createSky(
         dx: 0, dy: 0, vx: 0, vy: 0,
         dl: Math.min(0.94, layer * 0.18 + Math.random() * 0.2),
       });
+      P.texts.push({ x, y, t: text, color, size: gs, a: alpha });
     };
     const seg = (r1: number, r2: number, deg: number, color: string,
-                 alpha: number, step: number, layer: number) => {
+                 alpha: number, step: number, layer: number, w = 1) => {
       const p1 = xy(r1, deg), p2 = xy(r2, deg);
       const n = Math.max(2, Math.round(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / step));
       for (let k = 0; k <= n; k++)
         dot(p1[0] + ((p2[0] - p1[0]) * k) / n, p1[1] + ((p2[1] - p1[1]) * k) / n, color, alpha, 1.1, layer);
+      P.spokes.push({ x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], color, a: alpha, w });
     };
-    const ring = (r: number, color: string, alpha: number, step: number, layer: number) => {
+    const ring = (r: number, color: string, alpha: number, step: number, layer: number, w = 1) => {
       const n = Math.max(24, Math.round((TAU * r) / step));
       for (let k = 0; k < n; k++) { const p = xy(r, (k * 360) / n); dot(p[0], p[1], color, alpha, 1.1, layer); }
+      P.rings.push({ r, color, a: alpha, w });
+    };
+    const link = (p1: [number, number], p2: [number, number], color: string,
+                  alpha: number, step: number, layer: number, w = 1) => {
+      const n = Math.max(2, Math.round(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / step));
+      for (let k = 0; k <= n; k++)
+        dot(p1[0] + ((p2[0] - p1[0]) * k) / n, p1[1] + ((p2[1] - p1[1]) * k) / n, color, alpha, 1.15, layer);
+      P.lines.push({ x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], color, a: alpha, w });
     };
 
-    ring(R, "#5b6577", 0.95, 2.4, 0); ring(rSign, "#5b6577", 0.95, 2.4, 0);
+    ring(R, "#5b6577", 0.95, 2.4, 0, 1.1); ring(rSign, "#5b6577", 0.95, 2.4, 0, 1.1);
     ring(rHouse, "#3d4654", 0.9, 2.8, 0); ring(rAsp, "#333b47", 0.9, 3.2, 0);
 
     for (let z = 0; z < 12; z++) {
       seg(rSign, R, ang(z * 30), "#5b6577", 0.95, 2.6, 1);
       const g = xy((R + rSign) / 2, ang(z * 30 + 15));
-      glyph(g[0], g[1], SIGNS[z], "#aab5c9", s * 0.032, 1, 4);
+      glyph(g[0], g[1], SIGNS[z], "#aab5c9", s * 0.036, 1, 4);
     }
     for (let h = 0; h < 12; h++) {
       const strong = h === 0 || h === 3 || h === 6 || h === 9;
       seg(rAsp, rSign, ang(c.houses[h].lon), strong ? "#8792a3" : "#3d4654",
-          strong ? 1 : 0.85, strong ? 2.6 : 4.5, 1);
-      const np = xy(rAsp + s * 0.018, ang(c.houses[h].lon + 5));
-      glyph(np[0], np[1], String(h + 1), "#79828f", s * 0.017, 0.9, 3);
+          strong ? 1 : 0.85, strong ? 2.6 : 4.5, 1, strong ? 1.4 : 0.8);
+      // Номер дома ставим под самое кольцо домов. Раньше он стоял у кольца
+      // аспектов — там же, где подписи градусов планет, и они наезжали друг
+      // на друга: на россыпи точек это было незаметно, на чертеже — сразу.
+      const np = xy(rHouse - s * 0.024, ang(c.houses[h].lon + 5));
+      glyph(np[0], np[1], String(h + 1), "#79828f", s * 0.018, 0.85, 3);
     }
     const lons: Record<string, number> = {};
     for (const p of c.planets) lons[p.name] = p.lon;
     for (const A of c.aspects) {
       if (lons[A.a] === undefined || lons[A.b] === undefined) continue;
-      const p1 = xy(rAsp, ang(lons[A.a])), p2 = xy(rAsp, ang(lons[A.b]));
-      const n = Math.max(6, Math.round(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / 3.4));
-      for (let k = 0; k <= n; k++)
-        dot(p1[0] + ((p2[0] - p1[0]) * k) / n, p1[1] + ((p2[1] - p1[1]) * k) / n,
-            ASPC[A.type] || "#9aa2b1", 0.7, 1.15, 2);
+      link(xy(rAsp, ang(lons[A.a])), xy(rAsp, ang(lons[A.b])),
+           ASPC[A.type] || "#9aa2b1", 0.7, 3.4, 2, 0.9);
     }
     const placed: number[] = [];
     const sorted = c.planets.slice().sort((a, b) => ang(a.lon) - ang(b.lon));
-    for (const P of sorted) {
-      let a0 = ang(P.lon), guard = 0;
+    for (const P2 of sorted) {
+      let a0 = ang(P2.lon), guard = 0;
       while (guard++ < 60 && placed.some((v) => { const d = Math.abs(a0 - v); return d < 7 || d > 353; })) a0 += 7;
       placed.push(a0 % 360);
-      const tp = xy(rAsp, ang(P.lon)), gp = xy(rPlan, a0);
-      const n = Math.max(2, Math.round(Math.hypot(gp[0] - tp[0], gp[1] - tp[1]) / 3.4));
-      for (let k = 0; k <= n; k++)
-        dot(tp[0] + ((gp[0] - tp[0]) * k) / n, tp[1] + ((gp[1] - tp[1]) * k) / n, "#5b6577", 0.85, 1.1, 3);
-      glyph(gp[0], gp[1], (GLYPH[P.name] || "•") + VS, "#eef1f7", s * 0.03, 1, 5);
-      const dp = xy(rPlan - s * 0.036, a0);
-      glyph(dp[0], dp[1], Math.floor(P.deg) + "°" + (P.retro ? "R" : ""), "#9aa4b4", s * 0.015, 0.95, 5);
+      link(xy(rAsp, ang(P2.lon)), xy(rPlan, a0), "#5b6577", 0.85, 3.4, 3, 0.8);
+      const gp = xy(rPlan, a0);
+      glyph(gp[0], gp[1], (GLYPH[P2.name] || "•") + VS, "#eef1f7", s * 0.034, 1, 5);
+      const dp = xy(rPlan - s * 0.042, a0);
+      glyph(dp[0], dp[1], Math.floor(P2.deg) + "°" + (P2.retro ? "R" : ""),
+            "#9aa4b4", s * 0.016, 0.95, 5);
     }
     for (let ax = 0; ax < 2; ax++) {
       const lab = ax ? "MC" : "ASC";
-      const lp = xy(R + s * 0.028, ang(ax ? c.mc.lon : c.asc.lon));
-      glyph(lp[0], lp[1], lab, "#8f9bb3", s * 0.017, 0.9, 4);
+      const lp = xy(R + s * 0.03, ang(ax ? c.mc.lon : c.asc.lon));
+      glyph(lp[0], lp[1], lab, "#8f9bb3", s * 0.019, 0.9, 4);
     }
+    plan = P;
+  }
+
+  /** Собранная карта — настоящий чертёж: дуги, отрезки и текст, а не точки.
+   *  Рисуется поверх частиц с прозрачностью (1 − хаос); когда карта начинает
+   *  распадаться, линии гаснут ровно в том темпе, в каком проявляются цифры. */
+  function drawPlan(ox: number, oy: number, alpha: number, jx: number, jy: number) {
+    if (!plan || alpha <= 0.01) return;
+    const P = plan, cx = ox + ww / 2 + jx, cy = oy + wh / 2 + jy;
+    bctx.globalCompositeOperation = "source-over";
+    bctx.lineCap = "round";
+    for (const r of P.rings) {
+      bctx.globalAlpha = r.a * alpha;
+      bctx.strokeStyle = r.color; bctx.lineWidth = r.w;
+      bctx.beginPath(); bctx.arc(cx, cy, r.r, 0, TAU); bctx.stroke();
+    }
+    for (const g of P.spokes.concat(P.lines)) {
+      bctx.globalAlpha = g.a * alpha;
+      bctx.strokeStyle = g.color; bctx.lineWidth = g.w;
+      bctx.beginPath();
+      bctx.moveTo(ox + g.x1 + jx, oy + g.y1 + jy);
+      bctx.lineTo(ox + g.x2 + jx, oy + g.y2 + jy);
+      bctx.stroke();
+    }
+    bctx.textAlign = "center"; bctx.textBaseline = "middle";
+    for (const t of P.texts) {
+      bctx.globalAlpha = t.a * alpha;
+      bctx.fillStyle = t.color;
+      bctx.font = t.size + 'px "Golos Text", system-ui, sans-serif';
+      bctx.fillText(t.t, ox + t.x + jx, oy + t.y + jy);
+    }
+    bctx.globalAlpha = 1;
   }
 
   const sizeWheel = () => {
@@ -494,9 +551,24 @@ export function createSky(
       bctx.fillRect(cx - rad, cy - rad, rad * 2, rad * 2);
       bctx.globalCompositeOperation = "lighter";
     }
+    // Собранная карта — это чертёж, а не россыпь точек: пока хаоса нет,
+    // видны чёткие линии, а частицы погашены. Как только начинается распад,
+    // линии тают, а цифры на их местах проявляются — и линия гранулируется.
+    const order = 1 - clamp01(chaosOf(0.5) / 0.3);
+    // Чертёж не стоит намертво: вся карта целиком ходит по крошечной орбите
+    // в три пикселя. Этого хватает, чтобы она жила в одном воздухе с потоком,
+    // и при этом ни одна линия не размывается.
+    const jx = Math.sin(drift * 0.42) * s * 0.004 * order;
+    const jy = Math.cos(drift * 0.33) * s * 0.004 * order;
+    drawPlan(ox, oy, order, jx, jy);
+
+    bctx.globalCompositeOperation = "lighter";
     bctx.textAlign = "center"; bctx.textBaseline = "middle";
     for (const it of items) {
       const k = chaosOf(it.dl);
+      // частица существует только на время распада
+      const vis = clamp01((k - 0.02) / 0.16);
+      if (vis <= 0) continue;
       const hx = ox + it.x, hy = oy + it.y;
       if (step) { it.t += it.spd; if (it.t >= 1) it.t -= 1; }
       if (k > 0.5 && Math.random() < 0.02) it.ch = noiseChar();
@@ -531,7 +603,7 @@ export function createSky(
       // почти сразу, глиф держится дольше — его форма и так читается.
       const lo = it.g ? 0.2 : 0.04, hi = it.g ? 0.36 : 0.12;
       const mix = clamp01((k - lo) / hi);
-      const alpha = it.a * (1 - k * 0.15) * (it.g ? 1 : 1 + mix * 0.7);
+      const alpha = it.a * (1 - k * 0.15) * (it.g ? 1 : 1 + mix * 0.7) * vis;
       if (mix < 1) {
         bctx.globalAlpha = alpha * (1 - mix);
         bctx.fillStyle = it.c;
