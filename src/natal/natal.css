@@ -1,0 +1,136 @@
+/* Страница «Эфемерида». Шрифты не тянем со стороны: на сайте уже вшит
+   Montserrat, для чисел берём системный моноширинный — так страница
+   остаётся без единого внешнего запроса, как и весь остальной сайт. */
+.ef {
+  --ground: #05060a;
+  --ink: #eef1f7;
+  --dim: #7f8896;
+  --faint: #4a5261;
+  --rule: #1c2230;
+  --spark: #8ea2ff;
+  --warn: #d4874e;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  color-scheme: dark;
+  color: var(--ink);
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+/* Страница не подключает общий index.css (там тайлвинд и стили сайта),
+   поэтому базовые правила задаём сами — иначе поля вылезают за экран. */
+.ef, .ef *, .ef *::before, .ef *::after { box-sizing: border-box; }
+html.ef-root, body.ef-body { background: #05060a; margin: 0; }
+
+.ef-field, .ef-stream { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.ef-field { z-index: 0; }
+.ef-veil {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(5,6,10,.42), rgba(5,6,10,.60) 38%, rgba(5,6,10,.72));
+}
+.ef-stream { z-index: 2; }
+
+.ef-page { position: relative; z-index: 3; padding: 0 20px 96px; max-width: 1180px; margin: 0 auto; }
+
+.ef-head { padding-block: 56px 20px; display: flex; flex-direction: column; gap: 14px;
+  align-items: center; text-align: center; }
+.ef-head h1 { margin: 0; font-weight: 500; font-size: clamp(28px, 6vw, 52px);
+  letter-spacing: .14em; text-transform: uppercase; text-wrap: balance; }
+.ef-coords { font-family: var(--mono); font-size: 12.5px; letter-spacing: .08em;
+  color: var(--dim); text-transform: uppercase; }
+.ef-coords b { color: var(--ink); font-weight: 400; }
+.ef-back { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--faint); text-decoration: none; }
+.ef-back:hover { color: var(--ink); }
+
+/* ── форма ───────────────────────────────────────────────────────── */
+.ef-form { display: grid; gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  align-items: start; max-width: 880px; margin: 8px auto 0; }
+.ef-field-wrap { display: flex; flex-direction: column; gap: 7px; position: relative; min-width: 0; }
+.ef-form label { font-family: var(--mono); font-size: 11px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--dim); }
+.ef-form input[type="text"], .ef-form input[type="date"], .ef-form input[type="time"] {
+  width: 100%; background: rgba(12,15,22,.72); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: 10px; padding: 11px 13px;
+  font-family: var(--mono); font-size: 14px; letter-spacing: .02em;
+  transition: border-color .18s, background .18s;
+}
+.ef-form input:focus { outline: none; border-color: #3d4a66; background: rgba(14,18,27,.9); }
+.ef-form input::placeholder { color: var(--faint); }
+.ef-form input[type="date"], .ef-form input[type="time"] { color-scheme: dark; }
+
+.ef-submit {
+  width: 100%; appearance: none; cursor: pointer; border: 1px solid #2c3a55; border-radius: 10px;
+  background: rgba(22,30,48,.9); color: var(--ink); padding: 12px 22px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  transition: border-color .18s, background .18s, color .18s;
+}
+.ef-submit:hover:not(:disabled) { border-color: #4a5c80; background: rgba(30,40,62,.95); }
+.ef-submit:disabled { cursor: default; color: var(--faint); border-color: var(--rule); }
+
+.ef-unknown { display: flex; align-items: center; gap: 8px; margin-top: 2px; font-family: var(--mono);
+  font-size: 11px; letter-spacing: .08em; color: var(--dim); text-transform: uppercase;
+  cursor: pointer; user-select: none; }
+.ef-unknown input { accent-color: #5b6f9d; }
+
+/* подсказка городов */
+.ef-sugg { position: absolute; z-index: 5; top: calc(100% + 6px); left: 0; right: 0;
+  background: rgba(9,12,19,.97); border: 1px solid var(--rule); border-radius: 10px;
+  overflow: hidden; backdrop-filter: blur(8px); box-shadow: 0 18px 40px rgba(0,0,0,.55); }
+.ef-sugg button { display: block; width: 100%; text-align: left; appearance: none;
+  background: none; border: 0; cursor: pointer; padding: 9px 13px; color: var(--ink);
+  font-family: var(--mono); font-size: 13px; }
+.ef-sugg button:hover, .ef-sugg button[data-on="1"] { background: rgba(40,52,78,.8); }
+.ef-sugg span { color: var(--faint); }
+
+.ef-hint { font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+  text-align: center; margin: 14px 0 0; letter-spacing: .04em; }
+.ef-error { color: var(--warn); }
+
+/* ── колесо ──────────────────────────────────────────────────────── */
+.ef-box { position: relative; width: min(88vw, 620px); aspect-ratio: 1; max-width: 100%;
+  margin: 28px auto 0; }
+.ef-box[data-empty="1"] { height: 0; aspect-ratio: auto; margin: 0 auto; }
+
+/* ── разбор ──────────────────────────────────────────────────────── */
+.ef-grid { display: grid; gap: 48px 56px; grid-template-columns: minmax(0, 62ch) minmax(0, 1fr);
+  align-items: start; margin-top: 56px; }
+@media (max-width: 860px) { .ef-grid { grid-template-columns: 1fr; margin-top: 36px; } }
+.ef-grid h2 { font-size: 13px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--dim); margin: 0 0 20px; }
+/* Поток цифр идёт и под текстом. Вместо подложки-коробки — тень вокруг букв:
+   текст выходит из шума, а фон остаётся сплошным. */
+.ef-read, .ef-data, .ef-foot, .ef-head, .ef-hint, .ef-form label {
+  text-shadow: 0 0 16px rgba(5,6,10,.95), 0 0 5px rgba(5,6,10,.9); }
+.ef-read p { margin: 0 0 20px; }
+.ef-read p.ef-lead { font-size: 18px; }
+.ef-read strong { font-weight: 600; }
+.ef-note { font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: var(--warn);
+  border-left: 2px solid rgba(212,135,78,.45); padding-left: 14px; margin: 0 0 24px; }
+.ef-verdict { font-family: var(--mono); font-size: 13px; line-height: 1.7; color: var(--dim);
+  border-top: 1px solid var(--rule); padding-top: 18px; margin-top: 30px; white-space: pre-line; }
+
+.ef-data h2 { margin-bottom: 14px; }
+.ef-data ul { list-style: none; margin: 0 0 34px; padding: 0; }
+.ef-data li { display: grid; grid-template-columns: 5.6em 1fr auto auto; gap: 10px;
+  align-items: baseline; font-family: var(--mono); font-size: 12.5px;
+  padding: 7px 0; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+.ef-data .ef-asp li { grid-template-columns: 1fr auto 1fr auto; }
+.ef-data .g, .ef-data .a { color: var(--ink); }
+.ef-data .v { color: var(--dim); }
+.ef-data .h, .ef-data .t { color: var(--faint); }
+.ef-data .d, .ef-data .r { color: var(--spark); }
+
+.ef-foot { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.8; color: var(--faint);
+  letter-spacing: .04em; }
+.ef-foot a { color: var(--dim); }
+
+/* ── переключатель фона ──────────────────────────────────────────── */
+.ef-toggle { position: fixed; z-index: 4; right: 16px; bottom: 16px; appearance: none;
+  cursor: pointer; font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--dim); background: rgba(5,6,10,.72);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 9px 15px;
+  backdrop-filter: blur(6px); transition: color .2s, border-color .2s; }
+.ef-toggle:hover, .ef-toggle:focus-visible { color: var(--ink); border-color: #33405a; outline: none; }
+.ef-toggle b { font-weight: 400; color: var(--spark); }
