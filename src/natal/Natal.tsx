@@ -10,7 +10,7 @@ type City = { name: string; country: string; region: string;
 type Reading = { lead: string; blocks: string[]; verdict: string };
 type Result = {
   chart: Chart; reading: Reading; place: string; tz: string; when: string;
-  utc_offset: number; time_known: boolean; note: string;
+  utc_offset: number; time_known: boolean; note: string; tz_note?: string;
 };
 
 /** Разметка у нас одна: **жирный**. Ничего больше модель не присылает,
@@ -236,6 +236,7 @@ export default function Natal() {
               <section className="ef-read">
                 <h2>Что из этого следует</h2>
                 {result.note && <p className="ef-note">{result.note}</p>}
+                {result.tz_note && <p className="ef-note">{result.tz_note}</p>}
                 <p className="ef-lead">{result.reading.lead}</p>
                 {result.reading.blocks.map((b, i) => <p key={i}>{bold(b)}</p>)}
                 {result.reading.verdict && <p className="ef-verdict">{result.reading.verdict}</p>}

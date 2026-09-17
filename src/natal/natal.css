@@ -118,7 +118,8 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
 .ef-read p.ef-lead { font-size: 18px; }
 .ef-read strong { font-weight: 600; }
 .ef-note { font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: var(--warn);
-  border-left: 2px solid rgba(212,135,78,.45); padding-left: 14px; margin: 0 0 24px; }
+  border-left: 2px solid rgba(212,135,78,.45); padding-left: 14px; margin: 0 0 20px; }
+.ef-note + .ef-note { margin-top: -6px; }
 .ef-verdict { font-family: var(--mono); font-size: 13px; line-height: 1.7; color: var(--dim);
   border-top: 1px solid var(--rule); padding-top: 18px; margin-top: 30px; white-space: pre-line; }
 
