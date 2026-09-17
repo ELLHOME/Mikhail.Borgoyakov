@@ -150,6 +150,33 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
 .ef-data .ef-events .e-when { font-family: var(--mono); font-size: 11.5px; color: var(--dim);
   font-variant-numeric: tabular-nums; }
 
+/* ── вопрос ──────────────────────────────────────────────────────── */
+.ef-ask { max-width: 74ch; margin: 44px auto 0; padding-bottom: 44px;
+  border-bottom: 1px solid var(--rule); }
+.ef-ask h2 { font-size: 13px; font-weight: 500; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--dim); margin: 0 0 20px; }
+.ef-ask form { display: flex; gap: 10px; }
+.ef-ask input { flex: 1 1 auto; min-width: 0; background: rgba(12,15,22,.72);
+  color: var(--ink); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 12px 14px; font-family: "Montserrat", system-ui, sans-serif; font-size: 15px; }
+.ef-ask input:focus { outline: none; border-color: #3d4a66; background: rgba(14,18,27,.9); }
+.ef-ask input::placeholder { color: var(--faint); }
+.ef-ask button { flex: 0 0 auto; appearance: none; cursor: pointer;
+  border: 1px solid #2c3a55; border-radius: 10px; background: rgba(22,30,48,.9);
+  color: var(--ink); padding: 12px 20px; font-family: var(--mono); font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase; transition: border-color .18s, color .18s; }
+.ef-ask button:hover:not(:disabled) { border-color: #4a5c80; }
+.ef-ask button:disabled { cursor: default; color: var(--faint); border-color: var(--rule); }
+.ef-ask-note { font-family: var(--mono); font-size: 11.5px; line-height: 1.6;
+  color: var(--faint); margin: 12px 0 0; }
+
+/* Вопрос человека — врезкой, ответ — обычным текстом страницы. */
+.ef-qa { margin: 0 0 30px; text-shadow: 0 0 16px rgba(5,6,10,.95), 0 0 5px rgba(5,6,10,.9); }
+.ef-qa .ef-q { font-family: var(--mono); font-size: 12.5px; color: var(--dim);
+  border-left: 2px solid var(--rule); padding-left: 14px; margin: 0 0 16px; }
+.ef-qa p { margin: 0 0 16px; }
+.ef-qa strong { font-weight: 600; }
+
 .ef-data h2 { margin-bottom: 14px; }
 .ef-data ul { list-style: none; margin: 0 0 34px; padding: 0; }
 .ef-data li { display: grid; grid-template-columns: 5.6em 1fr auto auto; gap: 10px;

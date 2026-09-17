@@ -75,6 +75,10 @@ export default function Natal() {
   const [sugg, setSugg] = useState<City[]>([]);
   const [pick, setPick] = useState(0);
   const [noCity, setNoCity] = useState(false);
+  const [q, setQ] = useState("");
+  const [asking, setAsking] = useState(false);
+  const [thread, setThread] = useState<{ q: string; a: string }[]>([]);
+  const [qError, setQError] = useState("");
 
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -177,6 +181,35 @@ export default function Natal() {
     }
   }
 
+  async function askChart(e: React.FormEvent) {
+    e.preventDefault();
+    const text = q.trim();
+    if (text.length < 3 || !city || asking) return;
+    setAsking(true); setQError("");
+    try {
+      const r = await fetch(`${API}/natal/ask`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date, time: unknownTime ? "12:00" : time,
+          lat: city.lat, lon: city.lon, tz: city.tz,
+          unknown_time: unknownTime, question: text,
+        }),
+      });
+      const d = await r.json();
+      if (d.error) setQError(d.error);
+      else {
+        setThread((t) => [...t, { q: text, a: d.answer }]);
+        setQ("");
+        track("natal_ask", { len: text.length });
+      }
+    } catch {
+      setQError("Сервер не ответил. Попробуйте ещё раз через минуту.");
+    } finally {
+      setAsking(false);
+    }
+  }
+
   function toggleField() {
     const next = !fieldOn;
     setFieldOn(next);
@@ -231,7 +264,7 @@ export default function Natal() {
 
           <div className="ef-field-wrap">
             <label htmlFor="ef-city">город рождения</label>
-            <input id="ef-city" type="text" value={cityText} placeholder="Абакан"
+            <input id="ef-city" type="text" value={cityText} placeholder="Абакан или Николаевка Хакасия"
                    autoComplete="off" spellCheck={false}
                    onChange={(e) => { setCityText(e.target.value); setCity(null); }}
                    onKeyDown={(e) => {
@@ -267,11 +300,13 @@ export default function Natal() {
             {error ? error
               : slow ? "Сервер просыпается после простоя — это занимает до минуты."
               : noCity ? (
-                  <>Такого места не нашлось. Деревни в базе есть, но не все — возьмите
+                  <>Такого места не нашлось. Если название частое, добавьте область —
+                  «Николаевка Красноярский». А если деревни нет в базе совсем, возьмите
                   ближайший райцентр: пятьдесят километров сдвигают асцендент на три
                   угловых минуты, это как ошибиться во времени рождения на двенадцать секунд.</>
                 )
-              : "Координаты и часовой пояс подставятся сами. Время влияет на дома и асцендент."}
+              : "Координаты и часовой пояс подставятся сами. Если название частое, "
+                + "допишите область. Время влияет на дома и асцендент."}
           </p>
         )}
 
@@ -343,6 +378,29 @@ export default function Natal() {
                 </section>
               </div>
             )}
+
+            <section className="ef-ask">
+              <h2>Спросить</h2>
+              {thread.map((t, i) => (
+                <div className="ef-qa" key={i}>
+                  <p className="ef-q">{t.q}</p>
+                  {t.a.split(/\n{2,}/).map((para, j) => <p key={j}>{bold(para)}</p>)}
+                </div>
+              ))}
+              <form onSubmit={askChart}>
+                <input type="text" value={q} maxLength={400} autoComplete="off"
+                       placeholder={thread.length ? "ещё вопрос" : "что вас сейчас занимает?"}
+                       onChange={(e) => setQ(e.target.value)} />
+                <button type="submit" disabled={asking || q.trim().length < 3}>
+                  {asking ? "думаю…" : "спросить"}
+                </button>
+              </form>
+              <p className={"ef-ask-note" + (qError ? " ef-error" : "")}>
+                {qError ||
+                  "Карта не знает будущего и не даёт советов. Она может назвать точный " +
+                  "факт про небо и задать вопрос, до которого вы сами не дошли."}
+              </p>
+            </section>
 
             <div className="ef-grid">
               <section className="ef-read">
