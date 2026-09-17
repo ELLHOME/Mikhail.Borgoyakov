@@ -62,7 +62,7 @@ export const content: Record<Lang, Dict> = {
       works: "РАБОТЫ",
       lab: "LAB",
       contact: "КОНТАКТЫ",
-      stars: "ЧЁ ПО ЗВЁЗДАМ?",
+      stars: "ЧТО ПО ЗВЁЗДАМ?",
       menu: "Меню",
       close: "Закрыть",
     },
