@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createSky, type Chart } from "./sky";
+import { createSky, type Chart, type Now } from "./sky";
 import { track } from "../lib/track";
 import "./natal.css";
 
@@ -11,6 +11,7 @@ type Reading = { lead: string; blocks: string[]; verdict: string };
 type Result = {
   chart: Chart; reading: Reading; place: string; tz: string; when: string;
   utc_offset: number; time_known: boolean; note: string; tz_note?: string;
+  now?: Now | null;
 };
 
 /** Разметка у нас одна: **жирный**. Ничего больше модель не присылает,
@@ -21,6 +22,20 @@ function bold(text: string) {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
+
+const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня",
+                "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+function ruDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+}
+/** Орб в привычном виде: секунды, минуты или градусы. */
+function orbLabel(deg: number) {
+  const m = deg * 60;
+  if (m < 1) return `${Math.round(m * 60)}″`;
+  if (deg < 1) return `${Math.round(m)}′`;
+  return `${deg.toFixed(2)}°`;
+}
 
 /** Сводка под колесом: по одному факту в клетке, все посчитанные.
  *  Без времени рождения дома неизвестны, поэтому всё, что от них зависит,
@@ -265,6 +280,59 @@ export default function Natal() {
 
         {result && (
           <>
+            {result.now && (
+              <div className="ef-grid ef-now">
+                <section className="ef-read">
+                  <h2>Что сейчас · {ruDate(result.now.when)}</h2>
+                  {result.now.text.blocks.map((b, i) => <p key={i}>{bold(b)}</p>)}
+                  {result.now.text.tail && (
+                    <p className="ef-verdict">{result.now.text.tail}</p>
+                  )}
+                </section>
+
+                <section className="ef-data">
+                  <h2>Небо сегодня</h2>
+                  <ul className="ef-houses">
+                    <li>
+                      <span className="g">Луна</span>
+                      <span className="v">
+                        {result.now.moon.label} · {result.now.moon.phase},{" "}
+                        {result.now.moon.illum}%
+                      </span>
+                    </li>
+                    {result.now.sky.map((p) => (
+                      <li key={p.name}>
+                        <span className="g">{p.name}</span>
+                        <span className="v">{p.label}</span>
+                        <span className="r">{p.retro ? "R" : ""}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {!!result.now.hits.length && (
+                    <>
+                      <h2>Углы к карте рождения</h2>
+                      <ul className="ef-events">
+                        {result.now.hits.slice(0, 7).map((h, i) => (
+                          <li key={i}>
+                            <span className="e-what">
+                              {h.who}{h.retro ? " R" : ""} <i>{h.type}</i> {h.to}
+                            </span>
+                            <span className="e-when">
+                              {orbLabel(h.orb)} от точного ·{" "}
+                              {h.state === "точен сейчас"
+                                ? "точен сегодня"
+                                : `${h.state}, точный угол ${ruDate(h.exact)}`}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </section>
+              </div>
+            )}
+
             <div className="ef-grid">
               <section className="ef-read">
                 <h2>Что из этого следует</h2>

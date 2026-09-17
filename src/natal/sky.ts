@@ -34,6 +34,18 @@ export type Chart = {
   lilith?: { lon: number; label: string; house: number } | null;
 };
 
+/** Сегодняшнее небо против карты рождения. Карта не меняется, небо — каждый день. */
+export type Now = {
+  when: string;
+  sky: { name: string; lon: number; label: string; retro: boolean }[];
+  moon: { label: string; sign: string; phase: string; illum: number };
+  hits: {
+    who: string; type: string; to: string; orb: number;
+    state: string; exact: string; days: number; retro: boolean; slow: boolean;
+  }[];
+  text: { blocks: string[]; tail: string };
+};
+
 type Item = {
   x: number; y: number; c: string; a: number; s: number; ch: string;
   g?: string; gs?: number;
