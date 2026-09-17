@@ -67,14 +67,33 @@ const VS = "︎";
 const NOISE = "0123456789".split("")
   .concat("°′RASCMC".split(""))
   .concat("☉☽☿♀♂♃♄♅♆♇☊".split("").map((c) => c + VS))
+  .concat(glyphSupported("⚷") ? ["⚷" + VS] : [])
   .concat("♈♉♊♋♌♍♎♏♐♑♒♓".split("").map((c) => c + VS));
 const noiseChar = () => NOISE[(Math.random() * NOISE.length) | 0];
 
 const SIGNS = "♈♉♊♋♌♍♎♏♐♑♒♓".split("").map((c) => c + VS);
+
+/** Есть ли такой знак в шрифте. Глиф Хирона ⚷ живёт в редком блоке, и на
+ *  части систем вместо него рисуется пустой квадрат. Проверяем измерением:
+ *  у отсутствующего символа ширина совпадает с заведомо несуществующим. */
+function glyphSupported(ch: string): boolean {
+  try {
+    const c = document.createElement("canvas").getContext("2d");
+    if (!c) return false;
+    c.font = '32px "Golos Text", system-ui, sans-serif';
+    const tofu = c.measureText("\uFFFF").width;
+    return Math.abs(c.measureText(ch).width - tofu) > 0.5;
+  } catch {
+    return false;
+  }
+}
+
+const CHIRON = glyphSupported("⚷") ? "⚷" : "Хр";
+
 const GLYPH: Record<string, string> = {
   "Солнце": "☉", "Луна": "☽", "Меркурий": "☿", "Венера": "♀", "Марс": "♂",
   "Юпитер": "♃", "Сатурн": "♄", "Уран": "♅", "Нептун": "♆", "Плутон": "♇",
-  "Сев. узел": "☊",
+  "Сев. узел": "☊", "Хирон": CHIRON,
 };
 const ASPC: Record<string, string> = {
   "соединение": "#8a8f9a", "секстиль": "#4e8ad4", "квадрат": "#d4574e",
