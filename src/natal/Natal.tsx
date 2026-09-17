@@ -82,7 +82,7 @@ export default function Natal() {
   const [asking, setAsking] = useState(false);
   const [thread, setThread] = useState<{ q: string; a: string }[]>([]);
   const [qError, setQError] = useState("");
-  const [fict, setFict] = useState(false);
+  const [school, setSchool] = useState<"classic" | "avestan">("classic");
 
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -101,7 +101,9 @@ export default function Natal() {
     try { saved = localStorage.getItem("ef-field") !== "0"; } catch { /* приватный режим */ }
     setFieldOn(saved);
     sky.setField(saved);
-    try { setFict(localStorage.getItem("ef-fict") === "1"); } catch { /* приватный режим */ }
+    try {
+      if (localStorage.getItem("ef-school") === "avestan") setSchool("avestan");
+    } catch { /* приватный режим */ }
     track("page_view", { page: "natal", w: window.innerWidth || 0 }, "page_view");
     return () => { sky.destroy(); skyRef.current = null; };
   }, []);
@@ -150,6 +152,15 @@ export default function Natal() {
     setCity(c); setCityText(cityLabel(c)); setSugg([]);
   }
 
+  /* Смена школы — это другая карта, а не другой вид той же.
+     Поэтому она пересчитывается на сервере, а не прячется на клиенте. */
+  function switchSchool(next: "classic" | "avestan") {
+    if (next === school) return;
+    setSchool(next);
+    try { localStorage.setItem("ef-school", next); } catch { /* ничего страшного */ }
+    if (result) void compute(next);
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -157,8 +168,14 @@ export default function Natal() {
     if (!city) { setError("Выберите город из подсказки — нужны координаты и часовой пояс."); return; }
     if (!unknownTime && !time) { setError("Укажите время или отметьте, что оно неизвестно."); return; }
 
+    await compute(school);
+  }
+
+  async function compute(which: "classic" | "avestan") {
+    if (!city) return;
     setBusy(true);
     setSlow(false);
+    setError("");
     // Сервер на бесплатном хостинге засыпает. Первый запрос после сна
     // может идти под минуту — честнее сказать это, чем молча крутить точки.
     const slowTimer = window.setTimeout(() => setSlow(true), 6000);
@@ -169,14 +186,15 @@ export default function Natal() {
         body: JSON.stringify({
           date, time: unknownTime ? "12:00" : time,
           lat: city.lat, lon: city.lon, tz: city.tz,
-          place: cityLabel(city), unknown_time: unknownTime,
+          place: cityLabel(city), unknown_time: unknownTime, school: which,
         }),
       });
       const d = await r.json();
       if (d.error) { setError(d.error); setResult(null); }
       else {
         setResult(d);
-        track("natal_chart", { year: Number(date.slice(0, 4)), known: unknownTime ? 0 : 1 });
+        track("natal_chart", { year: Number(date.slice(0, 4)),
+                               known: unknownTime ? 0 : 1, school: which });
       }
     } catch {
       setError("Сервер не ответил. Похоже, он ещё просыпается — попробуйте ещё раз через минуту.");
@@ -198,7 +216,7 @@ export default function Natal() {
         body: JSON.stringify({
           date, time: unknownTime ? "12:00" : time,
           lat: city.lat, lon: city.lon, tz: city.tz,
-          unknown_time: unknownTime, question: text,
+          unknown_time: unknownTime, question: text, school,
         }),
       });
       const d = await r.json();
@@ -313,6 +331,28 @@ export default function Natal() {
               : "Координаты и часовой пояс подставятся сами. Если название частое, "
                 + "допишите область. Время влияет на дома и асцендент."}
           </p>
+        )}
+
+        {result && (
+          <div className="ef-school">
+            <div className="ef-school-pick" role="group" aria-label="Школа расчёта">
+              {(["classic", "avestan"] as const).map((k) => (
+                <button key={k} type="button" disabled={busy}
+                        className={school === k ? "on" : undefined}
+                        onClick={() => switchSchool(k)}>
+                  {k === "classic" ? "классическая" : "авестийская"}
+                </button>
+              ))}
+            </div>
+            <p className="ef-school-note">
+              {school === "classic"
+                ? "Десять планет, узел и Хирон — всё, что есть на небе."
+                : "Добавлены Прозерпина и Селена. Это не тела: их никто не наблюдал, " +
+                  "орбиты им назначены школой. Файл этих орбит идёт в составе Swiss " +
+                  "Ephemeris и начинается предупреждением её авторов: «Warning! These " +
+                  "planets do not exist!»"}
+            </p>
+          </div>
         )}
 
         <div className="ef-box" ref={boxRef} data-empty={result ? "0" : "1"}
@@ -455,42 +495,6 @@ export default function Natal() {
                         </li>
                       ))}
                     </ul>
-                  </>
-                )}
-
-                {!!result.chart.fictional?.length && (
-                  <>
-                    <h2>Гипотетические точки</h2>
-                    <label className="ef-fict-switch">
-                      <input type="checkbox" checked={fict}
-                             onChange={(e) => {
-                               setFict(e.target.checked);
-                               try { localStorage.setItem("ef-fict", e.target.checked ? "1" : "0"); }
-                               catch { /* ничего страшного */ }
-                             }} />
-                      показывать
-                    </label>
-                    {fict && (
-                      <>
-                        <ul className="ef-houses">
-                          {result.chart.fictional.map((f) => (
-                            <li key={f.name}>
-                              <span className="g">{f.name}</span>
-                              <span className="v">{f.label}</span>
-                              <span className="r">{f.retro ? "R" : ""}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        <p className="ef-fict-note">
-                          Это не тела. Прозерпину, Вулкан и Селену никто не наблюдал —
-                          их считают по орбитам, которые назначены астрологическими школами.
-                          Файл этих орбит идёт в составе Swiss Ephemeris и начинается
-                          предупреждением самих её авторов: «Warning! These planets do not exist!»
-                          Поэтому здесь они стоят отдельно: ни в колесо, ни в аспекты,
-                          ни в разбор они не входят.
-                        </p>
-                      </>
-                    )}
                   </>
                 )}
 

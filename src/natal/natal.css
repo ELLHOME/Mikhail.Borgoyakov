@@ -188,14 +188,22 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
 .ef-data .h, .ef-data .t { color: var(--faint); }
 .ef-data .d, .ef-data .r { color: var(--spark); }
 
-/* Гипотетические точки: выключены по умолчанию и подписаны честно. */
-.ef-fict-switch { display: flex; align-items: center; gap: 8px; margin: -6px 0 16px;
-  font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--dim); cursor: pointer; user-select: none; }
-.ef-fict-switch input { accent-color: #5b6f9d; }
-.ef-fict-note { font-family: var(--mono); font-size: 11.5px; line-height: 1.65;
-  color: var(--faint); border-left: 2px solid var(--rule); padding-left: 13px;
-  margin: -18px 0 34px; }
+/* Переключатель школы. Это две разные карты, а не два вида одной,
+   поэтому он стоит над колесом и всегда подписан тем, что включает. */
+.ef-school { max-width: 980px; margin: 26px auto 0; display: flex;
+  flex-direction: column; align-items: center; gap: 10px; }
+.ef-school-pick { display: inline-flex; padding: 3px; gap: 3px;
+  background: rgba(7,9,15,.78); border: 1px solid var(--rule); border-radius: 999px; }
+.ef-school-pick button { appearance: none; cursor: pointer; border: 0; border-radius: 999px;
+  background: none; color: var(--dim); padding: 8px 18px; font-family: var(--mono);
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  transition: background .18s, color .18s; }
+.ef-school-pick button:hover:not(:disabled) { color: var(--ink); }
+.ef-school-pick button.on { background: rgba(30,40,62,.95); color: var(--ink); }
+.ef-school-pick button:disabled { cursor: default; opacity: .5; }
+.ef-school-note { max-width: 74ch; margin: 0; text-align: center;
+  font-family: var(--mono); font-size: 11.5px; line-height: 1.65; color: var(--faint);
+  text-shadow: 0 0 16px rgba(5,6,10,.95), 0 0 5px rgba(5,6,10,.9); }
 
 .ef-foot { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--rule);
   font-family: var(--mono); font-size: 11.5px; line-height: 1.8; color: var(--faint);

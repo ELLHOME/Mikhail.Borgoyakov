@@ -14,6 +14,8 @@
 export type Planet = {
   name: string; lon: number; sign: string; deg: number;
   label: string; retro: boolean; house: number;
+  /* точка авестийской школы: физического тела за ней нет */
+  fictional?: boolean;
 };
 export type Aspect = { a: string; b: string; type: string; exact: number };
 export type Chart = {
@@ -33,8 +35,7 @@ export type Chart = {
   stations?: string[];
   lilith?: { lon: number; label: string; house: number } | null;
   lilith_true?: { lon: number; label: string; house: number } | null;
-  /* точки без физических тел — в колесо и в аспекты они не идут */
-  fictional?: { name: string; lon: number; label: string; retro: boolean; house: number }[];
+  school?: string;
 };
 
 /** Сегодняшнее небо против карты рождения. Карта не меняется, небо — каждый день. */
@@ -97,6 +98,9 @@ const GLYPH: Record<string, string> = {
   "Солнце": "☉", "Луна": "☽", "Меркурий": "☿", "Венера": "♀", "Марс": "♂",
   "Юпитер": "♃", "Сатурн": "♄", "Уран": "♅", "Нептун": "♆", "Плутон": "♇",
   "Сев. узел": "☊", "Хирон": CHIRON,
+  // У Прозерпины и Селены нет общепринятого знака в Юникоде — пишем буквами.
+  // Заодно они и на колесе видны как чужаки среди глифов, и это честно.
+  "Прозерпина": "Пр", "Селена": "Се",
 };
 const ASPC: Record<string, string> = {
   "соединение": "#8a8f9a", "секстиль": "#4e8ad4", "квадрат": "#d4574e",
@@ -393,7 +397,11 @@ export function createSky(
       placed.push(a0 % 360);
       link(xy(rAsp, ang(P2.lon)), xy(rPlan, a0), "#5b6577", 0.85, 3.4, 3, 0.8);
       const gp = xy(rPlan, a0);
-      glyph(gp[0], gp[1], (GLYPH[P2.name] || "•") + VS, "#eef1f7", s * 0.034, 1, 5);
+      // Буквенные обозначения (Пр, Се, Хр) при том же кегле выглядят вдвое
+      // крупнее глифов и перетягивают на себя карту — уменьшаем их.
+      const mark = (GLYPH[P2.name] || "•") + VS;
+      const ms = s * (mark.replace(VS, "").length > 1 ? 0.022 : 0.034);
+      glyph(gp[0], gp[1], mark, "#eef1f7", ms, 1, 5);
       const dp = xy(rPlan - s * 0.042, a0);
       glyph(dp[0], dp[1], Math.floor(P2.deg) + "°" + (P2.retro ? "R" : ""),
             "#9aa4b4", s * 0.016, 0.95, 5);
