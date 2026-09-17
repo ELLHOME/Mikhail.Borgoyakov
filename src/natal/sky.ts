@@ -175,9 +175,35 @@ function makeField(cv: HTMLCanvasElement) {
 
   // Рейтрейс дорогой: считаем в половину экранного разрешения и даём браузеру
   // растянуть. Поле мягкое, потери не видно, а кадр дешевле вчетверо.
-  let scale = window.innerWidth < 700 ? 0.4 : 0.5;
-  let cw = 0, ch = 0, clock = 0, frames = 0, spent = 0;
-  let lost = false, off = false, weak = false;   // weak — машина не тянет
+  const scale0 = window.innerWidth < 700 ? 0.4 : 0.5;
+  let scale = scale0;
+  let cw = 0, ch = 0, clock = 0;
+  let lost = false, off = false;
+  // Меряем длительность кадра, а не время вызова отрисовки. Время вызова
+  // ничего не говорит о шейдере: команды уходят в очередь и выполняются
+  // потом, поэтому цифра оставалась маленькой на любой видеокарте и росла
+  // только от постороннего провисания — то есть срабатывала лишь ложно.
+  // Длительность кадра — ровно то, что человек видит.
+  //
+  // И держим замеры списком, а не суммой: по сумме считается среднее,
+  // а среднее беззащитно перед выбросом. Один провис в триста миллисекунд
+  // (сборка мусора, переключение вкладки, уход на батарею) поднимал среднее
+  // выше порога. Медиана такой выброс не замечает.
+  let samples: number[] = [];
+  let winStart = performance.now();
+  let badRuns = 0, goodRuns = 0;
+
+  const median = (a: number[]) => {
+    const v = a.slice().sort((x, y) => x - y);
+    return v[v.length >> 1];
+  };
+
+  // После возвращения на вкладку первые кадры всегда длинные — судить
+  // по ним нельзя, поэтому окно замеров начинаем заново.
+  const onVisible = () => {
+    if (!document.hidden) { samples = []; winStart = performance.now(); badRuns = goodRuns = 0; }
+  };
+  document.addEventListener("visibilitychange", onVisible);
 
   const onLost = (e: Event) => { e.preventDefault(); lost = true; };
   const onRestored = () => { lost = false; cw = ch = 0; };
@@ -193,9 +219,8 @@ function makeField(cv: HTMLCanvasElement) {
   size();
 
   return {
-    isWeak: () => weak,
     set(on: boolean) {
-      off = !on || weak;
+      off = !on;
       cv.style.transition = "opacity .45s";
       cv.style.opacity = off ? "0" : "1";
     },
@@ -205,7 +230,6 @@ function makeField(cv: HTMLCanvasElement) {
       size();
       // Спокойная карта — поле медленное и приглушённое; распад его будит.
       clock += (dt / 1000) * (0.32 + chaos * 0.85);
-      const t0 = performance.now();
       gl.useProgram(prog);
       gl.uniform3f(uRes, cw, ch, 1);
       gl.uniform1f(uTime, clock);
@@ -213,18 +237,35 @@ function makeField(cv: HTMLCanvasElement) {
       gl.bindVertexArray(vao);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       // Не укладываемся в кадр — роняем разрешение, а не частоту.
-      spent += performance.now() - t0;
-      if (++frames === 40) {
-        if (spent / 40 > 11) {
-          if (scale > 0.3) { scale = Math.max(0.3, scale - 0.1); cw = ch = 0; }
-          // На минимуме и всё равно тяжело — гасим поле совсем.
-          // Страница возвращается к чистому потоку цифр, без рывков.
-          else { weak = off = true; cv.style.transition = "opacity .6s"; cv.style.opacity = "0"; }
+      const now = performance.now();
+      samples.push(dt);
+      // Окно закрывается по числу кадров или по времени — что раньше.
+      // На слабой машине сорок кадров идут полминуты, и без второго условия
+      // защита просыпалась бы тогда, когда человек уже ушёл со страницы.
+      if (samples.length >= 40 || (samples.length >= 8 && now - winStart > 3000)) {
+        const m = median(samples);
+        samples = [];
+        winStart = now;
+        if (m > 28) {                 // медленнее 36 кадров в секунду
+          badRuns++; goodRuns = 0;
+          // Два тяжёлых окна подряд, а не одно: случайность так не проходит.
+          if (badRuns >= 2 && scale > 0.3) {
+            scale = Math.max(0.3, scale - 0.08); cw = ch = 0; badRuns = 0;
+          }
+        } else if (m < 19) {          // держим за полсотни кадров — есть запас
+          goodRuns++; badRuns = 0;
+          // Машина освободилась — возвращаем разрешение обратно.
+          // Раньше падение было в одну сторону и навсегда.
+          if (goodRuns >= 6 && scale < scale0) {
+            scale = Math.min(scale0, scale + 0.05); cw = ch = 0; goodRuns = 0;
+          }
+        } else {
+          badRuns = goodRuns = 0;
         }
-        frames = 0; spent = 0;
       }
     },
     destroy() {
+      document.removeEventListener("visibilitychange", onVisible);
       cv.removeEventListener("webglcontextlost", onLost);
       cv.removeEventListener("webglcontextrestored", onRestored);
       gl.deleteBuffer(vbo); gl.deleteVertexArray(vao); gl.deleteProgram(prog);
@@ -520,7 +561,7 @@ export function createSky(
     bctx.textAlign = "center"; bctx.textBaseline = "middle";
     // Без поля цифр больше: иначе страница выглядит просто пустее,
     // и сравнивать два фона становится нечестно.
-    const lim = fieldOn && field && !field.isWeak() ? COUNT_FIELD : parts.length;
+    const lim = fieldOn && field ? COUNT_FIELD : parts.length;
     for (let k = 0; k < lim; k++) {
       const p = parts[k];
       if (step) {
