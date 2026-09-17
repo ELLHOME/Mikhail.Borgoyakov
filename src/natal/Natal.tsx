@@ -150,6 +150,11 @@ export default function Natal() {
       <div className="ef-veil" aria-hidden="true" />
       <canvas className="ef-stream" ref={streamRef} aria-hidden="true" />
 
+      <a className="ef-home" href="../" aria-label="Вернуться на сайт ELLHOME">
+        <span className="ef-home-name">← ELLHOME</span>
+        <span className="ef-home-sub">Electronic Life Lab</span>
+      </a>
+
       <div className="ef-page">
         <header className="ef-head">
           <h1>Эфемерида</h1>
@@ -161,7 +166,6 @@ export default function Natal() {
           ) : (
             <div className="ef-coords">Натальная карта, посчитанная всерьёз</div>
           )}
-          <a className="ef-back" href="../">← на сайт</a>
         </header>
 
         <form className="ef-form" onSubmit={submit}>

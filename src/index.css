@@ -55,6 +55,12 @@
     transform:translateY(-100%);transition:transform .55s cubic-bezier(.76,0,.24,1)}
   .nav-overlay.open{transform:none}
   .nav-overlay a{color:var(--muted);font-size:26px;letter-spacing:.28em;font-weight:300}
+  /* Длинный пункт в столбике меню переносился на две строки и уезжал
+     за левый край: выключка тут по умолчанию левая. Центрируем список
+     и поджимаем этот пункт по ширине экрана, чтобы он лёг в одну строку. */
+  .nav-overlay{padding-inline:20px}
+  .nav-overlay a{text-align:center;max-width:100%;line-height:1.3}
+  .nav-overlay a.nav-out{font-size:clamp(18px,5.4vw,26px);letter-spacing:.2em}
   .nav-overlay a:hover,.nav-overlay a.active{color:var(--accent-bright)}
   .nav-overlay .close{position:absolute;top:18px;right:var(--pad);background:none;border:none;color:var(--ink);font-size:26px;cursor:pointer;font-weight:200}
 
