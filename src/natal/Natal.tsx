@@ -74,6 +74,7 @@ export default function Natal() {
   const [city, setCity] = useState<City | null>(null);
   const [sugg, setSugg] = useState<City[]>([]);
   const [pick, setPick] = useState(0);
+  const [noCity, setNoCity] = useState(false);
 
   const [busy, setBusy] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -113,6 +114,7 @@ export default function Natal() {
   /* подсказка городов: ждём, пока человек допечатает */
   useEffect(() => {
     const q = cityText.trim();
+    setNoCity(false);
     if (city && q === cityLabel(city)) { setSugg([]); return; }
     if (q.length < 2) { setSugg([]); return; }
     const ac = new AbortController();
@@ -120,7 +122,11 @@ export default function Natal() {
       try {
         const r = await fetch(`${API}/natal/suggest?q=${encodeURIComponent(q)}`, { signal: ac.signal });
         const d = await r.json();
-        setSugg(d.cities || []); setPick(0);
+        const list = d.cities || [];
+        setSugg(list); setPick(0);
+        // Деревень в базе много, но не все. Молчаливый пустой список
+        // читается как «такого места не существует» — а это неправда.
+        setNoCity(list.length === 0);
       } catch { /* подсказка не обязана работать: координаты можно выбрать позже */ }
     }, 350);
     return () => { clearTimeout(id); ac.abort(); };
@@ -256,10 +262,15 @@ export default function Natal() {
           </div>
         </form>
 
-        {(error || slow || (!result && !busy)) && (
+        {(error || slow || noCity || (!result && !busy)) && (
           <p className={"ef-hint" + (error ? " ef-error" : "")}>
             {error ? error
               : slow ? "Сервер просыпается после простоя — это занимает до минуты."
+              : noCity ? (
+                  <>Такого места не нашлось. Деревни в базе есть, но не все — возьмите
+                  ближайший райцентр: пятьдесят километров сдвигают асцендент на три
+                  угловых минуты, это как ошибиться во времени рождения на двенадцать секунд.</>
+                )
               : "Координаты и часовой пояс подставятся сами. Время влияет на дома и асцендент."}
           </p>
         )}
