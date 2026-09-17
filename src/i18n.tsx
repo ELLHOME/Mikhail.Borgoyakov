@@ -21,6 +21,7 @@ type Dict = {
     works: string;
     lab: string;
     contact: string;
+    stars: string;
     menu: string;
     close: string;
   };
@@ -61,6 +62,7 @@ export const content: Record<Lang, Dict> = {
       works: "РАБОТЫ",
       lab: "LAB",
       contact: "КОНТАКТЫ",
+      stars: "ЧЁ ПО ЗВЁЗДАМ?",
       menu: "Меню",
       close: "Закрыть",
     },
@@ -173,6 +175,7 @@ export const content: Record<Lang, Dict> = {
       works: "WORK",
       lab: "LAB",
       contact: "CONTACT",
+      stars: "WHAT'S UP THERE?",
       menu: "Menu",
       close: "Close",
     },

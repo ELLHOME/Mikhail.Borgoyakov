@@ -42,6 +42,11 @@
   .nav-links a{color:var(--muted);transition:color .3s;letter-spacing:.16em}
   .nav-links a:hover{color:var(--ink)}
   .nav-links a.active{color:var(--accent-bright)}
+  /* Ссылка на «Эфемериду» — не якорь, а соседняя страница.
+     Тонкая черта под ней отличает переход от прокрутки. */
+  .nav-links a.nav-out{border-bottom:1px solid rgba(255,255,255,.18);padding-bottom:3px}
+  .nav-links a.nav-out:hover{border-bottom-color:var(--accent-bright)}
+  .nav.nav-on-light .nav-links a.nav-out{border-bottom-color:rgba(12,15,22,.22)}
   .nav-toggle{display:none;width:40px;height:40px;border:1px solid var(--line);background:transparent;
     flex-direction:column;justify-content:center;align-items:center;gap:5px;cursor:pointer}
   .nav-toggle span{width:18px;height:1.5px;background:var(--ink)}

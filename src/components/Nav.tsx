@@ -26,12 +26,15 @@ export default function Nav() {
   const { lang } = useLang();
   const t = content[lang].nav;
 
-  const links = [
+  const links: { href: string; label: string; active?: boolean; out?: boolean }[] = [
     { href: "#top", label: t.home, active: true },
     { href: "#about", label: t.about },
     { href: "#works", label: t.works },
     { href: "#lab", label: t.lab },
     { href: "#contact", label: t.contact },
+    // Отдельная страница, а не якорь. Ссылка относительная: и на localhost,
+    // и на gh-pages из подпапки она ведёт в одно и то же место.
+    { href: "natal/", label: t.stars, out: true },
   ];
 
   return (
@@ -44,7 +47,10 @@ export default function Nav() {
         <div className="nav-right">
           <div className="nav-links">
             {links.map((l) => (
-              <a key={l.href} href={l.href} className={l.active ? "active" : undefined}>{l.label}</a>
+              <a key={l.href} href={l.href}
+                 className={[l.active ? "active" : "", l.out ? "nav-out" : ""].filter(Boolean).join(" ") || undefined}>
+                {l.label}
+              </a>
             ))}
           </div>
           <LangSwitch />
@@ -55,7 +61,10 @@ export default function Nav() {
       <div className="nav-overlay" id="navOverlay">
         <button className="close" id="navClose" aria-label={t.close}>✕</button>
         {links.map((l) => (
-          <a key={l.href} href={l.href} className={l.active ? "active" : undefined}>{l.label}</a>
+          <a key={l.href} href={l.href}
+             className={[l.active ? "active" : "", l.out ? "nav-out" : ""].filter(Boolean).join(" ") || undefined}>
+            {l.label}
+          </a>
         ))}
       </div>
     </>
