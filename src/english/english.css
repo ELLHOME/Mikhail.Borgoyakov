@@ -173,3 +173,43 @@ html.st-root, body.st-body { margin: 0; background: #f5f2ec; }
 .st-back { background: none; border: none; color: var(--dim); font-size: 14px !important; text-decoration: underline; }
 .st-reviewdone h2 { margin: 0 0 6px; font-size: 24px; }
 .st-reviewdone p { margin: 0; color: var(--dim); }
+
+/* ── вход в упражнения ── */
+.st-drills { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.st-drills button { text-align: left; background: var(--accent-soft); border: 1px solid transparent; border-radius: 16px;
+  padding: 16px 18px; display: grid; gap: 4px; transition: border-color .15s; }
+.st-drills button:hover:not(:disabled) { border-color: var(--accent); }
+.st-drills button:disabled { opacity: .6; }
+.st-drills b { font-size: 17px; font-weight: 600; color: var(--accent); }
+.st-drills span { font-size: 14px; color: var(--dim); }
+.st-reviewbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* ── пары ── */
+.st-pairs { padding: 24px 0 48px; display: flex; flex-direction: column; gap: 14px; }
+.st-pairs h2 { margin: 0; font-size: 22px; font-weight: 600; }
+.st-pairs > p { margin: 0; }
+.st-pairshead { display: grid; gap: 6px; }
+.st-pairshead p { margin: 0; }
+.st-progress { height: 8px; background: var(--rule); border-radius: 999px; overflow: hidden; }
+.st-progress i { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .35s ease; }
+.st-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.st-cols > div { display: grid; gap: 10px; align-content: start; }
+.st .st-cols button { min-height: 56px; background: var(--card); border: 2px solid var(--rule); border-bottom-width: 4px;
+  border-radius: 14px; padding: 10px 8px; font-size: 16px; font-weight: 500; overflow-wrap: anywhere;
+  transition: background .15s, border-color .15s, opacity .3s, transform .1s; }
+.st .st-cols button:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; }
+.st .st-cols button[data-s="pick"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.st .st-cols button[data-s="wrong"] { border-color: var(--fix); background: var(--fix-soft); color: var(--fix);
+  animation: st-shake .35s; }
+.st .st-cols button[data-s="done"] { opacity: .35; border-color: var(--rule); background: var(--accent-soft); color: var(--accent); }
+@keyframes st-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .st .st-cols button[data-s="wrong"] { animation: none; } }
+.st-pairsdone { align-items: center; text-align: center; padding-top: 48px; }
+.st-score { font-size: 18px; margin: 0; }
+.st-score b { font-size: 34px; color: var(--accent); margin-right: 4px; }
+.st-missed { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; width: 100%; max-width: 360px; }
+.st-missed li { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; }
+.st-pairsnav { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.st-pairsnav .st-yes { border: none; border-radius: 14px; padding: 12px 22px; font-weight: 600; }
+.st-credit { margin: 40px 0 0; font-size: 12px; color: var(--faint); }
+.st-credit a { color: inherit; }

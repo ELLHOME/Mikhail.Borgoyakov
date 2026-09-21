@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { track } from "../lib/track";
+import Pairs, { type PairsResult } from "./Pairs";
 import "./english.css";
 
 const API = "https://ellhome-bot-api.onrender.com";
@@ -137,6 +138,7 @@ export default function English() {
   const [review, setReview] = useState<string[] | null>(null);   // очередь слов на повторение
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(0);
+  const [pairs, setPairs] = useState(0);     // 0 — игры нет, иначе номер партии (ключ для перезапуска)
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -265,6 +267,30 @@ export default function English() {
     el.setSelectionRange(sel[0], sel[1]);
   }, [text]);
 
+  function finishPairs(res: PairsResult) {
+    const now = Date.now();
+    const clean = new Set(res.clean.map((x) => x.toLowerCase()));
+    const missed = new Map(res.missed.map((w) => [w.en.toLowerCase(), w]));
+    setWords((ws) => {
+      // свои слова: без ошибки и пора повторять — ступень вверх; с ошибкой — в начало
+      const next = ws.map((w) => {
+        const k = w.en.toLowerCase();
+        if (missed.has(k)) return { ...w, box: 0, due: now };
+        if (clean.has(k) && isDue(w, now)) {
+          const box = Math.min((w.box ?? 0) + 1, STEP.length - 1);
+          return { ...w, box, due: now + STEP[box] };
+        }
+        return w;
+      });
+      // чужие слова, на которых ошиблась, — в колоду, чтобы вернулись
+      const have = new Set(next.map((w) => w.en.toLowerCase()));
+      const add = [...missed.values()].filter((w) => !have.has(w.en.toLowerCase()))
+        .map((w) => ({ en: w.en, ru: w.ru, at: now, box: 0, due: now }));
+      return [...add, ...next];
+    });
+    track("english_pairs", { clean: res.clean.length, missed: res.missed.length });
+  }
+
   function pickSuggest(t: string) {
     // заготовку «My name is ...» надо дописать — выделяем многоточие,
     // чтобы первая же буква его заменила
@@ -306,6 +332,7 @@ export default function English() {
         <section className="st-words" aria-label="Мои слова">
           {words.length > 0 && (
             <div className="st-reviewbar">
+              <button type="button" onClick={() => { setPairs(1); setShowWords(false); }}>Пары слов</button>
               {dueWords.length
                 ? <button type="button" onClick={startReview}>Повторить слова · {Math.min(dueWords.length, 15)}</button>
                 : <span className="st-muted st-small">Всё повторено. Следующие слова вернутся позже.</span>}
@@ -333,7 +360,11 @@ export default function English() {
       )}
 
       <main className="st-main">
-        {review ? (
+        {pairs ? (
+          <Pairs key={pairs} deck={words} level={level || (self === "ok" ? "B1" : "A1")}
+                 canSpeak={canSpeak} say={say} onFinish={finishPairs}
+                 onClose={() => setPairs(0)} onAgain={() => setPairs((n) => n + 1)} />
+        ) : review ? (
           <section className="st-review" aria-live="polite">
             {review.length ? (() => {
               const w = words.find((x) => x.en === review[0]);
@@ -390,12 +421,29 @@ export default function English() {
             {level && <p className="st-muted st-small">Уровень по прошлым разговорам: {level},{" "}
               {LEVEL_NAME[level]}. Он уточняется сам.</p>}
 
+            <h2>Упражнения</h2>
+            <div className="st-drills">
+              <button type="button" onClick={() => { setPairs(1); setShowWords(false); }}>
+                <b>Пары слов</b>
+                <span>Соедините английское слово с переводом. Пять минут, без клавиатуры.</span>
+              </button>
+              {words.length > 0 && (
+                <button type="button" disabled={!dueWords.length} onClick={startReview}>
+                  <b>Карточки</b>
+                  <span>{dueWords.length ? `Пора повторить: ${Math.min(dueWords.length, 15)}` : "Всё повторено — загляните завтра"}</span>
+                </button>
+              )}
+            </div>
+
             <h2>О чём поговорим?</h2>
             <div className="st-topics">
               {TOPICS.map((t) => (
                 <button key={t.id} type="button" onClick={() => start(t.id)}>{t.label}</button>
               ))}
             </div>
+            <p className="st-credit">Уровни слов — по{" "}
+              <a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">
+                CEFR-J Wordlist</a> (Tono Laboratory, TUFS).</p>
           </section>
         ) : (
           <section className="st-chat" aria-live="polite">
@@ -480,7 +528,7 @@ export default function English() {
         )}
       </main>
 
-      {started && !review && (
+      {started && !review && !pairs && (
         <form className="st-input" onSubmit={send}>
           <textarea ref={inputRef} value={text} rows={1} maxLength={600}
                     placeholder={beginner ? "Пишите по-английски или по-русски…" : "Type your answer…"}
