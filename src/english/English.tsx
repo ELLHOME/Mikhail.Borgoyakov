@@ -240,6 +240,9 @@ export default function English() {
   const [recSec, setRecSec] = useState(0);
   const [vol, setVol] = useState(0);                 // громкость 0…1 — для живой полоски
   const recRef = useRef<{ stop: (send: boolean) => void } | null>(null);
+  // что прозвучало нечётко в последней надиктовке — уйдёт вместе с фразой,
+  // когда человек нажмёт «отправить»
+  const voiceRef = useRef<{ unclear: NonNullable<Msg["unclear"]> } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -315,15 +318,19 @@ export default function English() {
     call([], startLevel, tp);
   }
 
-  function send(e?: React.FormEvent, spoken?: { text: string; unclear?: Msg["unclear"] }) {
+  function send(e?: React.FormEvent) {
     e?.preventDefault();
-    const t = (spoken ? spoken.text : text).trim();
-    if (!t || busy) return;
-    const next: Msg[] = [...msgs, spoken
-      ? { role: "user", text: t, voice: true, unclear: spoken.unclear || [] }
-      : { role: "user", text: t }];
+    const t = text.trim();
+    if (!t || busy || rec !== "idle") return;
+    // Замечания о произношении берём только про слова, которые остались
+    // в тексте: если человек слово исправил, и замечание больше не к месту.
+    const v = voiceRef.current;
+    voiceRef.current = null;
+    const low = t.toLowerCase();
+    const unclear = (v?.unclear || []).filter((u) => low.includes(u.word.toLowerCase()));
+    const next: Msg[] = [...msgs, v ? { role: "user", text: t, voice: true, unclear } : { role: "user", text: t }];
     setMsgs(next);
-    if (!spoken) setText("");
+    setText("");
     track("english_msg", { n: next.filter((m) => m.role === "user").length });
     call(next, level, topic);
   }
@@ -414,8 +421,15 @@ export default function English() {
         if (d.error) setError(d.error + (d.detail ? `\n(${d.detail})` : ""));
         else if (d.text) {
           track("english_voice", { sec: Math.round((performance.now() - t0) / 1000) });
-          // сказанное сразу уходит собеседнику — как в разговоре
-          send(undefined, { text: d.text, unclear: d.unclear || [] });
+          // Надиктованное встаёт в поле, а не уходит само: распознавание
+          // ошибается, и человек должен успеть поправить слово клавиатурой.
+          const prev = voiceRef.current?.unclear || [];
+          voiceRef.current = { unclear: [...prev, ...(d.unclear || [])] };
+          setText((t) => (t.trim() ? t.trim() + " " : "") + d.text);
+          requestAnimationFrame(() => {
+            const el = inputRef.current;
+            if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+          });
         }
       } catch {
         setError("Сервер не ответил. Попробуйте ещё раз через полминуты.");
@@ -625,7 +639,7 @@ export default function English() {
 
             <h2>Как это устроено</h2>
             <ul className="st-how">
-              <li><b>Голосом или текстом</b>Нажмите микрофон и просто говорите — когда замолчите, фраза уйдёт сама.</li>
+              <li><b>Голосом или текстом</b>Нажмите микрофон и говорите. Фраза появится в поле — поправьте, если нужно, и отправьте.</li>
               <li><b>Можно по-русски</b>Не знаете, как сказать, — напишите по-русски, он подскажет.</li>
               <li><b>Слова не теряются</b>Нажмите «+» под новым словом — оно вернётся в «Парах» и карточках.</li>
             </ul>
@@ -754,13 +768,13 @@ export default function English() {
               </span>
               <span>Слушаю…</span>
               <b>0:{String(recSec).padStart(2, "0")}</b>
-              <em>остановлюсь сам, когда вы замолчите</em>
+              <em>остановлюсь сам, когда вы замолчите — текст появится в поле</em>
             </div>
           ) : (
             <textarea ref={inputRef} value={text} rows={1} maxLength={600}
                       placeholder={rec === "busy" ? "Слушаю запись…"
                         : beginner ? "Скажите или напишите — можно по-русски" : "Say it or type it…"}
-                      onChange={(e) => setText(e.target.value)}
+                      onChange={(e) => { setText(e.target.value); if (!e.target.value.trim()) voiceRef.current = null; }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
                       }} />
