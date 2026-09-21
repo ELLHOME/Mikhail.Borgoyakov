@@ -50,24 +50,58 @@ function save(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* ничего страшного */ }
 }
 
-/** Голос браузера: бесплатно и без сервера. Качество зависит от системы,
- *  но для коротких реплик его хватает. */
-function speak(text: string, slow: boolean) {
+/* Озвучка. Главный путь — голос модели с сервера: он одинаковый на любом
+   устройстве. Голос браузера — только запасной и только если в системе
+   правда есть английский голос. Иначе браузер читает «interesting» русским
+   голосом — «интерестинг», и такое произношение хуже, чем никакого. */
+const audioCache = new Map<string, string>();
+let playing: HTMLAudioElement | null = null;
+
+async function speakServer(text: string, slow: boolean): Promise<boolean> {
+  const key = `${slow ? 1 : 0}|${text}`;
+  let url = audioCache.get(key);
+  if (!url) {
+    const r = await fetch(`${API}/english/speak`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, slow }),
+    });
+    if (!r.ok) return false;
+    url = URL.createObjectURL(await r.blob());
+    audioCache.set(key, url);
+  }
+  playing?.pause();
+  playing = new Audio(url);
+  await playing.play();
+  return true;
+}
+
+function englishVoice(): SpeechSynthesisVoice | undefined {
+  try {
+    const voices = window.speechSynthesis?.getVoices() || [];
+    return voices.find((x) => /^en[-_](US|GB)/i.test(x.lang) && /natural|google|samantha|daniel|aria|jenny|guy/i.test(x.name))
+      || voices.find((x) => /^en[-_]/i.test(x.lang));
+  } catch {
+    return undefined;
+  }
+}
+
+function speakBrowser(text: string, slow: boolean): boolean {
+  const v = englishVoice();
+  if (!v) return false;          // русским голосом английский не читаем
   try {
     const synth = window.speechSynthesis;
-    if (!synth) return;
     synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const voices = synth.getVoices();
-    const v = voices.find((x) => /^en[-_](US|GB)/i.test(x.lang) && /natural|google|samantha|daniel/i.test(x.name))
-      || voices.find((x) => /^en[-_]/i.test(x.lang));
-    if (v) u.voice = v;
-    u.lang = v?.lang || "en-US";
-    u.rate = slow ? 0.85 : 1;
+    const u = new SpeechSynthesisUtterance(text.replace(/\*\*/g, ""));
+    u.voice = v; u.lang = v.lang; u.rate = slow ? 0.85 : 1;
     synth.speak(u);
-  } catch { /* озвучка — приятное дополнение, не обязательство */ }
+    return true;
+  } catch {
+    return false;
+  }
 }
-const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
+
+const canSpeak = typeof window !== "undefined" && typeof Audio !== "undefined";
 
 function bold(text: string) {
   return text.split(/\*\*([^*]+)\*\*/g).map((part, i) =>
@@ -90,6 +124,7 @@ export default function English() {
   // на самое первое приветствие, человек должен увидеть ошибку и «Повторить»,
   // а не молча вернуться на стартовый экран.
   const [inChat, setInChat] = useState<boolean>(() => msgs.length > 0);
+  const [speaking, setSpeaking] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -103,6 +138,19 @@ export default function English() {
     try { window.speechSynthesis?.getVoices(); } catch { /* */ }
     track("page_view", { page: "english", w: window.innerWidth || 0 }, "page_view");
   }, []);
+
+  async function say(text: string, slow: boolean) {
+    if (speaking) return;
+    setSpeaking(text); setNote("");
+    try {
+      const ok = await speakServer(text, slow).catch(() => false);
+      if (!ok && !speakBrowser(text, slow)) {
+        setNote("Озвучка сейчас недоступна. Попробуйте через минуту.");
+      }
+    } finally {
+      setSpeaking("");
+    }
+  }
 
   const beginner = level === "A1" || level === "A2" || (!level && self !== "ok");
   const known = new Set(words.map((w) => w.en.toLowerCase()));
@@ -202,7 +250,7 @@ export default function English() {
               {words.map((w) => (
                 <li key={w.en}>
                   <button type="button" className="st-say" disabled={!canSpeak}
-                          onClick={() => speak(w.en, beginner)} aria-label={`Послушать ${w.en}`}>▶</button>
+                          onClick={() => say(w.en, beginner)} aria-label={`Послушать ${w.en}`}>▶</button>
                   <b>{w.en}</b><span>{w.ru}</span>
                   <button type="button" className="st-x" onClick={() => dropWord(w.en)}
                           aria-label={`Убрать ${w.en}`}>×</button>
@@ -255,7 +303,8 @@ export default function English() {
               <div className="st-msg st-tutor" key={i}>
                 <p>{bold(m.text)}</p>
                 <div className="st-tools">
-                  {canSpeak && <button type="button" onClick={() => speak(m.text, beginner)}>▶ послушать</button>}
+                  {canSpeak && <button type="button" onClick={() => say(m.text, beginner)} disabled={!!speaking}>
+                    {speaking === m.text ? "… загружаю" : "▶ послушать"}</button>}
                   {m.hint && (beginner || openHint[i]
                     ? null
                     : <button type="button" onClick={() => setOpenHint((o) => ({ ...o, [i]: true }))}>перевод</button>)}
@@ -292,7 +341,7 @@ export default function English() {
                 {m.say && (
                   <p className="st-sayit">
                     По-английски: <b>{m.say.en}</b>
-                    {canSpeak && <button type="button" onClick={() => speak(m.say!.en, true)}
+                    {canSpeak && <button type="button" onClick={() => say(m.say!.en, true)}
                                          aria-label="Послушать">▶</button>}
                   </p>
                 )}
