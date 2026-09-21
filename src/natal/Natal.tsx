@@ -228,6 +228,8 @@ export default function Natal() {
           date, time: unknownTime ? "12:00" : time,
           lat: city.lat, lon: city.lon, tz: city.tz,
           unknown_time: unknownTime, question: text, school,
+          // последние ответы — чтобы уточнение понималось как продолжение
+          history: thread.slice(-3),
         }),
       });
       const d = await r.json();
@@ -462,8 +464,9 @@ export default function Natal() {
               )}
               <p className={"ef-ask-note" + (qError ? " ef-error" : "")}>
                 {qError ||
-                  "Спрашивайте про характер, работу, отношения или ближайшие месяцы. " +
-                  "Ответ — толкование вашей карты, а не обещание событий."}
+                  "Расскажите о себе в вопросе — чем заняты, что выбираете, — и ответ " +
+                  "будет про ваш случай, а не про всех с такой картой. Это толкование, " +
+                  "а не обещание событий."}
               </p>
             </section>
 
