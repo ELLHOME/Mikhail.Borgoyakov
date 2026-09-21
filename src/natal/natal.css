@@ -218,3 +218,25 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
   backdrop-filter: blur(6px); transition: color .2s, border-color .2s; }
 .ef-toggle:hover, .ef-toggle:focus-visible { color: var(--ink); border-color: #33405a; outline: none; }
 .ef-toggle b { font-weight: 400; color: var(--spark); }
+
+/* ── разбор по темам ─────────────────────────────────────────────── */
+.ef-summary { font-size: 17px; line-height: 1.6; color: var(--ink);
+  border-left: 2px solid #3d4a66; padding-left: 16px; }
+.ef-toc { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 4px 0 34px;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; }
+.ef-toc a { color: var(--dim); text-decoration: none; border-bottom: 1px solid var(--rule);
+  padding-bottom: 2px; transition: color .2s, border-color .2s; }
+.ef-toc a:hover, .ef-toc a:focus-visible { color: var(--ink); border-color: #4a5c80; }
+.ef-topic { margin: 0 0 40px; scroll-margin-top: 24px; }
+.ef-topic h3 { font-size: 13px; font-weight: 500; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink); margin: 0 0 14px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.ef-fields-h { font-family: var(--mono); font-size: 11.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); margin: 6px 0 10px !important; }
+.ef-fields { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ef-fields li { font-size: 14px; padding: 5px 12px; border: 1px solid #2a3346; border-radius: 999px;
+  background: rgba(12,15,22,.72); text-shadow: none; }
+
+.ef-starters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+.ef-ask .ef-starters button { font-family: "Montserrat", system-ui, sans-serif; font-size: 13px;
+  padding: 7px 13px; border-radius: 999px; background: rgba(12,15,22,.72); border-color: #2a3346;
+  text-transform: none; letter-spacing: 0; }

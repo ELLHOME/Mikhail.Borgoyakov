@@ -7,7 +7,18 @@ const API = "https://ellhome-bot-api.onrender.com";
 
 type City = { name: string; country: string; region: string;
               lat: number; lon: number; tz: string; pop: number };
-type Reading = { lead: string; blocks: string[]; verdict: string };
+type Section = { id: string; title: string; text: string; fields?: string[] };
+type Reading = { lead: string; blocks: string[]; verdict: string;
+                 summary?: string; sections?: Section[] };
+
+/** С чего обычно начинают. Кнопки задают вопрос сразу — человеку не надо
+ *  придумывать формулировку, чтобы понять, что спрашивать можно. */
+const STARTERS = [
+  "Какая работа мне подходит?",
+  "Какой я в отношениях?",
+  "В чём мои сильные стороны?",
+  "Что меня ждёт в ближайшие месяцы?",
+];
 type Result = {
   chart: Chart; reading: Reading; place: string; tz: string; when: string;
   utc_offset: number; time_known: boolean; note: string; tz_note?: string;
@@ -204,9 +215,9 @@ export default function Natal() {
     }
   }
 
-  async function askChart(e: React.FormEvent) {
-    e.preventDefault();
-    const text = q.trim();
+  async function askChart(e: React.FormEvent | null, preset?: string) {
+    e?.preventDefault();
+    const text = (preset ?? q).trim();
     if (text.length < 3 || !city || asking) return;
     setAsking(true); setQError("");
     try {
@@ -435,27 +446,62 @@ export default function Natal() {
               ))}
               <form onSubmit={askChart}>
                 <input type="text" value={q} maxLength={400} autoComplete="off"
-                       placeholder={thread.length ? "ещё вопрос" : "что вас сейчас занимает?"}
+                       placeholder={thread.length ? "ещё вопрос" : "чем мне заниматься?"}
                        onChange={(e) => setQ(e.target.value)} />
                 <button type="submit" disabled={asking || q.trim().length < 3}>
                   {asking ? "думаю…" : "спросить"}
                 </button>
               </form>
+              {!thread.length && (
+                <div className="ef-starters">
+                  {STARTERS.map((st) => (
+                    <button key={st} type="button" disabled={asking}
+                            onClick={() => askChart(null, st)}>{st}</button>
+                  ))}
+                </div>
+              )}
               <p className={"ef-ask-note" + (qError ? " ef-error" : "")}>
                 {qError ||
-                  "Карта не знает будущего и не даёт советов. Она может назвать точный " +
-                  "факт про небо и задать вопрос, до которого вы сами не дошли."}
+                  "Спрашивайте про характер, работу, отношения или ближайшие месяцы. " +
+                  "Ответ — толкование вашей карты, а не обещание событий."}
               </p>
             </section>
 
             <div className="ef-grid">
               <section className="ef-read">
-                <h2>Что из этого следует</h2>
+                <h2>О вас по карте</h2>
                 {result.note && <p className="ef-note">{result.note}</p>}
                 {result.tz_note && <p className="ef-note">{result.tz_note}</p>}
                 <p className="ef-lead">{result.reading.lead}</p>
-                {result.reading.blocks.map((b, i) => <p key={i}>{bold(b)}</p>)}
-                {result.reading.verdict && <p className="ef-verdict">{result.reading.verdict}</p>}
+                {result.reading.summary && <p className="ef-summary">{result.reading.summary}</p>}
+                {result.reading.sections?.length ? (
+                  <>
+                    <nav className="ef-toc" aria-label="Разделы разбора">
+                      {result.reading.sections.map((sec) => (
+                        <a key={sec.id} href={`#ef-${sec.id}`}>{sec.title}</a>
+                      ))}
+                    </nav>
+                    {result.reading.sections.map((sec) => (
+                      <section className="ef-topic" id={`ef-${sec.id}`} key={sec.id}>
+                        <h3>{sec.title}</h3>
+                        {sec.text.split(/\n{2,}/).map((para, j) => <p key={j}>{bold(para)}</p>)}
+                        {!!sec.fields?.length && (
+                          <>
+                            <p className="ef-fields-h">Сферы, которые традиция связывает с картой</p>
+                            <ul className="ef-fields">
+                              {sec.fields.map((f) => <li key={f}>{f}</li>)}
+                            </ul>
+                          </>
+                        )}
+                      </section>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {result.reading.blocks.map((b, i) => <p key={i}>{bold(b)}</p>)}
+                    {result.reading.verdict && <p className="ef-verdict">{result.reading.verdict}</p>}
+                  </>
+                )}
               </section>
 
               <section className="ef-data">
