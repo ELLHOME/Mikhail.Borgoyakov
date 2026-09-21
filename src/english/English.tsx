@@ -8,7 +8,10 @@ const API = "https://ellhome-bot-api.onrender.com";
 type Corr = { wrong: string; right: string; why: string };
 type Say = { ru: string; en: string };
 /** box — ступень повторения, due — когда показать снова (мс). */
-type Word = { en: string; ru: string; at?: number; box?: number; due?: number };
+/** t — когда слово меняли в последний раз, del — удалено. Оба нужны для
+ *  синхронизации: из двух копий побеждает более свежая, а удалённое слово
+ *  остаётся отметкой, иначе другое устройство вернуло бы его обратно. */
+type Word = { en: string; ru: string; at?: number; box?: number; due?: number; t?: number; del?: boolean };
 type Msg = {
   role: "user" | "tutor";
   text: string;
@@ -115,6 +118,32 @@ function speakBrowser(text: string, slow: boolean): boolean {
 
 const canSpeak = typeof window !== "undefined" && typeof Audio !== "undefined";
 
+/* Профиль для синхронизации — без регистрации. Номер и ключ создаются в
+   браузере; на сервере хранится только хэш ключа. */
+type Profile = { id: string; secret: string };
+function hex(bytes: number): string {
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+function profile(): Profile {
+  const p = load<Profile | null>("st-profile", null);
+  if (p && /^[a-f0-9]{32}$/.test(p.id) && /^[a-f0-9]{64}$/.test(p.secret)) return p;
+  const fresh = { id: hex(16), secret: hex(32) };
+  save("st-profile", fresh);
+  return fresh;
+}
+const stamp = (w: Word) => w.t ?? w.at ?? 0;
+/** То же правило, что на сервере: из двух копий слова берём более свежую. */
+function mergeWords(a: Word[], b: Word[]): Word[] {
+  const best = new Map<string, Word>();
+  for (const w of [...a, ...b]) {
+    const k = w.en.toLowerCase(), cur = best.get(k);
+    if (!cur || stamp(w) > stamp(cur) || (stamp(w) === stamp(cur) && w.del && !cur.del)) best.set(k, w);
+  }
+  return [...best.values()].sort((x, y) => (y.at ?? 0) - (x.at ?? 0));
+}
+
 /* Микрофон. Звук берём прямо из микрофона и сами собираем WAV 16 кГц моно:
    этот формат понимает любая модель, в отличие от webm, который одни версии
    принимают, а другие нет. Заодно видно громкость — по ней запись сама
@@ -218,9 +247,19 @@ function bold(text: string) {
 export default function English() {
   const [msgs, setMsgs] = useState<Msg[]>(() => load<{ msgs: Msg[] }>("st-chat", { msgs: [] }).msgs || []);
   const [topic, setTopic] = useState<string>(() => load<{ topic: string }>("st-chat", { topic: "free" }).topic || "free");
-  const [level, setLevel] = useState<string>(() => load("st-level", ""));
-  const [self, setSelf] = useState<string>(() => load("st-self", "school"));
-  const [words, setWords] = useState<Word[]>(() => load("st-words", []));
+  const [level, setLevelRaw] = useState<string>(() => load("st-level", ""));
+  const [self, setSelfRaw] = useState<string>(() => load("st-self", "school"));
+  const levelT = useRef<number>(load("st-level-t", 0));
+  const selfT = useRef<number>(load("st-self-t", 0));
+  const setLevel = (v: string) => { setLevelRaw(v); levelT.current = Date.now(); save("st-level-t", levelT.current); };
+  const setSelf = (v: string) => { setSelfRaw(v); selfT.current = Date.now(); save("st-self-t", selfT.current); };
+  // allWords — вместе с отметками удаления; words — то, что видит человек
+  const [allWords, setAllWords] = useState<Word[]>(() => load("st-words", []));
+  const words = allWords.filter((w) => !w.del);
+  const [sync, setSync] = useState<"idle" | "busy" | "ok" | "off">("idle");
+  const [linkCode, setLinkCode] = useState("");
+  const [linkIn, setLinkIn] = useState<string | null>(null);   // null — поле ввода кода скрыто
+  const [linkMsg, setLinkMsg] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -247,7 +286,7 @@ export default function English() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { save("st-chat", { topic, msgs }); }, [topic, msgs]);
-  useEffect(() => { save("st-words", words); }, [words]);
+  useEffect(() => { save("st-words", allWords); }, [allWords]);
   useEffect(() => { save("st-level", level); }, [level]);
   useEffect(() => { save("st-self", self); }, [self]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [msgs, busy]);
@@ -268,6 +307,86 @@ export default function English() {
     } finally {
       setSpeaking("");
     }
+  }
+
+  /* Синхронизация: при открытии, через полторы секунды после любой правки
+     и при возвращении на вкладку. Сервер сливает свою копию с нашей и
+     отдаёт общую; её ещё раз сливаем с тем, что успело измениться, пока
+     шёл запрос, — чтобы не потерять нажатие, сделанное в эту секунду. */
+  const syncing = useRef(false);
+  const again = useRef(false);
+  const latest = useRef({ allWords, level, self });
+  latest.current = { allWords, level, self };
+
+  async function doSync() {
+    if (syncing.current) { again.current = true; return; }
+    syncing.current = true; setSync("busy");
+    try {
+      const p = profile();
+      const cur = latest.current;
+      const r = await fetch(`${API}/english/sync`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...p, words: cur.allWords, level: cur.level, level_t: levelT.current,
+                               self: cur.self, self_t: selfT.current }),
+      });
+      const d = await r.json();
+      if (!d.ok) { setSync("off"); return; }
+      setAllWords((ws) => mergeWords(d.words || [], ws));
+      if ((d.level_t || 0) > levelT.current) { setLevelRaw(d.level || ""); levelT.current = d.level_t; save("st-level-t", d.level_t); }
+      if ((d.self_t || 0) > selfT.current && d.self) { setSelfRaw(d.self); selfT.current = d.self_t; save("st-self-t", d.self_t); }
+      setSync("ok");
+    } catch {
+      setSync("off");
+    } finally {
+      syncing.current = false;
+      if (again.current) { again.current = false; window.setTimeout(doSync, 300); }
+    }
+  }
+
+  // Отпечаток того, что стоит отправить. Без него каждый ответ сервера
+  // (он тоже меняет allWords) запускал бы новую синхронизацию по кругу.
+  const fp = allWords.map((w) => `${w.en}:${stamp(w)}:${w.del ? 1 : 0}`).join("|")
+    + `#${level}:${levelT.current}#${self}:${selfT.current}`;
+  const sentFp = useRef("");
+  useEffect(() => {
+    const t = window.setTimeout(() => { if (fp !== sentFp.current) { sentFp.current = fp; doSync(); } },
+                                sentFp.current ? 1500 : 200);
+    return () => window.clearTimeout(t);
+  }, [fp]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const onVis = () => { if (!document.hidden) doSync(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function makeCode() {
+    setLinkMsg(""); setLinkCode("");
+    try {
+      await doSync();
+      const r = await fetch(`${API}/english/link/new`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(profile()) });
+      const d = await r.json();
+      if (d.code) setLinkCode(d.code);
+      else setLinkMsg(d.error || "Не получилось. Попробуйте ещё раз.");
+    } catch { setLinkMsg("Сервер не ответил. Попробуйте ещё раз через минуту."); }
+  }
+
+  async function enterCode() {
+    const code = (linkIn || "").trim();
+    if (!code) return;
+    setLinkMsg("");
+    try {
+      const r = await fetch(`${API}/english/link/use`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+      const d = await r.json();
+      if (d.id && d.secret) {
+        // Слова этого устройства не пропадут: при следующей синхронизации
+        // они сольются со словами профиля, к которому мы подключились.
+        save("st-profile", { id: d.id, secret: d.secret });
+        setLinkIn(null); setLinkMsg("Готово — устройства связаны. Слова объединятся через пару секунд.");
+        sentFp.current = ""; doSync();
+      } else setLinkMsg(d.error || "Код не подошёл.");
+    } catch { setLinkMsg("Сервер не ответил. Попробуйте ещё раз через минуту."); }
   }
 
   const beginner = level === "A1" || level === "A2" || (!level && self !== "ok");
@@ -342,7 +461,9 @@ export default function English() {
 
   function addWord(w: Word) {
     if (known.has(w.en.toLowerCase())) return;
-    setWords((ws) => [{ en: w.en, ru: w.ru, at: Date.now(), box: 0, due: 0 }, ...ws]);
+    const now = Date.now(), k = w.en.toLowerCase();
+    setAllWords((ws) => [{ en: w.en, ru: w.ru, at: now, box: 0, due: 0, t: now },
+                         ...ws.filter((x) => x.en.toLowerCase() !== k)]);
   }
 
   const dueWords = words.filter((w) => isDue(w));
@@ -356,10 +477,11 @@ export default function English() {
   function grade(remember: boolean) {
     if (!review?.length) return;
     const en = review[0];
-    setWords((ws) => ws.map((w) => {
-      if (w.en !== en) return w;
+    setAllWords((ws) => ws.map((w) => {
+      if (w.en !== en || w.del) return w;
       const box = remember ? Math.min((w.box ?? 0) + 1, STEP.length - 1) : 0;
-      return { ...w, box, due: Date.now() + (remember ? STEP[box] : 0) };
+      const now = Date.now();
+      return { ...w, box, due: now + (remember ? STEP[box] : 0), t: now };
     }));
     // забытое слово возвращается в конец этой же серии, чтобы вспомнить сегодня
     setReview((q) => (q ? (remember ? q.slice(1) : [...q.slice(1), en]) : q));
@@ -473,22 +595,25 @@ export default function English() {
     const now = Date.now();
     const clean = new Set(res.clean.map((x) => x.toLowerCase()));
     const missed = new Map(res.missed.map((w) => [w.en.toLowerCase(), w]));
-    setWords((ws) => {
+    setAllWords((ws) => {
       // свои слова: без ошибки и пора повторять — ступень вверх; с ошибкой — в начало
       const next = ws.map((w) => {
+        if (w.del) return w;
         const k = w.en.toLowerCase();
-        if (missed.has(k)) return { ...w, box: 0, due: now };
+        if (missed.has(k)) return { ...w, box: 0, due: now, t: now };
         if (clean.has(k) && isDue(w, now)) {
           const box = Math.min((w.box ?? 0) + 1, STEP.length - 1);
-          return { ...w, box, due: now + STEP[box] };
+          return { ...w, box, due: now + STEP[box], t: now };
         }
         return w;
       });
       // чужие слова, на которых ошиблась, — в колоду, чтобы вернулись
-      const have = new Set(next.map((w) => w.en.toLowerCase()));
+      // (удалённое раньше слово тоже возвращается: раз ошиблась, оно нужно)
+      const have = new Set(next.filter((w) => !w.del).map((w) => w.en.toLowerCase()));
       const add = [...missed.values()].filter((w) => !have.has(w.en.toLowerCase()))
-        .map((w) => ({ en: w.en, ru: w.ru, at: now, box: 0, due: now }));
-      return [...add, ...next];
+        .map((w) => ({ en: w.en, ru: w.ru, at: now, box: 0, due: now, t: now }));
+      const addK = new Set(add.map((w) => w.en.toLowerCase()));
+      return [...add, ...next.filter((w) => !addK.has(w.en.toLowerCase()))];
     });
     track("english_pairs", { clean: res.clean.length, missed: res.missed.length });
   }
@@ -506,7 +631,8 @@ export default function English() {
     setText(t);
   }
   function dropWord(en: string) {
-    setWords((ws) => ws.filter((w) => w.en !== en));
+    const now = Date.now();
+    setAllWords((ws) => ws.map((w) => (w.en === en ? { ...w, del: true, t: now } : w)));
   }
 
   function reset() {
@@ -558,6 +684,36 @@ export default function English() {
           )}
           <p className="st-muted st-small">Слово, которое вы вспомнили, вернётся через день,
             потом через три, неделю и дальше. Забытое — сразу.</p>
+
+          <div className="st-sync">
+            <p className="st-syncstate" data-s={sync}>
+              {sync === "ok" ? "Слова сохранены на сервере"
+                : sync === "busy" ? "Сохраняю…"
+                : sync === "off" ? "Нет связи с сервером — слова сохранены на этом устройстве"
+                : "Слова сохраняются автоматически"}
+            </p>
+            {linkCode ? (
+              <div className="st-code">
+                <p>На другом устройстве откройте Small Talk → «Мои слова» → «У меня есть код» и введите:</p>
+                <b>{linkCode.slice(0, 3)} {linkCode.slice(3)}</b>
+                <p className="st-muted st-small">Код действует 15 минут и срабатывает один раз.</p>
+              </div>
+            ) : linkIn !== null ? (
+              <form className="st-codein" onSubmit={(e) => { e.preventDefault(); enterCode(); }}>
+                <input value={linkIn} onChange={(e) => setLinkIn(e.target.value.toUpperCase())} maxLength={8}
+                       placeholder="Код с другого устройства" autoComplete="off" autoCapitalize="characters"
+                       aria-label="Код с другого устройства" />
+                <button type="submit" disabled={linkIn.replace(/[^A-Za-z0-9]/g, "").length !== 6}>Подключить</button>
+                <button type="button" className="st-back" onClick={() => setLinkIn(null)}>Отмена</button>
+              </form>
+            ) : (
+              <div className="st-linkbtns">
+                <button type="button" onClick={makeCode}>Подключить другое устройство</button>
+                <button type="button" onClick={() => { setLinkIn(""); setLinkMsg(""); }}>У меня есть код</button>
+              </div>
+            )}
+            {linkMsg && <p className="st-muted st-small">{linkMsg}</p>}
+          </div>
         </section>
       )}
 
