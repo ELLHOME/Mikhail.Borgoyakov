@@ -62,9 +62,9 @@ html.st-root, body.st-body { margin: 0; background: #f5f2ec; }
   border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; }
 .st-words li b { font-weight: 600; }
 .st-words li span { color: var(--dim); flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.st-say, .st-x { background: none; border: none; padding: 4px 6px; color: var(--accent); font-size: 13px !important; }
-.st-x { color: var(--faint); font-size: 18px !important; line-height: 1; }
-.st-x:hover { color: var(--fix); }
+.st .st-say, .st .st-x { background: none; border: none; padding: 4px 6px; color: var(--accent); font-size: 13px !important; }
+.st .st-x { color: var(--faint); font-size: 18px !important; line-height: 1; }
+.st .st-x:hover { color: var(--fix); }
 
 .st-main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 0 16px; }
 .st-muted { color: var(--dim); }
@@ -138,3 +138,38 @@ html.st-root, body.st-body { margin: 0; background: #f5f2ec; }
   .st-home { font-size: 11px; letter-spacing: .08em; }
   .st-input button { padding: 0 14px; }
 }
+
+/* ── как это работает ── */
+.st-how { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; max-width: 60ch; }
+.st-how li { background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 14px;
+  font-size: 14.5px; color: var(--dim); }
+.st-how b { color: var(--ink); font-weight: 600; }
+
+/* ── готовые ответы ── */
+.st-suggest { align-self: flex-end; max-width: 92%; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.st-suggest p { margin: 0; font-size: 12.5px; color: var(--dim); }
+.st-suggest div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.st-suggest button { background: var(--card); border: 1.5px dashed var(--accent); color: var(--accent);
+  border-radius: 16px 4px 16px 16px; padding: 8px 13px; font-size: 14.5px !important; text-align: left; }
+.st-suggest button:hover { background: var(--accent-soft); border-style: solid; }
+
+/* ── карточки ── */
+.st-reviewbar { margin: 0 0 12px; }
+.st-reviewbar button { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 12px;
+  padding: 10px 16px; font-weight: 600; }
+.st-review { padding: 32px 0 48px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.st-card { width: 100%; max-width: 420px; min-height: 220px; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 14px; background: var(--card); border: 1px solid var(--rule); border-radius: 20px;
+  padding: 28px 20px; box-shadow: 0 8px 28px rgba(0,0,0,.06); }
+.st-card b { font-size: clamp(26px, 7vw, 34px); font-weight: 600; overflow-wrap: anywhere; }
+.st-card span { font-size: 19px; color: var(--accent); }
+.st-card i { font-style: normal; font-size: 13px; color: var(--faint); }
+.st-card[data-flipped="1"] { cursor: default; }
+.st-cardsay { background: none; border: none; color: var(--accent); font-size: 14px !important; }
+.st-grade { display: flex; gap: 10px; width: 100%; max-width: 420px; }
+.st-grade button { flex: 1; border: none; border-radius: 14px; padding: 14px 10px; font-weight: 600; }
+.st .st-no { background: var(--fix-soft); color: var(--fix); }
+.st .st-yes { background: var(--accent); color: var(--accent-ink); }
+.st-back { background: none; border: none; color: var(--dim); font-size: 14px !important; text-decoration: underline; }
+.st-reviewdone h2 { margin: 0 0 6px; font-size: 24px; }
+.st-reviewdone p { margin: 0; color: var(--dim); }

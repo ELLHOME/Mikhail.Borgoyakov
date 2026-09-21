@@ -6,7 +6,8 @@ const API = "https://ellhome-bot-api.onrender.com";
 
 type Corr = { wrong: string; right: string; why: string };
 type Say = { ru: string; en: string };
-type Word = { en: string; ru: string; at?: number };
+/** box — ступень повторения, due — когда показать снова (мс). */
+type Word = { en: string; ru: string; at?: number; box?: number; due?: number };
 type Msg = {
   role: "user" | "tutor";
   text: string;
@@ -14,7 +15,15 @@ type Msg = {
   corrections?: Corr[];
   say?: Say | null;
   words?: Word[];
+  suggest?: string[];
 };
+
+/* Повторение по коробкам Лейтнера: вспомнила — слово уходит на ступень
+   дальше и возвращается реже, забыла — снова в начало. Проще FSRS, но для
+   первых сотен слов разницы почти нет, а понятно без объяснений. */
+const DAY = 86400000;
+const STEP = [0, 1, 3, 7, 16, 35].map((d) => d * DAY);
+const isDue = (w: Word, now = Date.now()) => (w.due ?? 0) <= now;
 
 const TOPICS: { id: string; label: string }[] = [
   { id: "free", label: "О чём угодно" },
@@ -125,6 +134,9 @@ export default function English() {
   // а не молча вернуться на стартовый экран.
   const [inChat, setInChat] = useState<boolean>(() => msgs.length > 0);
   const [speaking, setSpeaking] = useState("");
+  const [review, setReview] = useState<string[] | null>(null);   // очередь слов на повторение
+  const [flipped, setFlipped] = useState(false);
+  const [done, setDone] = useState(0);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -175,7 +187,8 @@ export default function English() {
         if (last >= 0 && next[last].role === "user") {
           next[last] = { ...next[last], corrections: d.corrections || [], say: d.say || null };
         }
-        next.push({ role: "tutor", text: d.reply, hint: d.hint_ru, words: d.words || [] });
+        next.push({ role: "tutor", text: d.reply, hint: d.hint_ru, words: d.words || [],
+                    suggest: d.suggest || [] });
         return next;
       });
       if (d.level && d.level !== lvl) {
@@ -216,7 +229,53 @@ export default function English() {
 
   function addWord(w: Word) {
     if (known.has(w.en.toLowerCase())) return;
-    setWords((ws) => [{ ...w, at: Date.now() }, ...ws]);
+    setWords((ws) => [{ en: w.en, ru: w.ru, at: Date.now(), box: 0, due: 0 }, ...ws]);
+  }
+
+  const dueWords = words.filter((w) => isDue(w));
+
+  function startReview() {
+    // по 15 за раз: больше — устаёшь и начинаешь угадывать
+    setReview(dueWords.slice(0, 15).map((w) => w.en));
+    setFlipped(false); setDone(0); setShowWords(false);
+  }
+
+  function grade(remember: boolean) {
+    if (!review?.length) return;
+    const en = review[0];
+    setWords((ws) => ws.map((w) => {
+      if (w.en !== en) return w;
+      const box = remember ? Math.min((w.box ?? 0) + 1, STEP.length - 1) : 0;
+      return { ...w, box, due: Date.now() + (remember ? STEP[box] : 0) };
+    }));
+    // забытое слово возвращается в конец этой же серии, чтобы вспомнить сегодня
+    setReview((q) => (q ? (remember ? q.slice(1) : [...q.slice(1), en]) : q));
+    if (remember) setDone((n) => n + 1);
+    setFlipped(false);
+  }
+
+  // Выделение ставим после того, как React положил текст в поле: раньше
+  // браузер сбрасывает его на конец, и напечатанное уходит мимо многоточия.
+  const pendingSel = useRef<[number, number] | null>(null);
+  useEffect(() => {
+    const el = inputRef.current, sel = pendingSel.current;
+    if (!el || !sel) return;
+    pendingSel.current = null;
+    el.focus();
+    el.setSelectionRange(sel[0], sel[1]);
+  }, [text]);
+
+  function pickSuggest(t: string) {
+    // заготовку «My name is ...» надо дописать — выделяем многоточие,
+    // чтобы первая же буква его заменила
+    const at = t.indexOf("...");
+    pendingSel.current = at >= 0 ? [at, at + 3] : [t.length, t.length];
+    if (t === text) {           // тот же текст — эффект не сработает, ставим сами
+      const el = inputRef.current;
+      el?.focus(); el?.setSelectionRange(pendingSel.current[0], pendingSel.current[1]);
+      pendingSel.current = null;
+    }
+    setText(t);
   }
   function dropWord(en: string) {
     setWords((ws) => ws.filter((w) => w.en !== en));
@@ -245,6 +304,13 @@ export default function English() {
 
       {showWords && (
         <section className="st-words" aria-label="Мои слова">
+          {words.length > 0 && (
+            <div className="st-reviewbar">
+              {dueWords.length
+                ? <button type="button" onClick={startReview}>Повторить слова · {Math.min(dueWords.length, 15)}</button>
+                : <span className="st-muted st-small">Всё повторено. Следующие слова вернутся позже.</span>}
+            </div>
+          )}
           {words.length ? (
             <ul>
               {words.map((w) => (
@@ -261,17 +327,56 @@ export default function English() {
             <p className="st-muted">Пока пусто. Новые слова появляются под репликами собеседника —
               нажмите «+», и слово сохранится здесь.</p>
           )}
-          <p className="st-muted st-small">Скоро здесь будет повторение по карточкам: слово
-            всплывает ровно тогда, когда вы начинаете его забывать.</p>
+          <p className="st-muted st-small">Слово, которое вы вспомнили, вернётся через день,
+            потом через три, неделю и дальше. Забытое — сразу.</p>
         </section>
       )}
 
       <main className="st-main">
-        {!started ? (
+        {review ? (
+          <section className="st-review" aria-live="polite">
+            {review.length ? (() => {
+              const w = words.find((x) => x.en === review[0]);
+              if (!w) return null;
+              return (
+                <>
+                  <p className="st-muted st-small">Осталось {review.length} · вспомнили {done}</p>
+                  <button type="button" className="st-card" data-flipped={flipped ? "1" : "0"}
+                          onClick={() => { if (!flipped) { setFlipped(true); say(w.en, beginner); } }}>
+                    <b>{w.en}</b>
+                    {flipped ? <span>{w.ru}</span> : <i>нажмите, чтобы увидеть перевод</i>}
+                  </button>
+                  {flipped ? (
+                    <div className="st-grade">
+                      <button type="button" className="st-no" onClick={() => grade(false)}>Не помню</button>
+                      <button type="button" className="st-yes" onClick={() => grade(true)}>Помню</button>
+                    </div>
+                  ) : (
+                    canSpeak && <button type="button" className="st-cardsay" onClick={() => say(w.en, beginner)}>▶ послушать</button>
+                  )}
+                </>
+              );
+            })() : (
+              <div className="st-reviewdone">
+                <h2>Готово</h2>
+                <p>Вспомнили {done} {done === 1 ? "слово" : done >= 2 && done <= 4 ? "слова" : "слов"}.
+                  Забытые вернутся в следующий раз.</p>
+              </div>
+            )}
+            <button type="button" className="st-back" onClick={() => setReview(null)}>
+              {review.length ? "Закончить" : "Вернуться"}</button>
+          </section>
+        ) : !started ? (
           <section className="st-intro">
             <h1>Поговорим по-английски</h1>
-            <p className="st-lead">Собеседник подстроится под ваш уровень, поправит ошибки
-              и подскажет по-русски. Не знаете, как сказать, — пишите по-русски, он покажет.</p>
+            <p className="st-lead">Выберите тему — собеседник задаст первый вопрос.
+              Под каждым вопросом будут готовые ответы: нажмите на подходящий, поправьте под
+              себя и отправьте. Ошибки он поправит, незнакомые слова переведёт.</p>
+            <ul className="st-how">
+              <li><b>Не знаете, как сказать?</b> Пишите по-русски — он покажет, как это по-английски.</li>
+              <li><b>Новое слово?</b> Нажмите «+» под ним, потом повторите в «Моих словах».</li>
+              <li><b>Не поняли вопрос?</b> Под каждой репликой есть перевод и «послушать».</li>
+            </ul>
 
             <h2>Как у вас с английским?</h2>
             <div className="st-chips">
@@ -348,6 +453,21 @@ export default function English() {
               </div>
             ))}
 
+            {!busy && (() => {
+              const last = msgs[msgs.length - 1];
+              if (!last || last.role !== "tutor" || !last.suggest?.length) return null;
+              return (
+                <div className="st-suggest">
+                  <p>Можно ответить так — нажмите и поправьте под себя:</p>
+                  <div>
+                    {last.suggest.map((t) => (
+                      <button key={t} type="button" onClick={() => pickSuggest(t)}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {busy && <div className="st-msg st-tutor st-typing" aria-label="Собеседник пишет"><i /><i /><i /></div>}
             {note && !busy && <p className="st-note">{note}</p>}
             {error && (
@@ -360,7 +480,7 @@ export default function English() {
         )}
       </main>
 
-      {started && (
+      {started && !review && (
         <form className="st-input" onSubmit={send}>
           <textarea ref={inputRef} value={text} rows={1} maxLength={600}
                     placeholder={beginner ? "Пишите по-английски или по-русски…" : "Type your answer…"}
