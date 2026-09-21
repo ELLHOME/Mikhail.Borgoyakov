@@ -708,9 +708,15 @@ export default function English() {
               </div>
             ) : linkIn !== null ? (
               <form className="st-codein" onSubmit={(e) => { e.preventDefault(); enterCode(); }}>
-                <input value={linkIn} onChange={(e) => setLinkIn(e.target.value.toUpperCase())} maxLength={8}
-                       placeholder="Код с другого устройства" autoComplete="off" autoCapitalize="characters"
-                       aria-label="Код с другого устройства" />
+                <p className="st-muted st-small">Введите шесть знаков с экрана другого устройства — пробел поставится сам.</p>
+                <input value={linkIn} inputMode="text" autoComplete="one-time-code" autoCapitalize="characters"
+                       spellCheck={false} placeholder="ABC DEF" aria-label="Код с другого устройства"
+                       onChange={(e) => {
+                         // Код показывают как «2RD GSC». Пробел ставим сами — как бы ни вводили:
+                         // с пробелом, без, строчными, с дефисом или вставкой из буфера.
+                         const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+                         setLinkIn(raw.length > 3 ? `${raw.slice(0, 3)} ${raw.slice(3)}` : raw);
+                       }} />
                 <button type="submit" disabled={linkIn.replace(/[^A-Za-z0-9]/g, "").length !== 6}>Подключить</button>
                 <button type="button" className="st-back" onClick={() => setLinkIn(null)}>Отмена</button>
               </form>
