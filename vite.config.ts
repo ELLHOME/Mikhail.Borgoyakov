@@ -12,6 +12,7 @@ export default defineConfig({
       input: {
         main: "index.html",
         natal: "natal/index.html",
+        english: "english/index.html",
       },
     },
   },

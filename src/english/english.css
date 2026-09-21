@@ -1,0 +1,140 @@
+/* Small Talk. Светлая «тетрадь» по умолчанию и тёмная — по настройке системы.
+   Страница не подключает общий index.css сайта, поэтому база своя. */
+.st {
+  --paper: #f5f2ec;
+  --card: #fffdf9;
+  --ink: #1f2226;
+  --dim: #6b6f76;
+  --faint: #a3a6ab;
+  --rule: #e4dfd6;
+  --accent: #2f6b5a;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3eee9;
+  --user: #2f6b5a;
+  --user-ink: #ffffff;
+  --fix: #b24a2e;
+  --fix-soft: #f7e7e1;
+  --mark: #fbefc9;
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--paper);
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  .st {
+    --paper: #14161a; --card: #1c1f24; --ink: #eceae6; --dim: #9a9ea5; --faint: #676b72;
+    --rule: #2a2e35; --accent: #7cc3a9; --accent-ink: #0f1a16; --accent-soft: #1f2e29;
+    --user: #2c5a4c; --user-ink: #f2f7f5; --fix: #f0957a; --fix-soft: #3a2521; --mark: #3b3421;
+    color-scheme: dark;
+  }
+}
+.st, .st *, .st *::before, .st *::after { box-sizing: border-box; }
+html.st-root, body.st-body { margin: 0; background: #f5f2ec; }
+@media (prefers-color-scheme: dark) { html.st-root, body.st-body { background: #14161a; } }
+.st button { font: inherit; color: inherit; cursor: pointer; }
+.st button:disabled { cursor: default; }
+.st :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── шапка ── */
+.st-top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+.st-home { color: var(--dim); text-decoration: none; font-size: 12px; letter-spacing: .14em; white-space: nowrap; }
+.st-home:hover { color: var(--ink); }
+.st-brand { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.st-brand b { font-weight: 600; letter-spacing: .02em; }
+.st-level { font-size: 11px; font-weight: 600; letter-spacing: .08em; padding: 2px 8px;
+  border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.st-wordsbtn { background: none; border: 1px solid var(--rule); border-radius: 999px;
+  padding: 6px 12px; font-size: 13px !important; white-space: nowrap; }
+.st-wordsbtn span { display: inline-block; min-width: 18px; margin-left: 4px; font-weight: 600; color: var(--accent); }
+
+/* ── мои слова ── */
+.st-words { max-width: 720px; width: 100%; margin: 0 auto; padding: 16px; border-bottom: 1px solid var(--rule); }
+.st-words ul { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 6px; }
+.st-words li { display: flex; align-items: center; gap: 10px; background: var(--card);
+  border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; }
+.st-words li b { font-weight: 600; }
+.st-words li span { color: var(--dim); flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.st-say, .st-x { background: none; border: none; padding: 4px 6px; color: var(--accent); font-size: 13px !important; }
+.st-x { color: var(--faint); font-size: 18px !important; line-height: 1; }
+.st-x:hover { color: var(--fix); }
+
+.st-main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 0 16px; }
+.st-muted { color: var(--dim); }
+.st-small { font-size: 13px; }
+
+/* ── начало ── */
+.st-intro { padding: 40px 0 56px; }
+.st-intro h1 { font-size: clamp(28px, 7vw, 40px); line-height: 1.15; font-weight: 600; margin: 0 0 14px; }
+.st-lead { font-size: 17px; color: var(--dim); margin: 0 0 32px; max-width: 56ch; }
+.st-intro h2 { font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--dim); margin: 28px 0 12px; }
+.st-chips, .st-topics { display: flex; flex-wrap: wrap; gap: 8px; }
+.st-chips button { background: var(--card); border: 1px solid var(--rule); border-radius: 999px; padding: 9px 16px; }
+.st-chips button[data-on="1"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.st-topics button { background: var(--card); border: 1px solid var(--rule); border-radius: 14px;
+  padding: 14px 18px; font-weight: 500; transition: border-color .15s, transform .15s; }
+.st-topics button:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+/* ── разговор ── */
+.st-chat { padding: 12px 0 24px; display: flex; flex-direction: column; gap: 14px; }
+.st-chatbar { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--dim); }
+.st-chatbar button { background: none; border: none; color: var(--accent); padding: 4px 0; }
+.st-msg { max-width: 86%; }
+.st-msg p { margin: 0; overflow-wrap: anywhere; }
+.st-tutor { align-self: flex-start; background: var(--card); border: 1px solid var(--rule);
+  border-radius: 4px 16px 16px 16px; padding: 12px 14px; }
+.st-tutor > p:first-child { font-size: 17px; }
+.st-user { align-self: flex-end; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.st-user > p { background: var(--user); color: var(--user-ink); border-radius: 16px 4px 16px 16px; padding: 10px 14px; }
+.st-tools { display: flex; gap: 14px; margin-top: 6px; }
+.st-tools button { background: none; border: none; padding: 2px 0; font-size: 13px !important; color: var(--accent); }
+.st-hint { margin-top: 8px !important; padding-top: 8px; border-top: 1px dashed var(--rule); color: var(--dim); font-size: 14.5px; }
+.st-newwords { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.st-newwords button { background: var(--mark); border: none; border-radius: 8px; padding: 5px 10px; font-size: 13.5px !important; }
+.st-newwords button[data-on="1"] { background: var(--accent-soft); color: var(--accent); }
+.st-newwords b { font-weight: 600; }
+
+.st-fix { list-style: none; margin: 0; padding: 8px 12px; background: var(--fix-soft); border-radius: 12px;
+  font-size: 14.5px; display: grid; gap: 4px; max-width: 100%; }
+.st-fix s { color: var(--fix); text-decoration-thickness: 1.5px; }
+.st-fix b { font-weight: 600; }
+.st-fix span { display: block; color: var(--dim); font-size: 13px; }
+.st-sayit { background: var(--accent-soft); border-radius: 12px; padding: 8px 12px; font-size: 14.5px; }
+.st-sayit button { background: none; border: none; color: var(--accent); margin-left: 6px; padding: 0 4px; }
+
+.st-note { align-self: center; font-size: 13px; color: var(--accent); background: var(--accent-soft);
+  padding: 6px 12px; border-radius: 999px; margin: 0; text-align: center; }
+.st-error { color: var(--fix); font-size: 14px; margin: 0; }
+.st-error button { background: none; border: 1px solid currentColor; border-radius: 8px; padding: 2px 10px; color: var(--fix); margin-left: 6px; }
+
+.st-typing { display: flex; gap: 5px; padding: 14px 16px; }
+.st-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); animation: st-dot 1.1s infinite ease-in-out; }
+.st-typing i:nth-child(2) { animation-delay: .15s; }
+.st-typing i:nth-child(3) { animation-delay: .3s; }
+@keyframes st-dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .st-typing i { animation: none; } .st-topics button:hover { transform: none; } }
+
+/* ── ввод ── */
+.st-input { position: sticky; bottom: 0; display: flex; gap: 8px; width: 100%; max-width: 720px; margin: 0 auto;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--paper); border-top: 1px solid var(--rule); }
+.st-input textarea { flex: 1; min-width: 0; resize: none; field-sizing: content; max-height: 140px;
+  font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--rule);
+  border-radius: 14px; padding: 11px 14px; }
+.st-input textarea:focus { outline: none; border-color: var(--accent); }
+.st-input textarea::placeholder { color: var(--faint); }
+.st-input button { background: var(--accent); color: var(--accent-ink); border: none; border-radius: 14px;
+  padding: 0 18px; font-weight: 600; font-size: 14px !important; }
+.st-input button:disabled { opacity: .45; }
+@media (max-width: 480px) {
+  .st-msg { max-width: 92%; }
+  .st-home { font-size: 11px; letter-spacing: .08em; }
+  .st-input button { padding: 0 14px; }
+}
