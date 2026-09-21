@@ -113,6 +113,32 @@ function speakBrowser(text: string, slow: boolean): boolean {
 
 const canSpeak = typeof window !== "undefined" && typeof Audio !== "undefined";
 
+/* Микрофон. Записываем в том формате, который браузер умеет сам: Chrome и
+   Android — webm/opus, Safari и iPhone — mp4/aac. Сервер отдаёт запись модели
+   как есть, она понимает оба. */
+const canHear = typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia
+  && typeof MediaRecorder !== "undefined";
+const REC_MAX = 30;
+function recMime(): string {
+  for (const m of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"]) {
+    try { if (MediaRecorder.isTypeSupported(m)) return m; } catch { /* */ }
+  }
+  return "";
+}
+
+const Mic = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor"
+       strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+  </svg>
+);
+const Send = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor"
+       strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12h13M13 6l6 6-6 6" />
+  </svg>
+);
+
 function bold(text: string) {
   return text.split(/\*\*([^*]+)\*\*/g).map((part, i) =>
     i % 2 ? <strong key={i}>{part}</strong> : <span key={i}>{part}</span>);
@@ -139,6 +165,10 @@ export default function English() {
   const [flipped, setFlipped] = useState(false);
   const [done, setDone] = useState(0);
   const [pairs, setPairs] = useState(0);     // 0 — игры нет, иначе номер партии (ключ для перезапуска)
+  const [rec, setRec] = useState<"idle" | "rec" | "busy">("idle");
+  const [recSec, setRecSec] = useState(0);
+  const secRef = useRef(0);
+  const recRef = useRef<{ mr: MediaRecorder; stream: MediaStream; timer: number } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -266,6 +296,68 @@ export default function English() {
     el.focus();
     el.setSelectionRange(sel[0], sel[1]);
   }, [text]);
+
+  async function startRec() {
+    if (rec !== "idle" || busy) return;
+    setError("");
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch {
+      setError("Нет доступа к микрофону. Разрешите его в настройках браузера — значок слева от адреса сайта.");
+      return;
+    }
+    const mime = recMime();
+    const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      const blob = new Blob(chunks, { type: (mr.mimeType || mime || "audio/webm").split(";")[0] });
+      setRec("busy");
+      try {
+        const r = await fetch(`${API}/english/hear`, {
+          method: "POST", headers: { "Content-Type": blob.type }, body: blob,
+        });
+        const d = await r.json();
+        if (d.error) setError(d.error);
+        else if (d.text) {
+          // не отправляем сами: человек видит, как его услышали, — это уже
+          // проверка произношения — и может поправить перед отправкой
+          setText((t) => (t.trim() ? t.trim() + " " : "") + d.text);
+          requestAnimationFrame(() => inputRef.current?.focus());
+          track("english_voice", { sec: Math.min(secRef.current, REC_MAX) });
+        }
+      } catch {
+        setError("Сервер не ответил. Попробуйте ещё раз через полминуты.");
+      } finally {
+        setRec("idle"); setRecSec(0);
+      }
+    };
+    mr.start();
+    setRec("rec"); setRecSec(0);
+    const started = Date.now();
+    const timer = window.setInterval(() => {
+      const sec = Math.floor((Date.now() - started) / 1000);
+      setRecSec(sec); secRef.current = sec;
+      if (sec >= REC_MAX) stopRec();
+    }, 250);
+    recRef.current = { mr, stream, timer };
+  }
+
+  function stopRec() {
+    const r = recRef.current;
+    if (!r) return;
+    recRef.current = null;
+    window.clearInterval(r.timer);
+    if (r.mr.state !== "inactive") r.mr.stop();
+  }
+
+  // ушли со страницы посреди записи — микрофон отпускаем
+  useEffect(() => () => {
+    const r = recRef.current;
+    if (r) { window.clearInterval(r.timer); r.stream.getTracks().forEach((t) => t.stop()); }
+  }, []);
 
   function finishPairs(res: PairsResult) {
     const now = Date.now();
@@ -399,15 +491,9 @@ export default function English() {
           </section>
         ) : !started ? (
           <section className="st-intro">
-            <h1>Поговорим по-английски</h1>
-            <p className="st-lead">Выберите тему — собеседник задаст первый вопрос.
-              Под каждым вопросом будут готовые ответы: нажмите на подходящий, поправьте под
-              себя и отправьте. Ошибки он поправит, незнакомые слова переведёт.</p>
-            <ul className="st-how">
-              <li><b>Не знаете, как сказать?</b> Пишите по-русски — он покажет, как это по-английски.</li>
-              <li><b>Новое слово?</b> Нажмите «+» под ним, потом повторите в «Моих словах».</li>
-              <li><b>Не поняли вопрос?</b> Под каждой репликой есть перевод и «послушать».</li>
-            </ul>
+            <h1>Поговорим <br />по-английски</h1>
+            <p className="st-lead">Спокойно, без оценок. Собеседник подстроится под ваш уровень,
+              а под каждым его вопросом будут готовые ответы.</p>
 
             <h2>Как у вас с английским?</h2>
             <div className="st-chips">
@@ -421,6 +507,12 @@ export default function English() {
             {level && <p className="st-muted st-small">Уровень по прошлым разговорам: {level},{" "}
               {LEVEL_NAME[level]}. Он уточняется сам.</p>}
 
+            <h2>О чём поговорим?</h2>
+            <div className="st-topics">
+              {TOPICS.map((t) => (
+                <button key={t.id} type="button" onClick={() => start(t.id)}>{t.label}</button>
+              ))}
+            </div>
             <h2>Упражнения</h2>
             <div className="st-drills">
               <button type="button" onClick={() => { setPairs(1); setShowWords(false); }}>
@@ -435,12 +527,13 @@ export default function English() {
               )}
             </div>
 
-            <h2>О чём поговорим?</h2>
-            <div className="st-topics">
-              {TOPICS.map((t) => (
-                <button key={t.id} type="button" onClick={() => start(t.id)}>{t.label}</button>
-              ))}
-            </div>
+            <h2>Как это устроено</h2>
+            <ul className="st-how">
+              <li><b>Голосом или текстом</b>Нажмите микрофон и скажите фразу — она появится в поле.</li>
+              <li><b>Можно по-русски</b>Не знаете, как сказать, — напишите по-русски, он подскажет.</li>
+              <li><b>Слова не теряются</b>Нажмите «+» под новым словом — оно вернётся в «Парах» и карточках.</li>
+            </ul>
+
             <p className="st-credit">Уровни слов — по{" "}
               <a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">
                 CEFR-J Wordlist</a> (Tono Laboratory, TUFS).</p>
@@ -523,20 +616,37 @@ export default function English() {
                 {(lastIsUser || !msgs.length) && <button type="button" onClick={retry}>Повторить</button>}
               </p>
             )}
-            <div ref={endRef} />
+            <div ref={endRef} className="st-end" />
           </section>
         )}
       </main>
 
       {started && !review && !pairs && (
-        <form className="st-input" onSubmit={send}>
-          <textarea ref={inputRef} value={text} rows={1} maxLength={600}
-                    placeholder={beginner ? "Пишите по-английски или по-русски…" : "Type your answer…"}
-                    onChange={(e) => setText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
-                    }} />
-          <button type="submit" disabled={busy || !text.trim()}>Отправить</button>
+        <form className="st-input" onSubmit={send} data-rec={rec}>
+          {canHear && (
+            <button type="button" className="st-mic" data-rec={rec} disabled={rec === "busy" || busy}
+                    onClick={() => (rec === "rec" ? stopRec() : startRec())}
+                    aria-label={rec === "rec" ? "Закончить запись" : "Сказать голосом"}
+                    title={rec === "rec" ? "Нажмите, чтобы закончить" : "Сказать голосом"}>
+              {rec === "busy" ? <i className="st-spin" /> : <Mic />}
+            </button>
+          )}
+          {rec === "rec" ? (
+            <div className="st-recbar" aria-live="polite">
+              <span className="st-recdot" /> Говорите… <b>0:{String(recSec).padStart(2, "0")}</b>
+              <em>нажмите на микрофон, когда закончите</em>
+            </div>
+          ) : (
+            <textarea ref={inputRef} value={text} rows={1} maxLength={600}
+                      placeholder={rec === "busy" ? "Слушаю запись…"
+                        : beginner ? "Скажите или напишите — можно по-русски" : "Say it or type it…"}
+                      onChange={(e) => setText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(); }
+                      }} />
+          )}
+          <button type="submit" className="st-send" disabled={busy || !text.trim() || rec !== "idle"}
+                  aria-label="Отправить"><Send /></button>
         </form>
       )}
     </div>
