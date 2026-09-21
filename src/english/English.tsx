@@ -257,6 +257,7 @@ export default function English() {
   const [allWords, setAllWords] = useState<Word[]>(() => load("st-words", []));
   const words = allWords.filter((w) => !w.del);
   const [sync, setSync] = useState<"idle" | "busy" | "ok" | "off">("idle");
+  const [syncWhy, setSyncWhy] = useState("");     // почему нет связи — мелко, для отладки
   const [linkCode, setLinkCode] = useState("");
   const [linkIn, setLinkIn] = useState<string | null>(null);   // null — поле ввода кода скрыто
   const [linkMsg, setLinkMsg] = useState("");
@@ -329,14 +330,20 @@ export default function English() {
         body: JSON.stringify({ ...p, words: cur.allWords, level: cur.level, level_t: levelT.current,
                                self: cur.self, self_t: selfT.current }),
       });
-      const d = await r.json();
-      if (!d.ok) { setSync("off"); return; }
+      if (r.status === 404) { setSync("off"); setSyncWhy("сервер ещё не знает про синхронизацию — бот не обновился"); return; }
+      const d = await r.json().catch(() => ({}));
+      if (!d.ok) {
+        setSync("off");
+        setSyncWhy(d.detail || d.error || `ответ сервера ${r.status}`);
+        return;
+      }
+      setSyncWhy("");
       setAllWords((ws) => mergeWords(d.words || [], ws));
       if ((d.level_t || 0) > levelT.current) { setLevelRaw(d.level || ""); levelT.current = d.level_t; save("st-level-t", d.level_t); }
       if ((d.self_t || 0) > selfT.current && d.self) { setSelfRaw(d.self); selfT.current = d.self_t; save("st-self-t", d.self_t); }
       setSync("ok");
     } catch {
-      setSync("off");
+      setSync("off"); setSyncWhy("сервер не отвечает — возможно, просыпается");
     } finally {
       syncing.current = false;
       if (again.current) { again.current = false; window.setTimeout(doSync, 300); }
@@ -692,6 +699,7 @@ export default function English() {
                 : sync === "off" ? "Нет связи с сервером — слова сохранены на этом устройстве"
                 : "Слова сохраняются автоматически"}
             </p>
+            {sync === "off" && syncWhy && <p className="st-syncwhy">{syncWhy}</p>}
             {linkCode ? (
               <div className="st-code">
                 <p>На другом устройстве откройте Small Talk → «Мои слова» → «У меня есть код» и введите:</p>
