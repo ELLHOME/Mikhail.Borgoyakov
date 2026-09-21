@@ -164,11 +164,34 @@ body.st-body { margin: 0; background: transparent; }
   padding: 5px 12px; font-size: 13.5px; }
 .st .st-newwords button[data-on="1"] { background: var(--ok-soft); color: var(--ok); }
 .st-newwords b { font-weight: 600; }
-.st-fix { list-style: none; margin: 0; padding: 10px 14px; background: var(--card-solid); border-radius: 16px;
-  border-left: 3px solid var(--fix); font-size: 14.5px; display: grid; gap: 6px; max-width: 100%; box-shadow: var(--shadow); }
+/* разбор под сообщением: сначала верная фраза целиком, ниже — что и почему */
+.st-fix { margin: 0; padding: 12px 14px; background: var(--card-solid); border-radius: 16px;
+  font-size: 14.5px; display: grid; gap: 8px; max-width: 100%; box-shadow: var(--shadow); }
+.st-fix ul { list-style: none; margin: 0; padding: 8px 0 0; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+.st-fix li { font-size: 13.5px; color: var(--dim); }
 .st-fix s { color: var(--fix); text-decoration-thickness: 1.5px; }
-.st-fix b { font-weight: 600; color: var(--ok); }
-.st-fix span { display: block; color: var(--dim); font-size: 13px; }
+.st-fix li b { font-weight: 600; color: var(--ok); }
+.st-fixed { margin: 0; }
+.st-fixed span { color: var(--ok); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.st-fixed b { font-weight: 600; font-size: 15.5px; }
+.st .st-fixed button { background: var(--ok-soft); color: var(--ok); border: none; border-radius: 999px;
+  padding: 1px 9px; margin-left: 6px; font-size: 12px; }
+.st-unclear { list-style: none; margin: 0; padding: 10px 14px; background: var(--card-solid); border-radius: 16px;
+  display: grid; gap: 6px; font-size: 13.5px; color: var(--dim); box-shadow: var(--shadow); max-width: 100%; }
+.st-unclear b { color: var(--peach-ink); font-weight: 600; }
+.st .st-unclear button { background: var(--peach); color: var(--peach-ink); border: none; border-radius: 999px;
+  padding: 1px 9px; margin-left: 6px; font-size: 12px; }
+/* подсветка в самом пузыре: ошибка — светлая плашка с волной, нечётко — пунктир */
+.st-mk { color: inherit; background: none; border-radius: 4px; padding: 0 2px; }
+.st-mk-bad { background: rgba(255, 255, 255, .24); text-decoration: underline wavy #ffc9b8;
+  text-decoration-thickness: 1.5px; text-underline-offset: 4px; }
+.st-mk-fuzzy { text-decoration: underline dotted #ffe2c8; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+@media (prefers-color-scheme: dark) {
+  .st-mk-bad { background: rgba(23, 20, 42, .16); text-decoration-color: #b2361c; }
+  .st-mk-fuzzy { text-decoration-color: #8a4a1c; }
+}
+.st-voiced { display: inline-flex; vertical-align: -3px; margin-right: 6px; opacity: .75; }
+.st-voiced svg { width: 15px; height: 15px; }
 .st-sayit { background: var(--card-solid); border-left: 3px solid var(--accent); border-radius: 16px; padding: 10px 14px;
   font-size: 14.5px; box-shadow: var(--shadow); }
 .st .st-sayit button { background: none; border: none; color: var(--accent); margin-left: 6px; padding: 0 4px; }
@@ -184,7 +207,8 @@ body.st-body { margin: 0; background: transparent; }
 
 .st-note { align-self: center; font-size: 13px; color: var(--accent); background: var(--card);
   padding: 7px 14px; border-radius: 999px; margin: 0; text-align: center; box-shadow: var(--shadow); }
-.st-error { color: var(--fix); font-size: 14px; margin: 0; background: var(--fix-soft); padding: 10px 14px; border-radius: 14px; }
+.st-error { color: var(--fix); font-size: 14px; margin: 0; background: var(--fix-soft); padding: 10px 14px; border-radius: 14px;
+  white-space: pre-line; overflow-wrap: anywhere; }
 .st .st-error button { background: none; border: 1px solid currentColor; border-radius: 999px; padding: 2px 12px;
   color: var(--fix); margin-left: 6px; }
 
@@ -209,18 +233,23 @@ body.st-body { margin: 0; background: transparent; }
 .st .st-mic, .st .st-send { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 50%; border: none;
   display: grid; place-items: center; box-shadow: var(--shadow); transition: transform .15s, opacity .2s; }
 .st .st-mic { background: var(--card-solid); color: var(--accent); }
-.st .st-mic[data-rec="rec"] { background: var(--fix); color: #fff; animation: st-pulse 1.4s infinite; }
+.st .st-mic[data-rec="rec"] { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink);
+  animation: st-pulse 1.4s infinite; }
 .st .st-send { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--accent-ink); }
 .st .st-mic:active:not(:disabled), .st .st-send:active:not(:disabled) { transform: scale(.94); }
 .st .st-send:disabled { opacity: .35; box-shadow: none; }
-@keyframes st-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--fix) 45%, transparent); }
+@keyframes st-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
   70% { box-shadow: 0 0 0 14px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
-.st-recbar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; background: var(--card-solid);
-  border: 1px solid color-mix(in srgb, var(--fix) 35%, transparent); border-radius: 24px; padding: 12px 16px;
+.st-recbar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; background: var(--card-solid);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 24px; padding: 12px 16px;
   font-size: 15px; box-shadow: var(--shadow); }
 .st-recbar b { font-variant-numeric: tabular-nums; font-weight: 600; }
 .st-recbar em { flex-basis: 100%; font-style: normal; font-size: 12px; color: var(--faint); }
 .st-recdot { width: 9px; height: 9px; border-radius: 50%; background: var(--fix); animation: st-dot 1.1s infinite; }
+/* живая полоска громкости: видно, что микрофон вас слышит */
+.st-wave { display: inline-flex; align-items: center; gap: 3px; height: 22px; }
+.st-wave i { width: 4px; height: 22px; border-radius: 3px; background: linear-gradient(var(--accent), var(--accent-2));
+  transform-origin: center; transition: transform .08s linear; }
 .st-spin { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--accent-soft);
   border-top-color: var(--accent); animation: st-rot .8s linear infinite; }
 @keyframes st-rot { to { transform: rotate(360deg); } }

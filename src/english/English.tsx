@@ -17,6 +17,8 @@ type Msg = {
   say?: Say | null;
   words?: Word[];
   suggest?: string[];
+  voice?: boolean;
+  unclear?: { word: string; tip: string }[];
 };
 
 /* Повторение по коробкам Лейтнера: вспомнила — слово уходит на ступень
@@ -113,17 +115,86 @@ function speakBrowser(text: string, slow: boolean): boolean {
 
 const canSpeak = typeof window !== "undefined" && typeof Audio !== "undefined";
 
-/* Микрофон. Записываем в том формате, который браузер умеет сам: Chrome и
-   Android — webm/opus, Safari и iPhone — mp4/aac. Сервер отдаёт запись модели
-   как есть, она понимает оба. */
-const canHear = typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia
-  && typeof MediaRecorder !== "undefined";
-const REC_MAX = 30;
-function recMime(): string {
-  for (const m of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg;codecs=opus"]) {
-    try { if (MediaRecorder.isTypeSupported(m)) return m; } catch { /* */ }
+/* Микрофон. Звук берём прямо из микрофона и сами собираем WAV 16 кГц моно:
+   этот формат понимает любая модель, в отличие от webm, который одни версии
+   принимают, а другие нет. Заодно видно громкость — по ней запись сама
+   заканчивается, когда человек замолчал. Нажимать второй раз не нужно. */
+type AC = typeof AudioContext;
+const AudioCtx: AC | undefined = typeof window !== "undefined"
+  ? (window.AudioContext || (window as unknown as { webkitAudioContext?: AC }).webkitAudioContext) : undefined;
+const canHear = typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia && !!AudioCtx;
+const REC_MAX = 30;          // секунд — дольше это уже не реплика
+const SILENCE_END = 1300;    // мс тишины после речи — фраза закончена
+const NO_SPEECH = 7000;      // мс без единого звука — видимо, не говорят
+
+function toWav(chunks: Float32Array[], rate: number, target = 16000): Blob {
+  const len = chunks.reduce((n, c) => n + c.length, 0);
+  const all = new Float32Array(len);
+  let o = 0;
+  for (const c of chunks) { all.set(c, o); o += c.length; }
+  // понижаем частоту усреднением — для речи этого достаточно
+  const ratio = rate / target;
+  const n = Math.floor(len / ratio);
+  const pcm = new Int16Array(n);
+  for (let i = 0; i < n; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(len, Math.floor((i + 1) * ratio));
+    let sum = 0;
+    for (let j = a; j < b; j++) sum += all[j];
+    const v = Math.max(-1, Math.min(1, sum / Math.max(1, b - a)));
+    pcm[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
   }
-  return "";
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const dv = new DataView(buf);
+  const str = (off: number, t: string) => { for (let i = 0; i < t.length; i++) dv.setUint8(off + i, t.charCodeAt(i)); };
+  str(0, "RIFF"); dv.setUint32(4, 36 + pcm.length * 2, true); str(8, "WAVE");
+  str(12, "fmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, target, true); dv.setUint32(28, target * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true);
+  str(36, "data"); dv.setUint32(40, pcm.length * 2, true);
+  new Int16Array(buf, 44).set(pcm);
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+/** Подсвечиваем в фразе человека то, что поправили, и то, что прозвучало
+ *  нечётко. Ищем без учёта регистра; перекрытия не допускаем. */
+function marks(text: string, bad: string[], fuzzy: string[]) {
+  type R = { a: number; b: number; k: "bad" | "fuzzy" };
+  const rs: R[] = [];
+  const low = text.toLowerCase();
+  const add = (needle: string, k: R["k"], word: boolean) => {
+    const n = needle.trim().toLowerCase();
+    if (!n) return;
+    let from = 0;
+    while (from <= low.length) {
+      const i = low.indexOf(n, from);
+      if (i < 0) return;
+      const j = i + n.length;
+      const edge = !word || ((i === 0 || !/[\w']/.test(low[i - 1])) && (j >= low.length || !/[\w']/.test(low[j])));
+      if (edge && !rs.some((r) => i < r.b && j > r.a)) { rs.push({ a: i, b: j, k }); return; }
+      from = i + 1;
+    }
+  };
+  bad.forEach((w) => add(w, "bad", false));
+  fuzzy.forEach((w) => add(w, "fuzzy", true));
+  rs.sort((x, y) => x.a - y.a);
+  const out: (string | JSX.Element)[] = [];
+  let at = 0;
+  rs.forEach((r, i) => {
+    if (r.a > at) out.push(text.slice(at, r.a));
+    out.push(<mark key={i} className={`st-mk st-mk-${r.k}`}>{text.slice(r.a, r.b)}</mark>);
+    at = r.b;
+  });
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
+
+/** Фраза целиком с исправлениями — её удобно послушать и повторить. */
+function fixed(text: string, corr: Corr[]): string {
+  let t = text;
+  for (const c of corr) {
+    const i = t.toLowerCase().indexOf(c.wrong.toLowerCase());
+    if (i >= 0) t = t.slice(0, i) + c.right + t.slice(i + c.wrong.length);
+  }
+  return t;
 }
 
 const Mic = () => (
@@ -167,8 +238,8 @@ export default function English() {
   const [pairs, setPairs] = useState(0);     // 0 — игры нет, иначе номер партии (ключ для перезапуска)
   const [rec, setRec] = useState<"idle" | "rec" | "busy">("idle");
   const [recSec, setRecSec] = useState(0);
-  const secRef = useRef(0);
-  const recRef = useRef<{ mr: MediaRecorder; stream: MediaStream; timer: number } | null>(null);
+  const [vol, setVol] = useState(0);                 // громкость 0…1 — для живой полоски
+  const recRef = useRef<{ stop: (send: boolean) => void } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -244,12 +315,15 @@ export default function English() {
     call([], startLevel, tp);
   }
 
-  function send(e?: React.FormEvent) {
+  function send(e?: React.FormEvent, spoken?: { text: string; unclear?: Msg["unclear"] }) {
     e?.preventDefault();
-    const t = text.trim();
+    const t = (spoken ? spoken.text : text).trim();
     if (!t || busy) return;
-    const next: Msg[] = [...msgs, { role: "user", text: t }];
-    setMsgs(next); setText("");
+    const next: Msg[] = [...msgs, spoken
+      ? { role: "user", text: t, voice: true, unclear: spoken.unclear || [] }
+      : { role: "user", text: t }];
+    setMsgs(next);
+    if (!spoken) setText("");
     track("english_msg", { n: next.filter((m) => m.role === "user").length });
     call(next, level, topic);
   }
@@ -298,35 +372,50 @@ export default function English() {
   }, [text]);
 
   async function startRec() {
-    if (rec !== "idle" || busy) return;
-    setError("");
+    if (rec !== "idle" || busy || !AudioCtx) return;
+    setError(""); setNote("");
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
     } catch {
       setError("Нет доступа к микрофону. Разрешите его в настройках браузера — значок слева от адреса сайта.");
       return;
     }
-    const mime = recMime();
-    const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-    const chunks: Blob[] = [];
-    mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-    mr.onstop = async () => {
+    const ctx = new AudioCtx();
+    const src = ctx.createMediaStreamSource(stream);
+    const proc = ctx.createScriptProcessor(4096, 1, 1);
+    const chunks: Float32Array[] = [];
+    const t0 = performance.now();
+    let floor = 0, heard = false, lastVoice = 0, closed = false;
+    let calib: number[] = [];
+
+    const finish = async (sendIt: boolean) => {
+      if (closed) return;
+      closed = true;
+      recRef.current = null;
+      proc.disconnect(); src.disconnect();
       stream.getTracks().forEach((t) => t.stop());
-      const blob = new Blob(chunks, { type: (mr.mimeType || mime || "audio/webm").split(";")[0] });
+      const rate = ctx.sampleRate;
+      ctx.close().catch(() => {});
+      setVol(0);
+      if (!sendIt) { setRec("idle"); setRecSec(0); return; }
+      if (!heard) {
+        setRec("idle"); setRecSec(0);
+        setNote("Не слышу вас. Нажмите микрофон и скажите фразу погромче.");
+        return;
+      }
       setRec("busy");
       try {
         const r = await fetch(`${API}/english/hear`, {
-          method: "POST", headers: { "Content-Type": blob.type }, body: blob,
+          method: "POST", headers: { "Content-Type": "audio/wav" }, body: toWav(chunks, rate),
         });
         const d = await r.json();
-        if (d.error) setError(d.error);
+        if (d.error) setError(d.error + (d.detail ? `\n(${d.detail})` : ""));
         else if (d.text) {
-          // не отправляем сами: человек видит, как его услышали, — это уже
-          // проверка произношения — и может поправить перед отправкой
-          setText((t) => (t.trim() ? t.trim() + " " : "") + d.text);
-          requestAnimationFrame(() => inputRef.current?.focus());
-          track("english_voice", { sec: Math.min(secRef.current, REC_MAX) });
+          track("english_voice", { sec: Math.round((performance.now() - t0) / 1000) });
+          // сказанное сразу уходит собеседнику — как в разговоре
+          send(undefined, { text: d.text, unclear: d.unclear || [] });
         }
       } catch {
         setError("Сервер не ответил. Попробуйте ещё раз через полминуты.");
@@ -334,30 +423,37 @@ export default function English() {
         setRec("idle"); setRecSec(0);
       }
     };
-    mr.start();
+
+    proc.onaudioprocess = (ev) => {
+      if (closed) return;
+      const x = ev.inputBuffer.getChannelData(0);
+      chunks.push(new Float32Array(x));
+      let sum = 0;
+      for (let i = 0; i < x.length; i++) sum += x[i] * x[i];
+      const rms = Math.sqrt(sum / x.length);
+      const now = performance.now() - t0;
+      // первые 300 мс — слушаем, какой в комнате шум
+      if (now < 300) { calib.push(rms); floor = calib.reduce((a, b) => a + b, 0) / calib.length; return; }
+      const voiced = rms > Math.max(0.012, floor * 3);
+      setVol(Math.min(1, rms / Math.max(0.05, floor * 8)));
+      if (voiced) { heard = true; lastVoice = now; }
+      setRecSec(Math.floor(now / 1000));
+      if (heard && now - lastVoice > SILENCE_END) finish(true);
+      else if (!heard && now > NO_SPEECH) finish(true);
+      else if (now > REC_MAX * 1000) finish(true);
+    };
+    src.connect(proc);
+    proc.connect(ctx.destination);           // без этого часть браузеров не зовёт onaudioprocess
+    recRef.current = { stop: finish };
     setRec("rec"); setRecSec(0);
-    const started = Date.now();
-    const timer = window.setInterval(() => {
-      const sec = Math.floor((Date.now() - started) / 1000);
-      setRecSec(sec); secRef.current = sec;
-      if (sec >= REC_MAX) stopRec();
-    }, 250);
-    recRef.current = { mr, stream, timer };
   }
 
-  function stopRec() {
-    const r = recRef.current;
-    if (!r) return;
-    recRef.current = null;
-    window.clearInterval(r.timer);
-    if (r.mr.state !== "inactive") r.mr.stop();
+  function stopRec(sendIt = true) {
+    recRef.current?.stop(sendIt);
   }
 
   // ушли со страницы посреди записи — микрофон отпускаем
-  useEffect(() => () => {
-    const r = recRef.current;
-    if (r) { window.clearInterval(r.timer); r.stream.getTracks().forEach((t) => t.stop()); }
-  }, []);
+  useEffect(() => () => { recRef.current?.stop(false); }, []);
 
   function finishPairs(res: PairsResult) {
     const now = Date.now();
@@ -529,7 +625,7 @@ export default function English() {
 
             <h2>Как это устроено</h2>
             <ul className="st-how">
-              <li><b>Голосом или текстом</b>Нажмите микрофон и скажите фразу — она появится в поле.</li>
+              <li><b>Голосом или текстом</b>Нажмите микрофон и просто говорите — когда замолчите, фраза уйдёт сама.</li>
               <li><b>Можно по-русски</b>Не знаете, как сказать, — напишите по-русски, он подскажет.</li>
               <li><b>Слова не теряются</b>Нажмите «+» под новым словом — оно вернётся в «Парах» и карточках.</li>
             </ul>
@@ -573,13 +669,31 @@ export default function English() {
               </div>
             ) : (
               <div className="st-msg st-user" key={i}>
-                <p>{m.text}</p>
+                <p>
+                  {m.voice && <span className="st-voiced" aria-label="Сказано голосом"><Mic /></span>}
+                  {marks(m.text, (m.corrections || []).map((c) => c.wrong), (m.unclear || []).map((u) => u.word))}
+                </p>
                 {!!m.corrections?.length && (
-                  <ul className="st-fix">
-                    {m.corrections.map((c, j) => (
-                      <li key={j}>
-                        <s>{c.wrong}</s> → <b>{c.right}</b>
-                        {c.why && <span>{c.why}</span>}
+                  <div className="st-fix">
+                    <p className="st-fixed">
+                      <span>Правильно:</span> <b>{fixed(m.text, m.corrections)}</b>
+                      {canSpeak && <button type="button" onClick={() => say(fixed(m.text, m.corrections!), true)}
+                                           aria-label="Послушать правильный вариант">▶</button>}
+                    </p>
+                    <ul>
+                      {m.corrections.map((c, j) => (
+                        <li key={j}><s>{c.wrong}</s> → <b>{c.right}</b>{c.why && <span> — {c.why}</span>}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {!!m.unclear?.length && (
+                  <ul className="st-unclear">
+                    {m.unclear.map((u) => (
+                      <li key={u.word}>
+                        <b>{u.word}</b> прозвучало нечётко: {u.tip}
+                        {canSpeak && <button type="button" onClick={() => say(u.word, true)}
+                                             aria-label={`Как звучит ${u.word}`}>▶</button>}
                       </li>
                     ))}
                   </ul>
@@ -625,16 +739,22 @@ export default function English() {
         <form className="st-input" onSubmit={send} data-rec={rec}>
           {canHear && (
             <button type="button" className="st-mic" data-rec={rec} disabled={rec === "busy" || busy}
-                    onClick={() => (rec === "rec" ? stopRec() : startRec())}
-                    aria-label={rec === "rec" ? "Закончить запись" : "Сказать голосом"}
-                    title={rec === "rec" ? "Нажмите, чтобы закончить" : "Сказать голосом"}>
+                    onClick={() => (rec === "rec" ? stopRec(true) : startRec())}
+                    aria-label={rec === "rec" ? "Готово" : "Сказать голосом"}
+                    title={rec === "rec" ? "Готово — можно не ждать" : "Сказать голосом"}>
               {rec === "busy" ? <i className="st-spin" /> : <Mic />}
             </button>
           )}
           {rec === "rec" ? (
             <div className="st-recbar" aria-live="polite">
-              <span className="st-recdot" /> Говорите… <b>0:{String(recSec).padStart(2, "0")}</b>
-              <em>нажмите на микрофон, когда закончите</em>
+              <span className="st-wave" aria-hidden="true">
+                {[0.55, 0.85, 1, 0.8, 0.5].map((k, j) => (
+                  <i key={j} style={{ transform: `scaleY(${0.18 + Math.min(1, vol * k * 1.4) * 0.82})` }} />
+                ))}
+              </span>
+              <span>Слушаю…</span>
+              <b>0:{String(recSec).padStart(2, "0")}</b>
+              <em>остановлюсь сам, когда вы замолчите</em>
             </div>
           ) : (
             <textarea ref={inputRef} value={text} rows={1} maxLength={600}
