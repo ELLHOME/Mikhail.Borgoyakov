@@ -17,13 +17,19 @@ export type Planet = {
   /* точка авестийской школы: физического тела за ней нет */
   fictional?: boolean;
 };
-export type Aspect = { a: string; b: string; type: string; exact: number };
+export type Aspect = {
+  a: string; b: string; type: string; exact: number;
+  /* время рождения неизвестно, а в аспекте Луна: орб известен лишь в пределах суток */
+  vague?: boolean; all_day?: boolean;
+};
 export type Chart = {
   planets: Planet[];
   houses: { n: number; lon: number; label: string }[];
   asc: { lon: number; label: string };
   mc: { lon: number; label: string };
   aspects: Aspect[];
+  /* без времени рождения — где Луна была в начале и в конце тех суток */
+  moon_span?: { from: string; to: string; signs: string[] };
   /* всё ниже даёт та же эфемерида, колесу оно не нужно — только тексту */
   angle_aspects?: Aspect[];
   moon_phase?: { angle: number; illum: number; name: string };

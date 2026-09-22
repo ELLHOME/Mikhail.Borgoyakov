@@ -243,3 +243,6 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
 .ef-ask .ef-starters button { font-family: "Montserrat", system-ui, sans-serif; font-size: 13px;
   padding: 7px 13px; border-radius: 999px; background: rgba(12,15,22,.72); border-color: #2a3346;
   text-transform: none; letter-spacing: 0; }
+
+/* пояснение про Луну без времени рождения */
+.ef-moonnote { margin: -22px 0 34px; }

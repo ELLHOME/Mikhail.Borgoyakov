@@ -553,7 +553,11 @@ export default function Natal() {
                   {result.chart.planets.map((p) => (
                     <li key={p.name}>
                       <span className="g">{p.name}</span>
-                      <span className="v">{p.label}</span>
+                      <span className="v">
+                        {p.name === "Луна" && result.chart.moon_span
+                          ? `${result.chart.moon_span.from} – ${result.chart.moon_span.to}`
+                          : p.label}
+                      </span>
                       <span className="h">{result.time_known ? `дом ${p.house}` : "—"}</span>
                       <span className="r">{p.retro ? "R" : ""}</span>
                     </li>
@@ -566,10 +570,19 @@ export default function Natal() {
                       <span className="a">{a.a}</span>
                       <span className="t">{a.type}</span>
                       <span className="a">{a.b}</span>
-                      <span className="d">{a.exact.toFixed(2)}°</span>
+                      <span className="d" title={a.vague ? "Время рождения неизвестно: точность аспекта Луны не определить" : undefined}>
+                        {a.vague ? (a.all_day ? "весь день" : "возможен") : `${a.exact.toFixed(2)}°`}
+                      </span>
                     </li>
                   ))}
                 </ul>
+                {result.chart.moon_span && (
+                  <p className="ef-hint ef-moonnote">
+                    {result.chart.moon_span.signs.length > 1
+                      ? `Луна в тот день перешла из знака ${result.chart.moon_span.signs[0]} в ${result.chart.moon_span.signs[result.chart.moon_span.signs.length - 1]}. Без времени рождения не узнать, в каком из них она была.`
+                      : "Луна в тот день прошла больше десяти градусов, поэтому точность её аспектов неизвестна."}
+                  </p>
+                )}
 
                 {/* Углы карты держатся на времени рождения: без него их нет. */}
                 {result.time_known && !!result.chart.angle_aspects?.length && (
