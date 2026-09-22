@@ -736,6 +736,8 @@ export function createSky(
 
   return {
     hasField: !!field,
+    /** 0 — карта собрана и спокойна, 1 — рассыпалась. Нужна музыке. */
+    chaos: () => (reduced ? 0 : chaosOf(0.5)),
     setField(on: boolean) { fieldOn = on; field?.set(on); },
     setChart(next: Chart | null) {
       chart = next;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createSky, type Chart, type Now } from "./sky";
+import { createMusic } from "./music";
 import { track } from "../lib/track";
 import "./natal.css";
 
@@ -101,6 +102,8 @@ export default function Natal() {
   const [result, setResult] = useState<Result | null>(null);
   const [fieldOn, setFieldOn] = useState(true);
   const [hasField, setHasField] = useState(false);
+  const musicRef = useRef<ReturnType<typeof createMusic> | null>(null);
+  const [musicOn, setMusicOn] = useState(false);
 
   /* небо живёт вне React: это канвас с собственным кадром */
   useEffect(() => {
@@ -116,7 +119,30 @@ export default function Natal() {
       if (localStorage.getItem("ef-school") === "avestan") setSchool("avestan");
     } catch { /* приватный режим */ }
     track("page_view", { page: "natal", w: window.innerWidth || 0 }, "page_view");
-    return () => { sky.destroy(); skyRef.current = null; };
+    const music = createMusic(() => sky.chaos());
+    musicRef.current = music;
+    // Браузер не даёт играть звук, пока человек ничего не нажал. Поэтому
+    // если музыку включали в прошлый раз, она вступает с первым касанием.
+    let want = false;
+    try { want = localStorage.getItem("ef-music") === "1"; } catch { /* приватный режим */ }
+    const wake = (e: Event) => {
+      if ((e.target as HTMLElement | null)?.closest?.(".ef-music")) return;
+      off();
+      void music.start().then((ok) => setMusicOn(ok));
+    };
+    const off = () => {
+      window.removeEventListener("pointerdown", wake);
+      window.removeEventListener("keydown", wake);
+    };
+    if (want) {
+      setMusicOn(true);
+      window.addEventListener("pointerdown", wake);
+      window.addEventListener("keydown", wake);
+    }
+    return () => {
+      off(); music.destroy(); musicRef.current = null;
+      sky.destroy(); skyRef.current = null;
+    };
   }, []);
 
   useEffect(() => { skyRef.current?.setChart(result ? result.chart : null); }, [result]);
@@ -244,6 +270,20 @@ export default function Natal() {
     } finally {
       setAsking(false);
     }
+  }
+
+  async function toggleMusic() {
+    const m = musicRef.current;
+    if (!m) return;
+    const next = !m.playing;
+    if (next) {
+      const ok = await m.start();
+      setMusicOn(ok);
+    } else {
+      m.stop();
+      setMusicOn(false);
+    }
+    try { localStorage.setItem("ef-music", next ? "1" : "0"); } catch { /* ничего страшного */ }
   }
 
   function toggleField() {
@@ -574,6 +614,11 @@ export default function Natal() {
         )}
       </div>
 
+      <button className={"ef-toggle ef-music" + (hasField ? "" : " ef-music-low")} type="button"
+              onClick={toggleMusic} aria-pressed={musicOn}
+              title="«Дыхание планет» — фоновая музыка">
+        музыка: <b>{musicOn ? "вкл" : "выкл"}</b>
+      </button>
       {hasField && (
         <button className="ef-toggle" type="button" onClick={toggleField} title="Клавиша F">
           фон: <b>{fieldOn ? "поле" : "поток"}</b>

@@ -218,6 +218,9 @@ html.ef-root, body.ef-body { background: #05060a; margin: 0; }
   backdrop-filter: blur(6px); transition: color .2s, border-color .2s; }
 .ef-toggle:hover, .ef-toggle:focus-visible { color: var(--ink); border-color: #33405a; outline: none; }
 .ef-toggle b { font-weight: 400; color: var(--spark); }
+.ef-music { bottom: 60px; }
+.ef-music-low { bottom: 16px; }
+.ef-music[aria-pressed="false"] b { color: var(--dim); }
 
 /* ── разбор по темам ─────────────────────────────────────────────── */
 .ef-summary { font-size: 17px; line-height: 1.6; color: var(--ink);
