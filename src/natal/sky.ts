@@ -37,7 +37,10 @@ export type Chart = {
   ruler?: { sign: string; planet: string; classic: string; label: string; house: number };
   elements?: Record<string, number>;
   modes?: Record<string, number>;
-  stelliums?: { where: string; who: string[] }[];
+  stelliums?: { where: string; who: string[]; min?: number; max?: number; moon_dep?: boolean }[];
+  /* без времени рождения знак Луны бывает неизвестен — тогда счёт вилкой [мин, макс] */
+  elements_range?: Record<string, [number, number]>;
+  modes_range?: Record<string, [number, number]>;
   stations?: string[];
   lilith?: { lon: number; label: string; house: number } | null;
   lilith_true?: { lon: number; label: string; house: number } | null;

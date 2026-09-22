@@ -59,13 +59,25 @@ function summary(c: Chart, timeKnown: boolean): [string, string][] {
   if (timeKnown && c.day_chart !== undefined) out.push(["карта", c.day_chart ? "дневная" : "ночная"]);
   if (timeKnown && c.ruler?.planet)
     out.push(["управитель", `${c.ruler.planet}, дом ${c.ruler.house}`]);
-  if (c.elements)
+  // Знак Луны неизвестен — показываем вилку «3–4», а не цифру одного полудня.
+  const n = (r: [number, number]) => (r[0] === r[1] ? `${r[0]}` : `${r[0]}–${r[1]}`);
+  if (c.elements_range)
+    out.push(["стихии", order.filter((e) => c.elements_range![e]?.[1])
+      .map((e) => `${e} ${n(c.elements_range![e])}`).join(" · ")]);
+  else if (c.elements)
     out.push(["стихии", order.filter((e) => c.elements![e])
       .map((e) => `${e} ${c.elements![e]}`).join(" · ")]);
-  if (c.modes)
+  const modes = ["кардинальный", "фиксированный", "подвижный"];
+  if (c.modes_range)
+    out.push(["кресты", modes.filter((m) => c.modes_range![m]?.[1])
+      .map((m) => `${m} ${n(c.modes_range![m])}`).join(" · ")]);
+  else if (c.modes)
     out.push(["кресты", Object.entries(c.modes).map(([k, v]) => `${k} ${v}`).join(" · ")]);
   const st = (c.stelliums || []).filter((g) => timeKnown || g.where.startsWith("знак"));
-  if (st.length) out.push(["скопления", st.map((g) => `${g.where} ×${g.who.length}`).join(", ")]);
+  if (st.length) out.push(["скопления", st.map((g) =>
+    g.moon_dep ? `${g.where} ×${g.max}, если там Луна`
+      : g.min !== undefined && g.min !== g.max ? `${g.where} ×${g.min}–${g.max}`
+      : `${g.where} ×${g.who.length}`).join(", ")]);
   if (c.stations?.length) out.push(["на станции", c.stations.join(", ")]);
   // Апогей лунной орбиты считают двумя способами, и расходятся они заметно.
   // Показываем оба: выбирать за человека, какая «правильная», не наше дело.
