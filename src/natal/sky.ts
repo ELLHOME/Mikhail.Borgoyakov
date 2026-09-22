@@ -262,7 +262,8 @@ function makeField(cv: HTMLCanvasElement) {
       }
       size();
       // Спокойная карта — поле медленное и приглушённое; распад его будит.
-      clock += (dt / 1000) * (0.32 + chaos * 0.85);
+      // Скорость снижена почти вдвое по просьбам посетителей: шар вращался суетливо.
+      clock += (dt / 1000) * (0.2 + chaos * 0.5);
       gl.useProgram(res.prog);
       gl.uniform3f(res.uRes, cw, ch, 1);
       gl.uniform1f(res.uTime, clock);
