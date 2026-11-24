@@ -8,7 +8,7 @@ const demoUrl = (file) => new URL(`../assets/demos/${file}`, import.meta.url).hr
 export const DEMO_PRESETS = [
   {
     id: 'male_recomp',
-    name: 'Мужчина • Рельеф и осанка (Гантели)',
+    name: 'Мужчина • Рельеф тела (Гантели)',
     subtitle: 'Студийные фото с 3 ракурсов, цель — рельеф и выравнивание осанки',
     profile: {
       sex: 'male',

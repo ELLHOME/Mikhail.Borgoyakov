@@ -303,15 +303,32 @@ strong, b { font-weight: 500; }
 
 .demo-strip {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
   padding-top: 14px;
   border-top: 1px solid var(--border-strong);
 }
 
-.demo-label { font-size: 0.89rem; font-weight: 400; color: var(--text-muted); }
-.demo-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-label {
+  font-size: 0.89rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.demo-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.demo-buttons .btn {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.25;
+}
 
 /* Tactile Neumorphic Buttons */
 .btn {
@@ -2416,6 +2433,18 @@ strong, b { font-weight: 500; }
   .main-content {
     padding: 14px 13px calc(98px + env(safe-area-inset-bottom, 0px));
   }
+  .hero-card {
+    padding: 20px 18px;
+    border-radius: 26px;
+  }
+  .demo-buttons {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .demo-buttons .btn {
+    font-size: 0.86rem;
+    padding: 11px 14px;
+  }
   .panel {
     padding: 18px 16px;
     border-radius: 26px;
@@ -2427,6 +2456,8 @@ strong, b { font-weight: 500; }
 
 @media (max-width: 680px) {
   html, body { font-size: 16px; }
+  .action-bar { flex-direction: column; align-items: stretch; }
+  .action-bar .btn { width: 100%; }
   .form-row-4 { grid-template-columns: repeat(2, 1fr); }
   .form-row-2, .choice-grid-2, .choice-grid-3, .metrics-grid, .ai-lists-grid { grid-template-columns: 1fr; }
   .angles-grid { grid-template-columns: 1fr; }

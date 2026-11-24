@@ -11,17 +11,17 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-8';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-8';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-8';
+} from './cv-analyzer.js?v=20261124-9';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-9';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-9';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
   GOAL_LABELS,
-} from './plan-generator.js?v=20261124-8';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-8';
+} from './plan-generator.js?v=20261124-9';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-9';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -45,7 +45,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-8';
+} from './storage.js?v=20261124-9';
 
 const ANGLES = [
   {
