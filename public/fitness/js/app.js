@@ -11,17 +11,17 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-7';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-7';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-7';
+} from './cv-analyzer.js?v=20261124-8';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-8';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-8';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
   GOAL_LABELS,
-} from './plan-generator.js?v=20261124-7';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-7';
+} from './plan-generator.js?v=20261124-8';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-8';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -45,7 +45,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-7';
+} from './storage.js?v=20261124-8';
 
 const ANGLES = [
   {
@@ -278,7 +278,10 @@ function formatClock(sec) {
 /* --------------------------- Theme & Tabs --------------------------- */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  $('themeIcon').textContent = theme === 'dark' ? '☀' : '☾';
+  $('themeIcon').innerHTML =
+    theme === 'dark'
+      ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
   saveTheme(theme);
 }
 
@@ -561,9 +564,13 @@ function renderAnglesGrid() {
           }
         </div>
         <div class="angle-actions">
-          <button type="button" class="btn btn-outline btn-sm" data-cam-angle="${a.key}">📷 Камера</button>
+          <button type="button" class="btn btn-outline btn-sm" data-cam-angle="${a.key}">
+            <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>
+            <span>Камера</span>
+          </button>
           <label class="btn btn-ghost btn-sm">
-            ⬆ Фото
+            <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Фото</span>
             <input type="file" accept="image/*" data-file-angle="${a.key}" hidden>
           </label>
           ${
@@ -1198,7 +1205,7 @@ function renderPlanTab() {
       <div class="nutri-item"><span>Вода</span><strong>${n.waterLiters} л/день</strong><span>Поддержка суставов и тонуса</span></div>
       <div class="nutri-item" style="display:flex;flex-direction:column;justify-content:space-between;gap:6px">
         <span>Учёт рациона по фото</span>
-        <button type="button" class="btn btn-outline btn-xs" id="gotoNutritionFromPlanBtn">📷 Дневник КБЖУ →</button>
+        <button type="button" class="btn btn-outline btn-xs" id="gotoNutritionFromPlanBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg><span>Дневник КБЖУ →</span></button>
       </div>
     `;
     $('gotoNutritionFromPlanBtn')?.addEventListener('click', () => switchTab('nutrition'));
@@ -2736,7 +2743,7 @@ function renderNutritionMacroCards() {
 
       <div class="nutri-water-card">
         <div class="nutri-water-top">
-          <span class="nutri-water-label">💧 Вода</span>
+          <span class="nutri-water-label"><svg class="water-inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.7 6.4 9.5a7.5 7.5 0 1 0 11.2 0Z"/></svg>Вода</span>
           <span class="nutri-water-val">${waterMl} <small>/ ${targetWaterMl} мл</small></span>
         </div>
         <div class="macro-bar-track">
@@ -3157,7 +3164,9 @@ function initEvents() {
   });
   $('wpSoundToggleBtn').addEventListener('click', () => {
     state.wp.soundEnabled = !state.wp.soundEnabled;
-    $('wpSoundToggleBtn').textContent = state.wp.soundEnabled ? '🔔 Звук вкл' : '🔕 Без звука';
+    $('wpSoundToggleBtn').innerHTML = state.wp.soundEnabled
+      ? '<svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg><span>Звук вкл</span>'
+      : '<svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg><span>Без звука</span>';
   });
   $('wpPlayPauseBtn').addEventListener('click', () => {
     if (!state.wp.player) return;
