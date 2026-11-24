@@ -11,7 +11,7 @@ const KEYS = {
   MEALS: 'bodycoach_meals_v1',
   WATER: 'bodycoach_water_v1',
   AI_SETTINGS: 'bodycoach_ai_settings_v1',
-  THEME: 'bodycoach_theme_v1',
+  THEME: 'bodycoach_theme_v2',
 };
 
 const IDB_NAME = 'bodycoach_media_db';
@@ -120,7 +120,7 @@ export function saveAiSettings(settings) {
 }
 
 export function loadTheme() {
-  return localStorage.getItem(KEYS.THEME) || 'dark';
+  return localStorage.getItem(KEYS.THEME) || 'light';
 }
 
 export function saveTheme(theme) {

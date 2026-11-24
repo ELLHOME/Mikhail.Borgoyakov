@@ -11,17 +11,17 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-5';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-5';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-5';
+} from './cv-analyzer.js?v=20261124-6';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-6';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-6';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
   GOAL_LABELS,
-} from './plan-generator.js?v=20261124-5';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-5';
+} from './plan-generator.js?v=20261124-6';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-6';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -45,7 +45,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-5';
+} from './storage.js?v=20261124-6';
 
 const ANGLES = [
   {
@@ -57,7 +57,7 @@ const ANGLES = [
       <circle cx="60" cy="24" r="14"/>
       <path d="M34 52c8-8 44-8 52 0l12 46m-76 0 12-46"/>
       <path d="M40 54 44 102 38 118l4 68m36-132-4 48 6 16-4 68M44 102h32M38 118h44"/>
-      <line x1="16" y1="54" x2="104" y2="54" stroke="#22d3a7" stroke-opacity="0.6"/>
+      <line x1="16" y1="54" x2="104" y2="54" stroke="#29d4ff" stroke-opacity="0.6"/>
     </svg>`,
   },
   {
@@ -68,7 +68,7 @@ const ANGLES = [
     svg: `<svg viewBox="0 0 120 200" width="84" height="140" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3">
       <circle cx="64" cy="24" r="13"/>
       <path d="M56 38c-10 8-12 34-6 58 6 20 2 34 4 88M68 38c10 10 10 34 4 58-2 22 4 40 2 88"/>
-      <line x1="60" y1="8" x2="60" y2="192" stroke="#22d3a7" stroke-opacity="0.7"/>
+      <line x1="60" y1="8" x2="60" y2="192" stroke="#29d4ff" stroke-opacity="0.7"/>
     </svg>`,
   },
   {
@@ -91,7 +91,7 @@ const ANGLES = [
     svg: `<svg viewBox="0 0 120 200" width="84" height="140" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 3">
       <circle cx="56" cy="24" r="13"/>
       <path d="M64 38c10 8 12 34 6 58-6 20-2 34-4 88M52 38c-10 10-10 34-4 58 2 22-4 40-2 88"/>
-      <line x1="60" y1="8" x2="60" y2="192" stroke="#22d3a7" stroke-opacity="0.5"/>
+      <line x1="60" y1="8" x2="60" y2="192" stroke="#29d4ff" stroke-opacity="0.5"/>
     </svg>`,
   },
 ];
@@ -988,11 +988,11 @@ function renderAnalysisMetricsPanel() {
   if (!m) return;
 
   // Radial gauge
-  const circumference = 2 * Math.PI * 46;
+  const circumference = 2 * Math.PI * 44;
   const arc = $('postureScoreArc');
   arc.style.strokeDasharray = `${circumference}`;
   arc.style.strokeDashoffset = `${circumference * (1 - m.postureScore / 100)}`;
-  arc.style.stroke = m.postureScore >= 82 ? 'var(--accent)' : m.postureScore >= 68 ? 'var(--amber)' : 'var(--coral)';
+  arc.style.stroke = m.postureScore >= 82 ? '#2ee2ff' : m.postureScore >= 68 ? '#38bdf8' : 'var(--coral)';
   $('postureScoreVal').textContent = String(m.postureScore);
 
   $('bodyFrameBadge').textContent = m.bodyFrame;
@@ -1791,8 +1791,8 @@ function renderProgressChart() {
     <svg viewBox="0 0 ${w} ${h}" role="img" aria-label="График индекса осанки">
       <defs>
         <linearGradient id="scoreAreaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#22d3a7" stop-opacity="0.35"/>
-          <stop offset="100%" stop-color="#22d3a7" stop-opacity="0.01"/>
+          <stop offset="0%" stop-color="#29d4ff" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#29d4ff" stop-opacity="0.01"/>
         </linearGradient>
       </defs>
       ${[0, 0.5, 1]
@@ -1804,13 +1804,13 @@ function renderProgressChart() {
         })
         .join('')}
       <path d="${areaPath}" fill="url(#scoreAreaGrad)"/>
-      <path d="${linePath}" fill="none" stroke="#22d3a7" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="${linePath}" fill="none" stroke="#0ea5d6" stroke-width="2.2" stroke-linecap="round"/>
       ${pts
         .map(
           (p) => `
-          <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#22d3a7" stroke="#0f172a" stroke-width="2"/>
-          <text x="${p.x}" y="${p.y - 9}" text-anchor="middle" fill="#e2e8f0" font-size="10" font-weight="700">${p.score}</text>
-          <text x="${p.x}" y="${h - 10}" text-anchor="middle" fill="#94a3b8" font-size="10">${p.date}</text>
+          <circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#2ee2ff" stroke="#111926" stroke-width="2"/>
+          <text x="${p.x}" y="${p.y - 9}" text-anchor="middle" fill="currentColor" font-size="10" font-weight="500">${p.score}</text>
+          <text x="${p.x}" y="${h - 10}" text-anchor="middle" fill="#7c8da5" font-size="10">${p.date}</text>
         `
         )
         .join('')}
@@ -2679,7 +2679,7 @@ function renderNutritionMacroCards() {
   const pct = (val, max) => (max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0);
   const kcalPctRaw = target.targetKcal > 0 ? Math.round((eaten.kcal / target.targetKcal) * 100) : 0;
   const kcalPctRing = Math.min(100, Math.max(0, kcalPctRaw));
-  const ringCirc = 182.21; // 2 * pi * 29
+  const ringCirc = 194.78; // 2 * pi * 31
   const ringOffset = +(ringCirc * (1 - kcalPctRing / 100)).toFixed(2);
   const isOverKcal = eaten.kcal > target.targetKcal * 1.06;
 
@@ -2692,17 +2692,20 @@ function renderNutritionMacroCards() {
     <div class="nutri-summary-layout">
       <div class="nutri-kcal-hero">
         <div class="nutri-ring-wrap">
-          <svg viewBox="0 0 72 72" aria-hidden="true">
-            <circle cx="36" cy="36" r="29" fill="none" stroke="rgba(148, 163, 184, 0.26)" stroke-width="7"></circle>
-            <circle cx="36" cy="36" r="29" fill="none"
-              stroke="${isOverKcal ? 'var(--coral)' : 'var(--accent)'}"
-              stroke-width="7" stroke-linecap="round"
+          <svg viewBox="0 0 84 84" aria-hidden="true">
+            <circle cx="42" cy="42" r="39" fill="none" stroke="rgba(56, 220, 255, 0.34)" stroke-width="1.2" stroke-dasharray="1.4 4.8"></circle>
+            <circle cx="42" cy="42" r="31" fill="none" stroke="rgba(255, 255, 255, 0.11)" stroke-width="5.2"></circle>
+            <circle cx="42" cy="42" r="31" fill="none"
+              class="nutri-glow-arc"
+              stroke="${isOverKcal ? '#ff7b72' : '#2ee2ff'}"
+              stroke-width="5.2" stroke-linecap="round"
               stroke-dasharray="${ringCirc}" stroke-dashoffset="${ringOffset}"></circle>
           </svg>
-          <span class="nutri-ring-pct">${kcalPctRaw}%</span>
+          <span class="nutri-ring-pct">${kcalPctRaw}<small>%</small></span>
         </div>
         <div class="nutri-kcal-copy">
-          <div class="nutri-kcal-main">${eaten.kcal} <small>/ ${target.targetKcal} ккал</small></div>
+          <span class="nutri-kcal-eyebrow">Калории за день</span>
+          <div class="nutri-kcal-main">${eaten.kcal} <small>/ ${target.targetKcal}</small></div>
           <div class="nutri-kcal-rem ${kcalDiff < 0 ? 'over' : ''}">${kcalSub}</div>
         </div>
       </div>
