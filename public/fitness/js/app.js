@@ -15,6 +15,7 @@ import {
 import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js';
 import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js';
 import {
+  buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
@@ -31,15 +32,19 @@ import {
   loadAiSettings,
   loadCheckinPhotos,
   loadCheckins,
+  loadMeals,
   loadProfile,
   loadTheme,
+  loadWaterByDate,
   loadWorkoutLogs,
   saveActivePlan,
   saveAiSettings,
   saveCheckinPhotos,
   saveCheckins,
+  saveMeals,
   saveProfile,
   saveTheme,
+  saveWaterByDate,
 } from './storage.js';
 
 const ANGLES = [
@@ -160,6 +165,13 @@ const state = {
   },
   checkins: loadCheckins(),
   workouts: loadWorkoutLogs(),
+  meals: loadMeals(),
+  waterByDate: loadWaterByDate(),
+  nutrition: {
+    selectedDate: '',
+    photo: null,
+    draft: null,
+  },
   checkinThumbCache: {},
   compareA: null,
   compareB: null,
@@ -289,6 +301,9 @@ function switchTab(tabName) {
   if (tabName === 'history') {
     renderHistoryTab();
   }
+  if (tabName === 'nutrition') {
+    renderNutritionTab();
+  }
 }
 
 function isAiReady(settings = state.aiSettings) {
@@ -352,6 +367,8 @@ function applyCloudModeUi() {
   if (aiPanelTitle) aiPanelTitle.textContent = 'Разбор от AI Vision (сервер ELLHOME)';
   const aiPanelSub = document.querySelector('#aiVisionPanel .panel-header p');
   if (aiPanelSub) aiPanelSub.textContent = 'Глубокий анализ фигуры по фото через защищённый серверный API (ключ хранится на сервере)';
+  const nutriBadge = $('nutritionAiBadge');
+  if (nutriBadge) nutriBadge.textContent = '✦ AI-нутрициолог (сервер ELLHOME) • Фото-анализ тарелки и КБЖУ';
   $('inlineAiFields')?.classList.add('hidden');
 }
 
@@ -641,13 +658,24 @@ function readProfileFromForm() {
 
 /* --------------------------- Camera Capture Modal --------------------------- */
 async function openCameraModal(angleKey) {
-  const meta = ANGLES.find((a) => a.key === angleKey) || ANGLES[0];
   state.camera.angleKey = angleKey;
   state.camera.capturedDataUrl = null;
 
-  $('cameraModalTitle').textContent = `Съёмка: ${meta.title}`;
-  $('cameraModalHint').textContent = meta.hint;
-  $('cameraGuideOverlay').innerHTML = meta.svg.replace('width="84" height="140"', 'width="230" height="380"');
+  if (angleKey === 'meal') {
+    state.camera.facingMode = 'environment';
+    state.camera.mirrored = false;
+    $('cameraModalTitle').textContent = 'Съёмка блюда';
+    $('cameraModalHint').textContent = 'Сфотографируйте тарелку сверху под углом ~45° при хорошем освещении';
+    $('cameraGuideOverlay').innerHTML = '';
+    const immediateRadio = document.querySelector('input[name="camTimer"][value="0"]');
+    if (immediateRadio) immediateRadio.checked = true;
+  } else {
+    const meta = ANGLES.find((a) => a.key === angleKey) || ANGLES[0];
+    $('cameraModalTitle').textContent = `Съёмка: ${meta.title}`;
+    $('cameraModalHint').textContent = meta.hint;
+    $('cameraGuideOverlay').innerHTML = meta.svg.replace('width="84" height="140"', 'width="230" height="380"');
+  }
+
   $('cameraPreviewImg').classList.add('hidden');
   $('cameraVideo').classList.remove('hidden');
   $('cameraLiveControls').classList.remove('hidden');
@@ -1166,10 +1194,14 @@ function renderPlanTab() {
   if (n) {
     $('nutritionStrip').innerHTML = `
       <div class="nutri-item"><span>Ориентир калорий</span><strong>~${n.targetKcal} ккал</strong><span>${escapeHtml(n.kcalNote)}</span></div>
-      <div class="nutri-item"><span>Белок в день</span><strong>${n.proteinGrams} г</strong><span>Для мышц и восстановления</span></div>
+      <div class="nutri-item"><span>Б / Ж / У в день</span><strong>${n.proteinGrams} / ${n.fatGrams ?? '—'} / ${n.carbsGrams ?? '—'} г</strong><span>Для мышц и энергии</span></div>
       <div class="nutri-item"><span>Вода</span><strong>${n.waterLiters} л/день</strong><span>Поддержка суставов и тонуса</span></div>
-      <div class="nutri-item"><span>Активность</span><strong>${escapeHtml(n.stepsTarget)}</strong><span>Базовое движение каждый день</span></div>
+      <div class="nutri-item" style="display:flex;flex-direction:column;justify-content:space-between;gap:6px">
+        <span>Учёт рациона по фото</span>
+        <button type="button" class="btn btn-outline btn-xs" id="gotoNutritionFromPlanBtn">📷 Дневник КБЖУ →</button>
+      </div>
     `;
+    $('gotoNutritionFromPlanBtn')?.addEventListener('click', () => switchTab('nutrition'));
   }
 
   // Day tabs
@@ -1943,6 +1975,861 @@ function renderWorkoutLogsList() {
     .join('');
 }
 
+/* --------------------------- Tab 5: Nutrition & Food Photo AI --------------------------- */
+const MEAL_TYPE_LABELS = {
+  breakfast: 'Завтрак',
+  lunch: 'Обед',
+  dinner: 'Ужин',
+  snack: 'Перекус',
+};
+
+const CONFIDENCE_LABELS = {
+  high: 'Высокая точность',
+  medium: 'Средняя точность',
+  low: 'Оценка по виду',
+};
+
+function round1(val) {
+  return Math.round((Number(val) || 0) * 10) / 10;
+}
+
+function getLocalDateKey(d = new Date()) {
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, '0');
+  const da = String(d.getDate()).padStart(2, '0');
+  return `${yr}-${mo}-${da}`;
+}
+
+function shiftDateKey(dateKey, deltaDays) {
+  const parts = String(dateKey || '').split('-').map(Number);
+  const base = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0) : new Date();
+  base.setDate(base.getDate() + deltaDays);
+  return getLocalDateKey(base);
+}
+
+function formatDateKeyLabel(dateKey) {
+  const today = getLocalDateKey();
+  const yesterday = shiftDateKey(today, -1);
+  const parts = String(dateKey || '').split('-').map(Number);
+  const dt = parts.length === 3 ? new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0) : new Date();
+  const shortRu = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short' }).format(dt);
+  if (dateKey === today) return `Сегодня, ${shortRu}`;
+  if (dateKey === yesterday) return `Вчера, ${shortRu}`;
+  return new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' }).format(dt);
+}
+
+function pickDefaultMealTypeByHour() {
+  const hr = new Date().getHours();
+  if (hr < 11) return 'breakfast';
+  if (hr < 16) return 'lunch';
+  if (hr < 21) return 'dinner';
+  return 'snack';
+}
+
+function getSelectedMealType() {
+  return document.querySelector('input[name="mealType"]:checked')?.value || 'lunch';
+}
+
+function setSelectedMealType(mealType) {
+  const radio = document.querySelector(`input[name="mealType"][value="${mealType}"]`);
+  if (radio) radio.checked = true;
+}
+
+function getDailyNutritionTargets() {
+  return buildNutritionGuidance(state.profile, state.metrics || {}, state.aiAnalysis);
+}
+
+function getMealsForDate(dateKey) {
+  return state.meals.filter((m) => m.dateKey === dateKey);
+}
+
+function computeIngredientsTotals(ingredients) {
+  const list = Array.isArray(ingredients) ? ingredients : [];
+  return {
+    grams: Math.round(list.reduce((a, x) => a + (Number(x.grams) || 0), 0)),
+    kcal: Math.round(list.reduce((a, x) => a + (Number(x.kcal) || 0), 0)),
+    protein: round1(list.reduce((a, x) => a + (Number(x.protein) || 0), 0)),
+    fat: round1(list.reduce((a, x) => a + (Number(x.fat) || 0), 0)),
+    carbs: round1(list.reduce((a, x) => a + (Number(x.carbs) || 0), 0)),
+    fiber: round1(list.reduce((a, x) => a + (Number(x.fiber) || 0), 0)),
+  };
+}
+
+function createDraftIngredient(raw = {}) {
+  const grams = Math.max(0, Math.round(Number(raw.grams ?? 100)));
+  const baseGrams = grams > 0 ? grams : 100;
+  let kcal = Math.max(0, Math.round(Number(raw.kcal ?? 0)));
+  const protein = Math.max(0, round1(raw.protein ?? 0));
+  const fat = Math.max(0, round1(raw.fat ?? 0));
+  const carbs = Math.max(0, round1(raw.carbs ?? 0));
+  const fiber = Math.max(0, round1(raw.fiber ?? 0));
+  if (kcal === 0 && (protein > 0 || fat > 0 || carbs > 0)) {
+    kcal = Math.round(protein * 4 + fat * 9 + carbs * 4);
+  }
+  const per100 = raw.per100
+    ? { ...raw.per100 }
+    : {
+        kcal: (kcal / baseGrams) * 100,
+        protein: (protein / baseGrams) * 100,
+        fat: (fat / baseGrams) * 100,
+        carbs: (carbs / baseGrams) * 100,
+        fiber: (fiber / baseGrams) * 100,
+      };
+  return {
+    id: raw.id || `ing_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    name: String(raw.name || ''),
+    grams,
+    kcal,
+    protein,
+    fat,
+    carbs,
+    fiber,
+    per100,
+  };
+}
+
+async function setMealPhotoDataUrl(dataUrl) {
+  const compressed = await compressImageDataUrl(dataUrl, 1024, 0.84);
+  state.nutrition.photo = compressed;
+  $('mealPhotoPreviewImg').src = compressed;
+  $('mealPhotoEmpty').classList.add('hidden');
+  $('mealPhotoPreviewWrap').classList.remove('hidden');
+}
+
+function clearMealPhoto() {
+  state.nutrition.photo = null;
+  $('mealPhotoPreviewImg').removeAttribute('src');
+  $('mealPhotoPreviewWrap').classList.add('hidden');
+  $('mealPhotoEmpty').classList.remove('hidden');
+}
+
+function generateSampleMealDataUrl() {
+  const c = document.createElement('canvas');
+  c.width = 760;
+  c.height = 520;
+  const ctx = c.getContext('2d');
+
+  // Dark slate tabletop
+  const bg = ctx.createRadialGradient(380, 260, 60, 380, 260, 460);
+  bg.addColorStop(0, '#1e293b');
+  bg.addColorStop(1, '#0b1120');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  // Plate shadow & ceramic rim
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 32;
+  ctx.shadowOffsetY = 14;
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.arc(380, 262, 208, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(380, 262, 174, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Buckwheat portion (top-left)
+  ctx.fillStyle = '#8b5a2b';
+  ctx.beginPath();
+  ctx.ellipse(308, 206, 74, 58, -0.3, 0, Math.PI * 2);
+  ctx.fill();
+  for (let i = 0; i < 110; i++) {
+    const ang = (i * 2.39996) % (Math.PI * 2);
+    const rad = Math.sqrt(i / 110) * 62;
+    const gx = 308 + Math.cos(ang) * rad;
+    const gy = 206 + Math.sin(ang) * rad * 0.78;
+    ctx.fillStyle = i % 3 === 0 ? '#a47148' : i % 2 === 0 ? '#6f4518' : '#bc8a5f';
+    ctx.beginPath();
+    ctx.ellipse(gx, gy, 4.2, 2.8, ang, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Grilled chicken breast slices (bottom-left/right)
+  const slices = [
+    { x: 345, y: 325, rx: 68, ry: 24, rot: 0.18 },
+    { x: 365, y: 356, rx: 60, ry: 21, rot: 0.14 },
+  ];
+  slices.forEach((s) => {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rot);
+    ctx.fillStyle = '#f3d5b5';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s.rx, s.ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#9c5221';
+    ctx.lineWidth = 4;
+    for (let x = -42; x <= 42; x += 18) {
+      ctx.beginPath();
+      ctx.moveTo(x - 6, -s.ry * 0.65);
+      ctx.lineTo(x + 6, s.ry * 0.65);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // Fresh salad: cucumber, cherry tomatoes & avocado (right side)
+  const cucumbers = [
+    [455, 205],
+    [486, 228],
+    [448, 244],
+    [482, 266],
+  ];
+  cucumbers.forEach(([cx, cy]) => {
+    ctx.fillStyle = '#15803d';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#bbf7d0';
+    ctx.beginPath();
+    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  const tomatoes = [
+    [432, 176],
+    [470, 182],
+    [446, 282],
+  ];
+  tomatoes.forEach(([tx, ty]) => {
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(tx, ty, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath();
+    ctx.arc(tx - 4, ty - 4, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Avocado fan
+  for (let i = 0; i < 3; i++) {
+    ctx.save();
+    ctx.translate(495, 304 + i * 12);
+    ctx.rotate(-0.25 + i * 0.12);
+    ctx.fillStyle = '#84cc16';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 26, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  return c.toDataURL('image/jpeg', 0.88);
+}
+
+async function callMealVisionApi() {
+  const note = $('mealNoteInput').value.trim();
+  const mealType = getSelectedMealType();
+  const dailyTarget = getDailyNutritionTargets();
+  const compactPhoto = state.nutrition.photo
+    ? await compressImageDataUrl(state.nutrition.photo, 840, 0.8)
+    : '';
+
+  if (!compactPhoto && note.length < 3) {
+    throw new Error('Загрузите фото блюда или опишите приём пищи словами.');
+  }
+
+  if (IS_CLOUD_MODE) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 85000);
+    let resp;
+    try {
+      resp = await fetch(`${CLOUD_API_BASE}/fitness/meal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          photo: compactPhoto,
+          note,
+          mealType,
+          profile: state.profile,
+          dailyTarget,
+        }),
+      });
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error('Сервер AI не успел ответить за 85 сек. Попробуйте нажать кнопку ещё раз.');
+      }
+      throw new Error('Не удалось связаться с сервером AI-нутрициолога.');
+    } finally {
+      clearTimeout(timer);
+    }
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || data.ok === false || !data.meal) {
+      throw new Error(data.error || `HTTP ${resp.status}`);
+    }
+    state.cloudAi = {
+      checked: true,
+      ready: true,
+      provider: data.provider || 'gemini',
+      model: data.model || state.cloudAi.model,
+    };
+    syncInlineAiFromState();
+    updateAiStatusIndicator();
+    return {
+      provider: data.provider || 'gemini',
+      model: data.model || '',
+      ...data.meal,
+    };
+  }
+
+  if (!isAiReady()) {
+    openAiSettingsModal();
+    throw new Error('Укажите API-ключ AI Vision или нажмите «+ Вручную» для самостоятельного ввода.');
+  }
+
+  const meta = getProviderMeta(state.aiSettings.provider);
+  const resp = await fetch('/api/meal-analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      provider: state.aiSettings.provider,
+      apiKey: state.aiSettings.apiKey,
+      model: state.aiSettings.model || meta.model,
+      baseUrl: state.aiSettings.baseUrl,
+      photo: compactPhoto,
+      note,
+      mealType,
+      profile: state.profile,
+      dailyTarget,
+    }),
+  });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.ok === false || !data.meal) {
+    throw new Error(data.error || `HTTP ${resp.status}`);
+  }
+  return {
+    provider: data.provider,
+    model: data.model,
+    ...data.meal,
+  };
+}
+
+async function handleAnalyzeMealClick() {
+  const note = $('mealNoteInput').value.trim();
+  if (!state.nutrition.photo && note.length < 3) {
+    showToast('Добавьте фото тарелки или напишите, что вы съели', true);
+    return;
+  }
+
+  const btn = $('analyzeMealBtn');
+  const statusEl = $('mealAnalyzeStatus');
+  const statusTxt = $('mealAnalyzeStatusText');
+  btn.disabled = true;
+  statusEl.classList.remove('hidden');
+  statusTxt.textContent = IS_CLOUD_MODE && !state.cloudAi.ready
+    ? 'Подключаемся к серверу AI-нутрициолога (первый запрос 20–45 сек)...'
+    : 'Распознаём блюдо, ингредиенты, вес порции и считаем КБЖУ...';
+
+  try {
+    const result = await callMealVisionApi();
+    openMealDraft(result, null);
+    showToast(`Блюдо «${result.dishName}» разобрано — проверьте граммы и сохраните!`);
+  } catch (err) {
+    showToast(err.message, true);
+  } finally {
+    btn.disabled = false;
+    statusEl.classList.add('hidden');
+  }
+}
+
+function openMealDraft(mealData, editingId = null) {
+  const rawIngs = Array.isArray(mealData.ingredients) && mealData.ingredients.length
+    ? mealData.ingredients
+    : [{ name: mealData.dishName || 'Блюдо', grams: 250, kcal: 320, protein: 22, fat: 10, carbs: 32, fiber: 4 }];
+
+  state.nutrition.draft = {
+    editingId,
+    mealType: mealData.mealType || getSelectedMealType(),
+    dishName: mealData.dishName || 'Приём пищи',
+    confidence: mealData.confidence || 'medium',
+    portionNote: mealData.portionNote || '',
+    healthScore: mealData.healthScore ?? null,
+    goalFeedback: mealData.goalFeedback || '',
+    tips: Array.isArray(mealData.tips) ? mealData.tips : [],
+    existingThumb: mealData.thumb || null,
+    ingredients: rawIngs.map((ing) => createDraftIngredient(ing)),
+  };
+
+  renderMealDraftCard();
+  $('mealDraftCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function openManualMealDraft() {
+  const noteTitle = $('mealNoteInput').value.trim().slice(0, 60);
+  openMealDraft(
+    {
+      dishName: noteTitle || `${MEAL_TYPE_LABELS[getSelectedMealType()]} (вручную)`,
+      confidence: 'high',
+      portionNote: 'Ручной ввод граммовок и макронутриентов',
+      healthScore: null,
+      goalFeedback: '',
+      tips: [],
+      ingredients: [
+        { name: noteTitle || 'Продукт 1', grams: 150, kcal: 210, protein: 18, fat: 7, carbs: 18, fiber: 2 },
+      ],
+    },
+    null
+  );
+}
+
+function renderMealDraftCard() {
+  const draft = state.nutrition.draft;
+  const card = $('mealDraftCard');
+  if (!draft) {
+    card.classList.add('hidden');
+    return;
+  }
+  card.classList.remove('hidden');
+
+  $('draftModeLabel').textContent = draft.editingId
+    ? 'Редактирование записи — скорректируйте граммы или ингредиенты'
+    : 'Проверьте состав — меняйте граммы для мгновенного пересчёта КБЖУ';
+  $('draftDishName').value = draft.dishName;
+  $('saveDraftMealBtn').textContent = draft.editingId ? '✓ Обновить запись' : '✓ Сохранить в дневник';
+
+  const badges = [];
+  if (draft.confidence && !draft.editingId) {
+    const cls = draft.confidence === 'high' ? 'badge-good' : draft.confidence === 'low' ? 'badge-watch' : 'badge-muted';
+    badges.push(`<span class="badge ${cls}">${escapeHtml(CONFIDENCE_LABELS[draft.confidence] || 'AI-оценка')}</span>`);
+  }
+  if (draft.healthScore) {
+    const cls = draft.healthScore >= 78 ? 'badge-good' : draft.healthScore >= 58 ? 'badge-watch' : 'badge-focus';
+    badges.push(`<span class="badge ${cls}">Баланс: ${draft.healthScore}/100</span>`);
+  }
+  $('draftBadges').innerHTML = badges.join('');
+
+  const pNote = $('draftPortionNote');
+  if (draft.portionNote) {
+    pNote.textContent = `Порция: ${draft.portionNote}`;
+    pNote.classList.remove('hidden');
+  } else {
+    pNote.classList.add('hidden');
+  }
+
+  renderDraftIngredientsRows();
+  renderDraftTotalsBar();
+
+  const fb = $('draftAiFeedback');
+  if (draft.goalFeedback || (draft.tips && draft.tips.length)) {
+    fb.classList.remove('hidden');
+    fb.innerHTML = `
+      ${draft.goalFeedback ? `<div><strong>Комментарий нутрициолога:</strong> ${escapeHtml(draft.goalFeedback)}</div>` : ''}
+      ${draft.tips?.length ? `<ul>${draft.tips.map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : ''}
+    `;
+  } else {
+    fb.classList.add('hidden');
+    fb.innerHTML = '';
+  }
+}
+
+function renderDraftIngredientsRows() {
+  const draft = state.nutrition.draft;
+  const wrap = $('draftIngredientsList');
+  if (!draft) return;
+
+  wrap.innerHTML = draft.ingredients
+    .map(
+      (ing) => `
+      <div class="draft-ing-row" data-ing-id="${ing.id}">
+        <input type="text" value="${escapeHtml(ing.name)}" placeholder="Продукт" data-ing-field="name" aria-label="Название ингредиента">
+        <div class="draft-grams-wrap">
+          <input type="number" min="0" max="3000" step="5" value="${ing.grams}" data-ing-field="grams" title="Вес в граммах" aria-label="Вес в граммах">
+          <span class="unit-suffix">г</span>
+        </div>
+        <span class="draft-ing-kcal" data-ing-kcal>${ing.kcal} ккал</span>
+        <div class="draft-ing-macros" title="Белки / Жиры / Углеводы (г)">
+          <label class="macro-mini-field"><span>Б</span><input type="number" min="0" max="500" step="0.5" value="${ing.protein}" data-ing-macro="protein" aria-label="Белки (г)"></label>
+          <label class="macro-mini-field"><span>Ж</span><input type="number" min="0" max="500" step="0.5" value="${ing.fat}" data-ing-macro="fat" aria-label="Жиры (г)"></label>
+          <label class="macro-mini-field"><span>У</span><input type="number" min="0" max="600" step="0.5" value="${ing.carbs}" data-ing-macro="carbs" aria-label="Углеводы (г)"></label>
+        </div>
+        <button type="button" class="btn btn-danger-ghost btn-xs draft-remove-btn" data-remove-ing="${ing.id}" title="Удалить ингредиент">✕</button>
+      </div>
+    `
+    )
+    .join('');
+
+  wrap.querySelectorAll('.draft-ing-row').forEach((row) => {
+    const ingId = row.dataset.ingId;
+    const getIng = () => state.nutrition.draft?.ingredients.find((x) => x.id === ingId);
+
+    const nameInput = row.querySelector('[data-ing-field="name"]');
+    nameInput.addEventListener('input', () => {
+      const ing = getIng();
+      if (ing) ing.name = nameInput.value;
+    });
+
+    const gramsInput = row.querySelector('[data-ing-field="grams"]');
+    gramsInput.addEventListener('input', () => {
+      const ing = getIng();
+      if (!ing) return;
+      const g = Math.max(0, Number(gramsInput.value) || 0);
+      ing.grams = Math.round(g);
+      ing.kcal = Math.round((ing.per100.kcal * g) / 100);
+      ing.protein = round1((ing.per100.protein * g) / 100);
+      ing.fat = round1((ing.per100.fat * g) / 100);
+      ing.carbs = round1((ing.per100.carbs * g) / 100);
+      ing.fiber = round1((ing.per100.fiber * g) / 100);
+
+      row.querySelector('[data-ing-kcal]').textContent = `${ing.kcal} ккал`;
+      row.querySelector('[data-ing-macro="protein"]').value = String(ing.protein);
+      row.querySelector('[data-ing-macro="fat"]').value = String(ing.fat);
+      row.querySelector('[data-ing-macro="carbs"]').value = String(ing.carbs);
+      renderDraftTotalsBar();
+    });
+
+    row.querySelectorAll('[data-ing-macro]').forEach((macroInp) => {
+      macroInp.addEventListener('input', () => {
+        const ing = getIng();
+        if (!ing) return;
+        const field = macroInp.dataset.ingMacro;
+        ing[field] = Math.max(0, round1(Number(macroInp.value) || 0));
+        ing.kcal = Math.round(ing.protein * 4 + ing.fat * 9 + ing.carbs * 4);
+        const baseG = ing.grams > 0 ? ing.grams : 100;
+        ing.per100 = {
+          kcal: (ing.kcal / baseG) * 100,
+          protein: (ing.protein / baseG) * 100,
+          fat: (ing.fat / baseG) * 100,
+          carbs: (ing.carbs / baseG) * 100,
+          fiber: (ing.fiber / baseG) * 100,
+        };
+        row.querySelector('[data-ing-kcal]').textContent = `${ing.kcal} ккал`;
+        renderDraftTotalsBar();
+      });
+    });
+
+    row.querySelector('[data-remove-ing]').addEventListener('click', () => {
+      if (!state.nutrition.draft) return;
+      state.nutrition.draft.ingredients = state.nutrition.draft.ingredients.filter((x) => x.id !== ingId);
+      renderDraftIngredientsRows();
+      renderDraftTotalsBar();
+    });
+  });
+}
+
+function renderDraftTotalsBar() {
+  const draft = state.nutrition.draft;
+  if (!draft) return;
+  const t = computeIngredientsTotals(draft.ingredients);
+  $('draftTotalsBar').innerHTML = `
+    <div class="draft-total-cell"><span>Общий вес</span><strong>${t.grams} г</strong></div>
+    <div class="draft-total-cell"><span>Калории</span><strong>${t.kcal} ккал</strong></div>
+    <div class="draft-total-cell"><span>Белки</span><strong>${t.protein} г</strong></div>
+    <div class="draft-total-cell"><span>Жиры</span><strong>${t.fat} г</strong></div>
+    <div class="draft-total-cell"><span>Углеводы</span><strong>${t.carbs} г${t.fiber > 0 ? ` (кл. ${t.fiber} г)` : ''}</strong></div>
+  `;
+}
+
+async function saveCurrentMealDraft() {
+  const draft = state.nutrition.draft;
+  if (!draft) return;
+  const dishName = $('draftDishName').value.trim() || draft.dishName || 'Приём пищи';
+  const cleanIngs = draft.ingredients
+    .map((x) => ({
+      name: x.name.trim() || dishName,
+      grams: Math.max(0, Math.round(Number(x.grams) || 0)),
+      kcal: Math.max(0, Math.round(Number(x.kcal) || 0)),
+      protein: Math.max(0, round1(x.protein)),
+      fat: Math.max(0, round1(x.fat)),
+      carbs: Math.max(0, round1(x.carbs)),
+      fiber: Math.max(0, round1(x.fiber)),
+    }))
+    .filter((x) => x.grams > 0 || x.kcal > 0);
+
+  if (!cleanIngs.length) {
+    showToast('Добавьте хотя бы один ингредиент с весом больше 0 г', true);
+    return;
+  }
+
+  const totals = computeIngredientsTotals(cleanIngs);
+  const mealType = getSelectedMealType();
+  let thumb = draft.existingThumb || null;
+  if (state.nutrition.photo) {
+    thumb = await compressImageDataUrl(state.nutrition.photo, 220, 0.65);
+  }
+
+  if (draft.editingId) {
+    state.meals = state.meals.map((m) =>
+      m.id === draft.editingId
+        ? {
+            ...m,
+            mealType,
+            dishName,
+            ingredients: cleanIngs,
+            totals,
+            thumb: thumb || m.thumb || null,
+          }
+        : m
+    );
+    showToast(`Запись «${dishName}» обновлена`);
+  } else {
+    const entry = {
+      id: `meal_${Date.now()}`,
+      dateKey: state.nutrition.selectedDate || getLocalDateKey(),
+      createdAt: new Date().toISOString(),
+      mealType,
+      dishName,
+      confidence: draft.confidence || 'medium',
+      portionNote: draft.portionNote || '',
+      healthScore: draft.healthScore ?? null,
+      goalFeedback: draft.goalFeedback || '',
+      tips: draft.tips || [],
+      ingredients: cleanIngs,
+      totals,
+      thumb,
+    };
+    state.meals = [entry, ...state.meals];
+    showToast(`«${dishName}» (${totals.kcal} ккал) добавлено в дневник!`);
+  }
+
+  saveMeals(state.meals);
+  state.nutrition.draft = null;
+  $('mealNoteInput').value = '';
+  clearMealPhoto();
+  renderMealDraftCard();
+  renderNutritionTab();
+}
+
+function adjustDailyWater(deltaMl) {
+  const dateKey = state.nutrition.selectedDate || getLocalDateKey();
+  const cur = Number(state.waterByDate[dateKey]) || 0;
+  const next = Math.max(0, Math.min(8000, cur + deltaMl));
+  if (next === 0) {
+    delete state.waterByDate[dateKey];
+  } else {
+    state.waterByDate[dateKey] = next;
+  }
+  saveWaterByDate(state.waterByDate);
+  renderNutritionMacroCards();
+}
+
+function renderNutritionMacroCards() {
+  const dateKey = state.nutrition.selectedDate || getLocalDateKey();
+  const target = getDailyNutritionTargets();
+  const dayMeals = getMealsForDate(dateKey);
+
+  const eaten = {
+    kcal: Math.round(dayMeals.reduce((a, m) => a + (Number(m.totals?.kcal) || 0), 0)),
+    protein: round1(dayMeals.reduce((a, m) => a + (Number(m.totals?.protein) || 0), 0)),
+    fat: round1(dayMeals.reduce((a, m) => a + (Number(m.totals?.fat) || 0), 0)),
+    carbs: round1(dayMeals.reduce((a, m) => a + (Number(m.totals?.carbs) || 0), 0)),
+    fiber: round1(dayMeals.reduce((a, m) => a + (Number(m.totals?.fiber) || 0), 0)),
+  };
+  const waterMl = Number(state.waterByDate[dateKey]) || 0;
+  const targetWaterMl = target.waterMl || Math.round((target.waterLiters || 2.4) * 1000);
+
+  const goalName = GOAL_LABELS[state.profile.goal] || 'Сбалансированная форма';
+  $('nutritionTargetSub').textContent = `Цель: ${goalName} • Вес ${state.profile.weightKg} кг • ${target.kcalNote}`;
+
+  const pct = (val, max) => (max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0);
+  const kcalDiff = target.targetKcal - eaten.kcal;
+  const kcalSub = kcalDiff >= 0
+    ? `Осталось ${kcalDiff} ккал`
+    : `Превышение +${Math.abs(kcalDiff)} ккал`;
+
+  $('nutritionMacroCards').innerHTML = `
+    <div class="macro-card">
+      <div class="macro-card-top">
+        <span class="macro-name">Калории</span>
+        <span class="macro-nums">${eaten.kcal} <small>/ ${target.targetKcal} ккал</small></span>
+      </div>
+      <div class="macro-bar-track">
+        <div class="macro-bar-fill ${eaten.kcal > target.targetKcal * 1.06 ? 'over' : ''}" style="width:${pct(eaten.kcal, target.targetKcal)}%"></div>
+      </div>
+      <div class="macro-sub"><span>${kcalSub}</span><span>${pct(eaten.kcal, target.targetKcal)}%</span></div>
+    </div>
+
+    <div class="macro-card">
+      <div class="macro-card-top">
+        <span class="macro-name">Белки</span>
+        <span class="macro-nums">${eaten.protein} <small>/ ${target.proteinGrams} г</small></span>
+      </div>
+      <div class="macro-bar-track">
+        <div class="macro-bar-fill protein" style="width:${pct(eaten.protein, target.proteinGrams)}%"></div>
+      </div>
+      <div class="macro-sub"><span>Мышцы и сытость</span><span>${pct(eaten.protein, target.proteinGrams)}%</span></div>
+    </div>
+
+    <div class="macro-card">
+      <div class="macro-card-top">
+        <span class="macro-name">Жиры</span>
+        <span class="macro-nums">${eaten.fat} <small>/ ${target.fatGrams} г</small></span>
+      </div>
+      <div class="macro-bar-track">
+        <div class="macro-bar-fill fat ${eaten.fat > target.fatGrams * 1.15 ? 'over' : ''}" style="width:${pct(eaten.fat, target.fatGrams)}%"></div>
+      </div>
+      <div class="macro-sub"><span>Гормональный баланс</span><span>${pct(eaten.fat, target.fatGrams)}%</span></div>
+    </div>
+
+    <div class="macro-card">
+      <div class="macro-card-top">
+        <span class="macro-name">Углеводы</span>
+        <span class="macro-nums">${eaten.carbs} <small>/ ${target.carbsGrams} г</small></span>
+      </div>
+      <div class="macro-bar-track">
+        <div class="macro-bar-fill carbs" style="width:${pct(eaten.carbs, target.carbsGrams)}%"></div>
+      </div>
+      <div class="macro-sub"><span>Клетчатка: ${eaten.fiber}/${target.fiberGrams} г</span><span>${pct(eaten.carbs, target.carbsGrams)}%</span></div>
+    </div>
+
+    <div class="macro-card">
+      <div class="macro-card-top">
+        <span class="macro-name">Вода за день</span>
+        <span class="macro-nums">${waterMl} <small>/ ${targetWaterMl} мл</small></span>
+      </div>
+      <div class="macro-bar-track">
+        <div class="macro-bar-fill water" style="width:${pct(waterMl, targetWaterMl)}%"></div>
+      </div>
+      <div class="water-btns">
+        <button type="button" class="btn btn-outline btn-xs" data-water-delta="250">+250 мл</button>
+        <button type="button" class="btn btn-outline btn-xs" data-water-delta="500">+500</button>
+        <button type="button" class="btn btn-ghost btn-xs" data-water-delta="-250">−250</button>
+      </div>
+    </div>
+  `;
+
+  $('nutritionMacroCards').querySelectorAll('[data-water-delta]').forEach((btn) => {
+    btn.addEventListener('click', () => adjustDailyWater(Number(btn.dataset.waterDelta)));
+  });
+}
+
+function renderDailyMealsList() {
+  const dateKey = state.nutrition.selectedDate || getLocalDateKey();
+  const dayMeals = getMealsForDate(dateKey);
+  const totalKcal = Math.round(dayMeals.reduce((a, m) => a + (Number(m.totals?.kcal) || 0), 0));
+
+  $('dailyMealsTitle').textContent = `Рацион • ${formatDateKeyLabel(dateKey)}`;
+  $('dailyMealsSummaryBadge').textContent = `${dayMeals.length} ${
+    dayMeals.length === 1 ? 'приём' : dayMeals.length >= 2 && dayMeals.length <= 4 ? 'приёма' : 'приёмов'
+  } • ${totalKcal} ккал`;
+
+  const list = $('dailyMealsList');
+  if (!dayMeals.length) {
+    list.innerHTML = `<p class="muted small" style="padding:18px 0">За выбранный день пока нет записей. Сфотографируйте тарелку слева или опишите приём пищи текстом, чтобы посчитать КБЖУ.</p>`;
+    return;
+  }
+
+  list.innerHTML = dayMeals
+    .map((m) => {
+      const t = m.totals || {};
+      const timeStr = m.createdAt
+        ? new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(m.createdAt))
+        : '';
+      const ingsSummary = (m.ingredients || [])
+        .map((i) => `${escapeHtml(i.name)} (${i.grams} г)`)
+        .join(' • ');
+      return `
+        <div class="meal-log-card">
+          <div class="meal-log-top">
+            <div class="meal-log-main">
+              ${m.thumb ? `<img class="meal-log-thumb" src="${m.thumb}" alt="${escapeHtml(m.dishName)}">` : ''}
+              <div>
+                <div class="muted tiny">${escapeHtml(MEAL_TYPE_LABELS[m.mealType] || 'Приём пищи')}${timeStr ? ` • ${timeStr}` : ''}</div>
+                <div class="meal-log-title">${escapeHtml(m.dishName)}</div>
+              </div>
+            </div>
+            <div class="meal-log-actions">
+              <button type="button" class="btn btn-outline btn-xs" data-edit-meal="${m.id}">Изменить</button>
+              <button type="button" class="btn btn-danger-ghost btn-xs" data-del-meal="${m.id}" title="Удалить">✕</button>
+            </div>
+          </div>
+          ${ingsSummary ? `<div class="meal-log-ings">${ingsSummary}</div>` : ''}
+          <div class="meal-log-macros">
+            <span class="rx-pill rx-pill-accent">${t.kcal ?? 0} ккал</span>
+            <span class="rx-pill">Б ${t.protein ?? 0} г</span>
+            <span class="rx-pill">Ж ${t.fat ?? 0} г</span>
+            <span class="rx-pill">У ${t.carbs ?? 0} г</span>
+            ${t.grams ? `<span class="muted tiny" style="margin-left:auto">${t.grams} г</span>` : ''}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  list.querySelectorAll('[data-edit-meal]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const meal = state.meals.find((x) => x.id === btn.dataset.editMeal);
+      if (!meal) return;
+      setSelectedMealType(meal.mealType || 'lunch');
+      openMealDraft(JSON.parse(JSON.stringify(meal)), meal.id);
+    });
+  });
+
+  list.querySelectorAll('[data-del-meal]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.meals = state.meals.filter((x) => x.id !== btn.dataset.delMeal);
+      saveMeals(state.meals);
+      if (state.nutrition.draft?.editingId === btn.dataset.delMeal) {
+        state.nutrition.draft = null;
+        renderMealDraftCard();
+      }
+      renderNutritionTab();
+      showToast('Запись удалена из дневника');
+    });
+  });
+}
+
+function renderWeeklyNutritionMini() {
+  const wrap = $('weeklyNutritionMini');
+  const today = getLocalDateKey();
+  const targetKcal = getDailyNutritionTargets().targetKcal || 2000;
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const dk = shiftDateKey(today, -i);
+    const kcal = Math.round(
+      getMealsForDate(dk).reduce((a, m) => a + (Number(m.totals?.kcal) || 0), 0)
+    );
+    const parts = dk.split('-').map(Number);
+    const dt = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+    const label = i === 0 ? 'Сег' : new Intl.DateTimeFormat('ru-RU', { weekday: 'short' }).format(dt);
+    days.push({ dk, kcal, label });
+  }
+  const maxBar = Math.max(targetKcal * 1.15, ...days.map((d) => d.kcal), 1);
+
+  wrap.innerHTML = `
+    <div class="weekly-bars">
+      ${days
+        .map((d) => {
+          const hPct = d.kcal > 0 ? Math.max(8, Math.round((d.kcal / maxBar) * 100)) : 0;
+          const over = d.kcal > targetKcal * 1.08;
+          const isSelected = d.dk === state.nutrition.selectedDate;
+          return `
+            <div class="weekly-bar-col ${isSelected ? 'active' : ''}" data-pick-date="${d.dk}" title="${d.dk}: ${d.kcal} ккал">
+              <span class="weekly-bar-val">${d.kcal > 0 ? d.kcal : '—'}</span>
+              <div class="weekly-bar-wrap">
+                <div class="weekly-bar-fill ${over ? 'over' : ''}" style="height:${hPct}%"></div>
+              </div>
+              <span class="weekly-bar-day">${escapeHtml(d.label)}</span>
+            </div>
+          `;
+        })
+        .join('')}
+    </div>
+  `;
+
+  wrap.querySelectorAll('[data-pick-date]').forEach((col) => {
+    col.addEventListener('click', () => {
+      state.nutrition.selectedDate = col.dataset.pickDate;
+      renderNutritionTab();
+    });
+  });
+}
+
+function renderNutritionTab() {
+  if (!state.nutrition.selectedDate) {
+    state.nutrition.selectedDate = getLocalDateKey();
+  }
+  $('mealDateInput').value = state.nutrition.selectedDate;
+  renderNutritionMacroCards();
+  renderDailyMealsList();
+  renderWeeklyNutritionMini();
+}
+
 /* --------------------------- AI Settings & Generic Modal Helpers --------------------------- */
 function openAiSettingsModal() {
   if (IS_CLOUD_MODE) {
@@ -2104,7 +2991,13 @@ function initEvents() {
     $('cameraReviewControls').classList.add('hidden');
     $('cameraLiveControls').classList.remove('hidden');
   });
-  $('cameraAcceptBtn').addEventListener('click', () => {
+  $('cameraAcceptBtn').addEventListener('click', async () => {
+    if (state.camera.angleKey === 'meal' && state.camera.capturedDataUrl) {
+      await setMealPhotoDataUrl(state.camera.capturedDataUrl);
+      closeModal('cameraModal');
+      showToast('Фото блюда добавлено — нажмите «Разобрать состав и КБЖУ»');
+      return;
+    }
     if (state.camera.angleKey && state.camera.capturedDataUrl) {
       state.photos[state.camera.angleKey] = state.camera.capturedDataUrl;
       renderAnglesGrid();
@@ -2265,9 +3158,12 @@ function initEvents() {
         state.plan = loadActivePlan();
         state.checkins = loadCheckins();
         state.workouts = loadWorkoutLogs();
+        state.meals = loadMeals();
+        state.waterByDate = loadWaterByDate();
         syncProfileFormFromState();
         renderPlanTab();
         renderHistoryTab();
+        renderNutritionTab();
         showToast('Данные успешно восстановлены!');
       } catch (err) {
         showToast(`Не удалось импортировать файл: ${err.message}`, true);
@@ -2293,6 +3189,98 @@ function initEvents() {
       });
     }
   });
+  // Tab 5: Nutrition & Food Photo Analyzer events
+  $('mealPrevDayBtn').addEventListener('click', () => {
+    state.nutrition.selectedDate = shiftDateKey(state.nutrition.selectedDate, -1);
+    renderNutritionTab();
+  });
+  $('mealNextDayBtn').addEventListener('click', () => {
+    state.nutrition.selectedDate = shiftDateKey(state.nutrition.selectedDate, 1);
+    renderNutritionTab();
+  });
+  $('mealTodayBtn').addEventListener('click', () => {
+    state.nutrition.selectedDate = getLocalDateKey();
+    renderNutritionTab();
+  });
+  $('mealDateInput').addEventListener('change', (e) => {
+    if (e.target.value) {
+      state.nutrition.selectedDate = e.target.value;
+      renderNutritionTab();
+    }
+  });
+
+  $('mealCameraBtn').addEventListener('click', () => openCameraModal('meal'));
+  $('mealPhotoInput').addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => setMealPhotoDataUrl(reader.result);
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  });
+  $('clearMealPhotoBtn').addEventListener('click', clearMealPhoto);
+  $('mealSampleBtn').addEventListener('click', async () => {
+    const sampleUrl = generateSampleMealDataUrl();
+    await setMealPhotoDataUrl(sampleUrl);
+    if (!$('mealNoteInput').value.trim()) {
+      $('mealNoteInput').value = 'Куриная грудка на гриле, отварная гречка и свежий салат с авокадо';
+    }
+    showToast('Подставлено фото блюда — нажмите «Разобрать состав и КБЖУ»');
+  });
+
+  const mealDrop = $('mealPhotoDropzone');
+  mealDrop.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    mealDrop.classList.add('dragover');
+  });
+  mealDrop.addEventListener('dragleave', () => mealDrop.classList.remove('dragover'));
+  mealDrop.addEventListener('drop', (e) => {
+    e.preventDefault();
+    mealDrop.classList.remove('dragover');
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => setMealPhotoDataUrl(reader.result);
+      reader.readAsDataURL(file);
+    }
+  });
+
+  window.addEventListener('paste', (e) => {
+    if (state.tab !== 'nutrition') return;
+    const items = e.clipboardData?.items || [];
+    for (const item of items) {
+      if (item.type && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setMealPhotoDataUrl(reader.result);
+            showToast('Фото вставлено из буфера обмена');
+          };
+          reader.readAsDataURL(file);
+          break;
+        }
+      }
+    }
+  });
+
+  $('analyzeMealBtn').addEventListener('click', handleAnalyzeMealClick);
+  $('manualMealBtn').addEventListener('click', openManualMealDraft);
+  $('addDraftIngredientBtn').addEventListener('click', () => {
+    if (!state.nutrition.draft) return;
+    state.nutrition.draft.ingredients.push(
+      createDraftIngredient({ name: '', grams: 100, kcal: 120, protein: 6, fat: 4, carbs: 15, fiber: 1 })
+    );
+    renderDraftIngredientsRows();
+    renderDraftTotalsBar();
+  });
+  $('saveDraftMealBtn').addEventListener('click', saveCurrentMealDraft);
+  $('discardDraftMealBtn').addEventListener('click', () => {
+    state.nutrition.draft = null;
+    renderMealDraftCard();
+  });
+
   window.addEventListener('resize', () => {
     if (state.tab === 'analysis' && state.metrics) drawCurrentAnalysisCanvas();
   });
@@ -2359,6 +3347,8 @@ async function detectServerEnvProviders(notifyUser = false) {
 }
 
 function bootstrap() {
+  state.nutrition.selectedDate = getLocalDateKey();
+  setSelectedMealType(pickDefaultMealTypeByHour());
   applyTheme(loadTheme());
   applyCloudModeUi();
   syncInlineAiFromState();
@@ -2368,6 +3358,7 @@ function bootstrap() {
   syncProfileFormFromState();
   initEvents();
   if (state.plan) renderPlanTab();
+  renderNutritionTab();
   detectServerEnvProviders();
   preloadExerciseSprites(EXERCISES.slice(0, 6).map((e) => e.animId));
 }

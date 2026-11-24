@@ -8,6 +8,8 @@ const KEYS = {
   PLAN: 'bodycoach_active_plan_v1',
   CHECKINS: 'bodycoach_checkins_v1',
   WORKOUTS: 'bodycoach_workouts_v1',
+  MEALS: 'bodycoach_meals_v1',
+  WATER: 'bodycoach_water_v1',
   AI_SETTINGS: 'bodycoach_ai_settings_v1',
   THEME: 'bodycoach_theme_v1',
 };
@@ -219,15 +221,44 @@ export async function deleteCheckinById(checkinId) {
   return list;
 }
 
+export function loadMeals() {
+  const list = readJson(KEYS.MEALS, []);
+  return Array.isArray(list) ? list : [];
+}
+
+export function saveMeals(list) {
+  const safe = (Array.isArray(list) ? list : []).slice(0, 240).map((m, idx) => ({
+    ...m,
+    // Keep lightweight thumbnails on recent 40 entries so localStorage stays compact
+    thumb: idx < 40 ? m.thumb || null : null,
+  }));
+  return writeJson(KEYS.MEALS, safe);
+}
+
+export function loadWaterByDate() {
+  const map = readJson(KEYS.WATER, {});
+  return map && typeof map === 'object' && !Array.isArray(map) ? map : {};
+}
+
+export function saveWaterByDate(map) {
+  const entries = Object.entries(map || {})
+    .filter(([k, v]) => /^\d{4}-\d{2}-\d{2}$/.test(k) && Number.isFinite(Number(v)) && Number(v) > 0)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 120);
+  return writeJson(KEYS.WATER, Object.fromEntries(entries));
+}
+
 export function exportAllDataJson() {
   return JSON.stringify(
     {
       exportedAt: new Date().toISOString(),
-      version: 1,
+      version: 2,
       profile: loadProfile(),
       activePlan: loadActivePlan(),
       checkins: loadCheckins(),
       workouts: loadWorkoutLogs(),
+      meals: loadMeals(),
+      waterByDate: loadWaterByDate(),
     },
     null,
     2
@@ -241,5 +272,7 @@ export function importAllDataJson(jsonText) {
   if (parsed.activePlan) saveActivePlan(parsed.activePlan);
   if (Array.isArray(parsed.checkins)) saveCheckins(parsed.checkins);
   if (Array.isArray(parsed.workouts)) writeJson(KEYS.WORKOUTS, parsed.workouts);
+  if (Array.isArray(parsed.meals)) saveMeals(parsed.meals);
+  if (parsed.waterByDate && typeof parsed.waterByDate === 'object') saveWaterByDate(parsed.waterByDate);
   return true;
 }

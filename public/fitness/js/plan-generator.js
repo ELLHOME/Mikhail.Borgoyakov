@@ -379,7 +379,8 @@ function buildSplitTemplates(daysPerWeek, goal) {
   ];
 }
 
-export function buildNutritionGuidance(profile, metrics, aiAnalysis) {
+export function buildNutritionGuidance(profile = {}, metrics = {}, aiAnalysis = null) {
+  const safeMetrics = metrics || {};
   const w = Number(profile.weightKg) || 75;
   const h = Number(profile.heightCm) || 175;
   const age = Number(profile.age) || 28;
@@ -392,30 +393,46 @@ export function buildNutritionGuidance(profile, metrics, aiAnalysis) {
   let targetKcal = tdee;
   let kcalNote = 'Поддержание веса и рекомпозиция';
   let proteinPerKg = 1.8;
+  let fatPerKg = 0.9;
 
   if (profile.goal === 'recomp') {
-    targetKcal = Math.round(tdee * (metrics.bmi && metrics.bmi >= 25.5 ? 0.84 : 0.90));
+    targetKcal = Math.round(tdee * (safeMetrics.bmi && safeMetrics.bmi >= 25.5 ? 0.84 : 0.90));
     kcalNote = 'Мягкий дефицит 10–15% для рельефа без потери мышц';
     proteinPerKg = 1.9;
+    fatPerKg = 0.85;
   } else if (profile.goal === 'muscle') {
     targetKcal = Math.round(tdee * 1.11);
     kcalNote = 'Лёгкий профицит +10% для качественного роста мышц';
     proteinPerKg = 2.0;
+    fatPerKg = 0.95;
   } else if (profile.goal === 'strength') {
     targetKcal = Math.round(tdee * 1.05);
     kcalNote = 'Небольшой профицит для восстановления ЦНС и силы';
     proteinPerKg = 1.9;
+    fatPerKg = 0.95;
   } else {
     targetKcal = tdee;
     kcalNote = 'Сбалансированный рацион для энергии и тонуса';
     proteinPerKg = 1.6;
+    fatPerKg = 0.9;
   }
+
+  const proteinGrams = Math.round(w * proteinPerKg);
+  const fatGrams = Math.max(42, Math.round(w * fatPerKg));
+  const remainingKcal = Math.max(240, targetKcal - proteinGrams * 4 - fatGrams * 9);
+  const carbsGrams = Math.round(remainingKcal / 4);
+  const fiberGrams = Math.max(24, Math.round((targetKcal / 1000) * 14));
+  const waterMl = Math.round((w * 33) / 50) * 50;
 
   return {
     targetKcal,
     kcalNote,
-    proteinGrams: Math.round(w * proteinPerKg),
-    waterLiters: Number((w * 0.033).toFixed(1)),
+    proteinGrams,
+    fatGrams,
+    carbsGrams,
+    fiberGrams,
+    waterMl,
+    waterLiters: Number((waterMl / 1000).toFixed(1)),
     stepsTarget: profile.goal === 'recomp' ? '9 000–11 000 шагов/день' : '7 500–9 000 шагов/день',
     aiHint: aiAnalysis?.nutritionHint || null,
   };

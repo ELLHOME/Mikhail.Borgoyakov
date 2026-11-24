@@ -23,7 +23,7 @@
           </div>
           <div>
             <span class="brand-name">BodyCoach</span>
-            <span class="brand-sub">Анализ фигуры и тренировки</span>
+            <span class="brand-sub">Фигура, тренировки и КБЖУ</span>
           </div>
         </div>
 
@@ -43,6 +43,10 @@
           <button class="nav-tab" data-tab="history">
             <span class="step-num">4</span>
             <span class="tab-label">Прогресс</span>
+          </button>
+          <button class="nav-tab" data-tab="nutrition">
+            <span class="step-num">5</span>
+            <span class="tab-label">Питание</span>
           </button>
         </nav>
 
@@ -428,6 +432,147 @@
               <h2>Журнал выполненных тренировок</h2>
             </div>
             <div class="workout-logs-list" id="workoutLogsList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: NUTRITION & FOOD PHOTO AI -->
+      <section class="tab-panel" id="tab-nutrition">
+        <div class="panel nutrition-overview-panel">
+          <div class="panel-header">
+            <div>
+              <div class="pill-badge" id="nutritionAiBadge">✦ AI-нутрициолог (сервер ELLHOME) • Фото-анализ тарелки и КБЖУ</div>
+              <h2>Дневник питания и разбор еды по фото</h2>
+              <p class="muted small" id="nutritionTargetSub">Суточные нормы рассчитаны по вашему весу, возрасту и цели тренировок.</p>
+            </div>
+            <div class="date-nav-bar">
+              <button type="button" class="btn btn-outline btn-sm" id="mealPrevDayBtn" title="Предыдущий день" aria-label="Предыдущий день">←</button>
+              <input type="date" id="mealDateInput" class="date-input" aria-label="Дата дневника">
+              <button type="button" class="btn btn-ghost btn-sm" id="mealTodayBtn">Сегодня</button>
+              <button type="button" class="btn btn-outline btn-sm" id="mealNextDayBtn" title="Следующий день" aria-label="Следующий день">→</button>
+            </div>
+          </div>
+
+          <div class="nutrition-bars-grid" id="nutritionMacroCards"></div>
+        </div>
+
+        <div class="nutrition-main-grid">
+          <!-- Left: Photo / Text Meal Analyzer & Interactive Ingredient Editor -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>Добавить приём пищи</h3>
+                <p class="muted small">Сфотографируйте блюдо или опишите его словами — ИИ определит ингредиенты, вес и КБЖУ.</p>
+              </div>
+            </div>
+
+            <div class="meal-type-row">
+              <div class="segmented" id="mealTypeChoices">
+                <label><input type="radio" name="mealType" value="breakfast"><span>Завтрак</span></label>
+                <label><input type="radio" name="mealType" value="lunch" checked><span>Обед</span></label>
+                <label><input type="radio" name="mealType" value="dinner"><span>Ужин</span></label>
+                <label><input type="radio" name="mealType" value="snack"><span>Перекус</span></label>
+              </div>
+            </div>
+
+            <div class="meal-dropzone" id="mealPhotoDropzone">
+              <div class="meal-drop-empty" id="mealPhotoEmpty">
+                <svg viewBox="0 0 88 88" width="56" height="56" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="44" cy="44" r="30" stroke-dasharray="4 3"/>
+                  <circle cx="44" cy="44" r="20" stroke="#22d3a7"/>
+                  <path d="M10 24v16c0 4 3 6 5 6v20M15 24v16M20 24v16M75 24c-4 6-4 18 0 22v20" stroke-linecap="round"/>
+                </svg>
+                <strong>Сфотографируйте тарелку или перетащите фото сюда</strong>
+                <span class="muted tiny">Лучше снимать сверху под углом ~45° • можно также вставить скриншот через Ctrl+V</span>
+              </div>
+              <div class="meal-preview-wrap hidden" id="mealPhotoPreviewWrap">
+                <img id="mealPhotoPreviewImg" alt="Фото блюда">
+                <button type="button" class="btn btn-danger-ghost btn-xs meal-clear-photo" id="clearMealPhotoBtn">✕ Убрать фото</button>
+              </div>
+            </div>
+
+            <div class="meal-photo-actions">
+              <button type="button" class="btn btn-outline btn-sm" id="mealCameraBtn">📷 Камера</button>
+              <label class="btn btn-outline btn-sm">
+                ⬆ Загрузить фото
+                <input type="file" id="mealPhotoInput" accept="image/*" hidden>
+              </label>
+              <button type="button" class="btn btn-ghost btn-sm" id="mealSampleBtn" title="Подставить демо-фото сбалансированного обеда">🧪 Пример блюда</button>
+            </div>
+
+            <label class="field meal-note-field">
+              <span>Уточнение к фото или описание словами (можно без фото)</span>
+              <textarea id="mealNoteInput" rows="2" placeholder="Например: куриная грудка 160 г, гречка на воде, салат с ложкой оливкового масла (или просто напишите, что съели)"></textarea>
+            </label>
+
+            <div class="meal-analyze-actions">
+              <button type="button" class="btn btn-primary btn-lg" id="analyzeMealBtn">✦ Разобрать состав и КБЖУ</button>
+              <button type="button" class="btn btn-outline" id="manualMealBtn">+ Вручную</button>
+            </div>
+
+            <div class="analyze-status hidden" id="mealAnalyzeStatus">
+              <span class="spinner"></span>
+              <span id="mealAnalyzeStatusText">Определяем ингредиенты, граммовку и КБЖУ...</span>
+            </div>
+
+            <!-- Interactive Draft / Editable Breakdown -->
+            <div class="meal-draft-card hidden" id="mealDraftCard">
+              <div class="draft-head">
+                <div class="draft-title-wrap">
+                  <span class="muted tiny" id="draftModeLabel">Проверьте состав — меняйте граммы для мгновенного пересчёта КБЖУ</span>
+                  <input type="text" id="draftDishName" class="draft-dish-input" placeholder="Название блюда">
+                </div>
+                <div class="draft-badges" id="draftBadges"></div>
+              </div>
+
+              <p class="muted tiny hidden" id="draftPortionNote"></p>
+
+              <div class="draft-ing-header">
+                <span>Ингредиент</span>
+                <span>Вес (г)</span>
+                <span>Ккал</span>
+                <span>Б / Ж / У (г)</span>
+                <span></span>
+              </div>
+              <div class="draft-ingredients-list" id="draftIngredientsList"></div>
+
+              <div class="draft-add-row">
+                <button type="button" class="btn btn-ghost btn-sm" id="addDraftIngredientBtn">+ Добавить ингредиент</button>
+              </div>
+
+              <div class="draft-totals-bar" id="draftTotalsBar"></div>
+
+              <div class="draft-ai-feedback hidden" id="draftAiFeedback"></div>
+
+              <div class="draft-footer">
+                <button type="button" class="btn btn-primary" id="saveDraftMealBtn">✓ Сохранить в дневник</button>
+                <button type="button" class="btn btn-ghost" id="discardDraftMealBtn">Сбросить</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Daily Food Log & 7-Day Trend -->
+          <div class="nutrition-right-col">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3 id="dailyMealsTitle">Рацион за день</h3>
+                  <p class="muted small">Нажмите «Изменить» у любого блюда, чтобы скорректировать граммы или состав.</p>
+                </div>
+                <span class="badge badge-muted" id="dailyMealsSummaryBadge">0 приёмов • 0 ккал</span>
+              </div>
+              <div class="daily-meals-list" id="dailyMealsList"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>Динамика калорий за 7 дней</h3>
+                  <p class="muted small">Сравнение фактического рациона с дневным ориентиром.</p>
+                </div>
+              </div>
+              <div id="weeklyNutritionMini"></div>
+            </div>
           </div>
         </div>
       </section>
