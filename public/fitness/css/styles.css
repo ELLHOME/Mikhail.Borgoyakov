@@ -2437,7 +2437,7 @@ body.no-scroll { overflow: hidden; }
 
 @media (max-width: 1024px) {
   .capture-layout, .analysis-layout, .history-grid, .workout-body, .ex-modal-grid, .nutrition-main-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .nutrition-strip, .history-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -2830,3 +2830,23 @@ body.no-scroll { overflow: hidden; }
     flex: 1;
   }
 }
+
+.ai-btn-label-short { display: none; }
+
+@media (max-width: 420px) {
+  .topbar-inner { padding: 10px 12px; }
+  .brand { gap: 8px; }
+  .brand-mark { width: 36px; height: 36px; border-radius: 12px; }
+  .topbar-actions { gap: 6px; }
+  .topbar-actions #openAiSettingsBtn { padding: 6px 9px; gap: 6px; }
+  .ai-btn-label-full { display: none; }
+  .ai-btn-label-short { display: inline; }
+}
+
+@media (max-width: 340px) {
+  .brand-name { font-size: 1.02rem; }
+  .topbar-actions .btn-icon { width: 34px; height: 34px; }
+}
+
+/* Any stray horizontal overflow makes mobile browsers zoom the whole page out. */
+body { overflow-x: clip; }

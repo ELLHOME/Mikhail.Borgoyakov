@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-14';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-14';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-14';
+} from './cv-analyzer.js?v=20261124-15';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-15';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-15';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
@@ -24,9 +24,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-14';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-14';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-14';
+} from './plan-generator.js?v=20261124-15';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-15';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-15';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -50,7 +50,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-14';
+} from './storage.js?v=20261124-15';
 
 const ANGLES = [
   {
@@ -439,7 +439,7 @@ function updateAiStatusIndicator() {
       btn.title = !enabled
         ? 'AI Ассистент отключён (работает только специальный алгоритм)'
         : state.cloudAi.ready
-          ? `AI Ассистент готов (${state.cloudAi.model || 'Gemini'})`
+          ? 'AI Ассистент готов'
           : 'AI Ассистент (ELLHOME) — нажмите, чтобы проверить статус';
     }
     return;
@@ -481,8 +481,7 @@ function syncInlineAiFromState() {
     } else if (!state.cloudAi.checked) {
       sub.textContent = 'Подключаемся к защищённому серверу AI Ассистента (ключ хранится на сервере)...';
     } else if (state.cloudAi.ready) {
-      const mLabel = state.cloudAi.model ? ` (${state.cloudAi.model})` : '';
-      sub.textContent = `AI Ассистент готов${mLabel} — ключ защищён на сервере, ничего вводить не нужно`;
+      sub.textContent = `AI Ассистент готов — ключ защищён на сервере, ничего вводить не нужно`;
     } else {
       sub.textContent = 'Сервер AI Ассистента просыпается (при первом запросе 20–50 сек) • алгоритм работает мгновенно';
     }
@@ -941,7 +940,7 @@ async function runFullAnalysis() {
     switchTab('analysis');
     showToast(
       state.plan.generatedByAi
-        ? `Анализ фигуры и персональный план от ${state.plan.aiProviderLabel} готовы!`
+        ? 'Анализ фигуры и персональный план от AI Ассистента готовы!'
         : 'Анализ фигуры и план тренировок готовы!'
     );
   } catch (err) {
@@ -1220,8 +1219,7 @@ function renderAiVisionBlock() {
   if (!state.aiAnalysis) {
     if (IS_CLOUD_MODE) {
       btn.textContent = 'Запустить AI-анализ';
-      const modelNote = state.cloudAi.model ? ` (${escapeHtml(state.cloudAi.model)})` : '';
-      body.innerHTML = `<p class="muted small">Сейчас выполнен анализ осанки и пропорций специальным алгоритмом. Нажмите <strong>«Запустить AI-анализ»</strong>, чтобы AI Ассистент${modelNote} проанализировал фото и дополнил программу тренировок (первый запуск может занять 25–50 сек).</p>`;
+      body.innerHTML = `<p class="muted small">Сейчас выполнен анализ осанки и пропорций специальным алгоритмом. Нажмите <strong>«Запустить AI-анализ»</strong>, чтобы AI Ассистент проанализировал фото и дополнил программу тренировок (первый запуск может занять 25–50 сек).</p>`;
       return;
     }
     const ready = isAiReady();
@@ -1292,7 +1290,7 @@ async function handleManualAiRun() {
     renderPlanTab();
     showToast(
       state.plan.generatedByAi
-        ? `Анализ от AI Ассистента готов, план собран моделью ${state.plan.aiProviderLabel}!`
+        ? 'Анализ от AI Ассистента готов, план тренировок обновлён!'
         : 'Анализ от AI Ассистента добавлен и учтён в плане тренировок!'
     );
   } catch (err) {
@@ -1328,11 +1326,12 @@ function renderPlanWeekBar(plan) {
   }
   bar.classList.remove('hidden');
   const total = plan.coverage.total;
+  const modeLabel = EQUIPMENT_LABELS[plan.equipment] || plan.equipmentLabel;
   const exWord = pluralRu(total, 'упражнение', 'упражнения', 'упражнений');
   const cycleText =
     weeks.length > 1
-      ? `Цикл из ${weeks.length} ${pluralRu(weeks.length, 'недели', 'недель', 'недель')}: за него вы пройдёте все ${total} ${exWord} режима «${plan.equipmentLabel}», затем цикл повторяется.`
-      : `Все ${total} ${exWord} режима «${plan.equipmentLabel}» помещаются в одну неделю, повторяйте её.`;
+      ? `Цикл из ${weeks.length} ${pluralRu(weeks.length, 'недели', 'недель', 'недель')}: за него вы пройдёте все ${total} ${exWord} режима «${modeLabel}», затем цикл повторяется.`
+      : `Все ${total} ${exWord} режима «${modeLabel}» помещаются в одну неделю, повторяйте её.`;
   const priorityText = !plan.priorityExerciseIds?.length
     ? ''
     : weeks.length > 1
@@ -1373,9 +1372,9 @@ function renderPlanTab() {
   if (state.selectedPlanDay >= plan.days.length) state.selectedPlanDay = 0;
 
   $('planGoalBadge').textContent = plan.generatedByAi
-    ? `✦ AI Ассистент (${plan.aiProviderLabel}) • ${plan.goalLabel} • ${plan.levelLabel}`
+    ? `✦ AI Ассистент • ${plan.goalLabel} • ${plan.levelLabel}`
     : `${plan.goalLabel} • ${plan.levelLabel}`;
-  $('planTitle').textContent = `Программа на ${plan.daysPerWeek} ${pluralRu(plan.daysPerWeek, 'день', 'дня', 'дней')} в неделю (${plan.equipmentLabel})`;
+  $('planTitle').textContent = `Программа на ${plan.daysPerWeek} ${pluralRu(plan.daysPerWeek, 'день', 'дня', 'дней')} в неделю (${EQUIPMENT_LABELS[plan.equipment] || plan.equipmentLabel})`;
   $('planFocusChips').innerHTML = (plan.focusSummary || [])
     .map((f) => `<span class="focus-chip">✦ ${escapeHtml(f)}</span>`)
     .join('');
@@ -1860,7 +1859,7 @@ function finishWorkoutSession() {
   const weekCount = state.plan.weeks?.length || 1;
   state.workouts = addWorkoutLog({
     dayTitle: weekCount > 1 ? `Неделя ${(state.plan.currentWeek || 0) + 1} • ${day.title}` : day.title,
-    equipmentLabel: state.plan.equipmentLabel,
+    equipmentLabel: EQUIPMENT_LABELS[state.plan.equipment] || state.plan.equipmentLabel,
     durationSec,
     doneSets,
     totalSets,
@@ -3625,7 +3624,7 @@ async function detectServerEnvProviders(notifyUser = false) {
       if (notifyUser) {
         showToast(
           state.cloudAi.ready
-            ? `AI Ассистент готов (${state.cloudAi.model || 'Gemini'})`
+            ? 'AI Ассистент готов'
             : 'Сервер ответил, но ключ ещё не активирован — специальный алгоритм анализа работает',
           !state.cloudAi.ready
         );

@@ -4,7 +4,7 @@
  * into a structured multi-day workout program with explicit per-exercise rationale.
  */
 
-import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-14';
+import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-15';
 
 export const GOAL_LABELS = {
   recomp: 'Рельеф и жиросжигание',
@@ -16,7 +16,7 @@ export const GOAL_LABELS = {
 export const EQUIPMENT_LABELS = {
   home_bodyweight: 'Дома без инвентаря',
   home_dumbbells: 'Дома с гантелями',
-  home_trx: 'Дома с петлями TRX',
+  home_trx: 'Петли TRX',
   gym: 'Тренажёрный зал',
 };
 
