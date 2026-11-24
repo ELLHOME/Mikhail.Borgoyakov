@@ -11,18 +11,18 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-10';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-10';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-10';
+} from './cv-analyzer.js?v=20261124-12';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-12';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-12';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
   GOAL_LABELS,
-} from './plan-generator.js?v=20261124-10';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-10';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-10';
+} from './plan-generator.js?v=20261124-12';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-12';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-12';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -46,7 +46,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-10';
+} from './storage.js?v=20261124-12';
 
 const ANGLES = [
   {
@@ -1003,6 +1003,7 @@ async function callVisionAiProxy() {
       provider: data.provider || 'gemini',
       model: data.model || '',
       ...data.analysis,
+      planParams: currentPlanParams(),
     };
   }
 
@@ -1029,7 +1030,19 @@ async function callVisionAiProxy() {
     provider: data.provider,
     model: data.model,
     ...data.analysis,
+    planParams: currentPlanParams(),
   };
+}
+
+function currentPlanParams(profile = state.profile) {
+  return {
+    equipment: profile?.equipment || 'home_bodyweight',
+    daysPerWeek: Number(profile?.daysPerWeek) || 3,
+  };
+}
+
+function hasAnyPhoto() {
+  return Object.values(state.photos || {}).some(Boolean);
 }
 
 /* --------------------------- Tab 2: Body Analysis View --------------------------- */
@@ -1077,7 +1090,32 @@ function drawCurrentAnalysisCanvas() {
   const analysis = state.analyses[key];
   const img = state.photoImages[key];
   if (!analysis || !img) return;
-  renderAnalysisOverlay($('analysisCanvas'), img, analysis, state.overlay);
+  const canvas = $('analysisCanvas');
+  const stage = $('analysisCanvasStage');
+  const fullscreen = stage.classList.contains('is-fullscreen');
+  if (fullscreen) {
+    // Fit the whole photo inside the screen so every point is reachable without scrolling.
+    const availW = stage.clientWidth - 16;
+    const availH = stage.clientHeight - $('fsEditBar').offsetHeight - 16;
+    const ratio = img.naturalHeight / img.naturalWidth;
+    canvas.style.width = `${Math.max(260, Math.floor(Math.min(availW, availH / ratio)))}px`;
+  } else {
+    canvas.style.width = '';
+  }
+  renderAnalysisOverlay(canvas, img, analysis, { ...state.overlay, largeHandles: fullscreen || FULLSCREEN_EDIT_MQ.matches });
+}
+
+const FULLSCREEN_EDIT_MQ = window.matchMedia('(max-width: 820px), (pointer: coarse)');
+
+function setPointEditMode(on) {
+  state.overlay.editMode = on;
+  $('toggleEditPointsBtn').classList.toggle('active', on);
+  $('toggleEditPointsBtn').textContent = on ? 'Готово (правка вкл)' : 'Поправить точки';
+  $('editPointsHint').classList.toggle('hidden', !on);
+  const fullscreen = on && FULLSCREEN_EDIT_MQ.matches;
+  $('analysisCanvasStage').classList.toggle('is-fullscreen', fullscreen);
+  document.body.classList.toggle('no-scroll', fullscreen);
+  drawCurrentAnalysisCanvas();
 }
 
 function renderAnalysisMetricsPanel() {
@@ -1234,8 +1272,11 @@ async function handleManualAiRun() {
     return;
   }
   const btn = $('runAiVisionNowBtn');
+  const planBtn = $('aiRebuildPlanBtn');
   btn.disabled = true;
+  planBtn.disabled = true;
   btn.textContent = 'Анализируем...';
+  planBtn.textContent = 'AI составляет план...';
   try {
     state.aiAnalysis = await callVisionAiProxy();
     state.plan = generateWorkoutPlan(state.metrics, state.profile, state.aiAnalysis);
@@ -1251,7 +1292,9 @@ async function handleManualAiRun() {
     showToast(`Ошибка AI Ассистента: ${err.message}`, true);
   } finally {
     btn.disabled = false;
+    planBtn.disabled = false;
     btn.textContent = state.aiAnalysis ? 'Обновить AI-анализ' : 'Запустить AI-анализ';
+    planBtn.textContent = '✦ Пересобрать через AI';
   }
 }
 
@@ -1284,7 +1327,11 @@ function renderPlanTab() {
     .join('');
 
   $('quickEquipmentSelect').value = plan.equipment;
-  $('quickDaysSelect').value = String(plan.daysPerWeek);
+  $('quickDaysSelect').value = String(state.profile?.daysPerWeek || plan.daysPerWeek);
+  $('aiRebuildPlanBtn').classList.toggle(
+    'hidden',
+    plan.generatedByAi || !state.aiSettings.enabled || !isAiReady() || !hasAnyPhoto() || !state.metrics
+  );
 
   // Nutrition strip
   const n = plan.nutrition;
@@ -1490,7 +1537,12 @@ function renderCatalogGrid(category = 'all') {
   destroyCatalogPlayers();
   const grid = $('catalogGrid');
   grid.innerHTML = '';
-  const list = category === 'all' ? EXERCISES : EXERCISES.filter((e) => e.category === category);
+  const list =
+    category === 'all'
+      ? EXERCISES
+      : category === 'trx'
+        ? EXERCISES.filter((e) => e.equipment.length === 1 && e.equipment[0] === 'home_trx')
+        : EXERCISES.filter((e) => e.category === category);
 
   list.forEach((ex) => {
     const card = document.createElement('div');
@@ -1586,7 +1638,7 @@ function renderWorkoutExercise() {
         <div class="set-inputs">
           <input type="text" placeholder="Повт / время" value="${escapeHtml(st.reps)}" data-set-reps="${idx}">
           ${
-            state.plan.equipment !== 'home_bodyweight' && !ex.isTimed
+            !['home_bodyweight', 'home_trx'].includes(state.plan.equipment) && !ex.isTimed
               ? `<input type="text" placeholder="Вес (кг)" value="${escapeHtml(st.weight)}" data-set-weight="${idx}">`
               : ''
           }
@@ -2034,6 +2086,9 @@ async function renderCheckinsList() {
       state.metrics = { ...c.metrics };
       state.aiAnalysis = c.aiAnalysis || null;
       state.profile = { ...state.profile, ...(c.profile || {}) };
+      if (state.aiAnalysis && !state.aiAnalysis.planParams) {
+        state.aiAnalysis.planParams = currentPlanParams(c.profile || state.profile);
+      }
       syncProfileFormFromState();
       renderAnglesGrid();
       renderAnalysisTab();
@@ -3063,12 +3118,11 @@ function initEvents() {
     $(id).addEventListener('change', syncLayers);
   });
 
-  $('toggleEditPointsBtn').addEventListener('click', () => {
-    state.overlay.editMode = !state.overlay.editMode;
-    $('toggleEditPointsBtn').classList.toggle('active', state.overlay.editMode);
-    $('toggleEditPointsBtn').textContent = state.overlay.editMode ? 'Готово (правка вкл)' : 'Поправить точки';
-    $('editPointsHint').classList.toggle('hidden', !state.overlay.editMode);
-    drawCurrentAnalysisCanvas();
+  $('toggleEditPointsBtn').addEventListener('click', () => setPointEditMode(!state.overlay.editMode));
+  $('fsDoneEditBtn').addEventListener('click', () => setPointEditMode(false));
+  $('fsRebuildPlanBtn').addEventListener('click', () => $('rebuildPlanFromEditsBtn').click());
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('analysisCanvasStage').classList.contains('is-fullscreen')) setPointEditMode(false);
   });
 
   attachLandmarkEditor(
@@ -3107,6 +3161,11 @@ function initEvents() {
 
   // Tab 3 quick controls
   const regenerateQuick = () => {
+    // A legacy AI result has no planParams; it was built for the plan that is on screen now.
+    if (state.aiAnalysis && !state.aiAnalysis.planParams && state.plan?.generatedByAi) {
+      state.aiAnalysis.planParams = { equipment: state.plan.equipment, daysPerWeek: state.plan.daysPerWeek };
+    }
+    const wasAi = Boolean(state.plan?.generatedByAi);
     state.profile.equipment = $('quickEquipmentSelect').value;
     state.profile.daysPerWeek = Number($('quickDaysSelect').value);
     saveProfile(state.profile);
@@ -3115,12 +3174,20 @@ function initEvents() {
     state.selectedPlanDay = 0;
     saveActivePlan(state.plan);
     renderPlanTab();
-    showToast('План перестроен под выбранный формат');
+    showToast(
+      wasAi && !state.plan.generatedByAi
+        ? 'План перестроен под новый формат. Чтобы AI составил его заново, нажмите «Пересобрать через AI»'
+        : 'План перестроен под выбранный формат'
+    );
   };
+  $('aiRebuildPlanBtn').addEventListener('click', handleManualAiRun);
   $('quickEquipmentSelect').addEventListener('change', regenerateQuick);
   $('quickDaysSelect').addEventListener('change', regenerateQuick);
   $('startWorkoutBtn').addEventListener('click', () => startWorkoutSession(state.selectedPlanDay));
 
+  $('openCatalogBtn').textContent = `Все упражнения (${EXERCISES.length})`;
+  const allChip = $('catalogFilters').querySelector('[data-cat="all"]');
+  if (allChip) allChip.textContent = `Все (${EXERCISES.length})`;
   $('openCatalogBtn').addEventListener('click', () => {
     $('catalogModal').classList.remove('hidden');
     document.querySelectorAll('#catalogFilters .filter-chip').forEach((c) => {

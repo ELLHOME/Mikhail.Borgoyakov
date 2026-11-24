@@ -513,6 +513,10 @@ strong, b { font-weight: 500; }
 .choice-grid { display: grid; gap: 10px; }
 .choice-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .choice-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.choice-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1080px) {
+  .choice-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .choice-card {
   position: relative;
@@ -765,6 +769,34 @@ strong, b { font-weight: 500; }
   border: 1px solid var(--border);
 }
 .canvas-stage canvas { display: block; width: 100%; touch-action: none; }
+.canvas-stage .fs-edit-bar { display: none; }
+.canvas-stage.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+  background: #05080f;
+  padding: env(safe-area-inset-top, 0px) 8px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+.canvas-stage.is-fullscreen .fs-edit-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 4px;
+  color: #e2e8f0;
+}
+.fs-edit-title { font-size: 0.85rem; font-weight: 600; }
+.fs-edit-actions { display: flex; gap: 8px; }
+.canvas-stage.is-fullscreen canvas { flex-shrink: 0; margin: auto 0; border-radius: 10px; }
+body.no-scroll { overflow: hidden; }
 
 .analysis-report-col { display: flex; flex-direction: column; gap: 16px; }
 

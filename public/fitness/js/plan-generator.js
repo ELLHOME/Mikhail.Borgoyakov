@@ -4,7 +4,7 @@
  * into a structured multi-day workout program with explicit per-exercise rationale.
  */
 
-import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-10';
+import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-12';
 
 export const GOAL_LABELS = {
   recomp: 'Рельеф и жиросжигание',
@@ -16,8 +16,21 @@ export const GOAL_LABELS = {
 export const EQUIPMENT_LABELS = {
   home_bodyweight: 'Дома без инвентаря',
   home_dumbbells: 'Дома с гантелями',
+  home_trx: 'Дома с петлями TRX',
   gym: 'Тренажёрный зал',
 };
+
+/**
+ * An AI-built plan is only valid for the equipment and week length it was requested for.
+ */
+export function aiPlanMatchesProfile(aiAnalysis, profile = {}) {
+  const params = aiAnalysis?.planParams;
+  if (!params) return false;
+  return (
+    params.equipment === (profile.equipment || 'home_bodyweight') &&
+    Number(params.daysPerWeek) === (Number(profile.daysPerWeek) || 3)
+  );
+}
 
 export const LEVEL_LABELS = {
   beginner: 'Новичок',
@@ -570,11 +583,21 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   // If Vision AI returned a valid structured multi-day custom plan using our catalog IDs, prioritize it!
   let finalDays = days;
   let generatedByAi = false;
-  if (Array.isArray(aiAnalysis?.customPlanDays) && aiAnalysis.customPlanDays.length >= 2) {
+  if (
+    Array.isArray(aiAnalysis?.customPlanDays) &&
+    aiAnalysis.customPlanDays.length >= 2 &&
+    aiPlanMatchesProfile(aiAnalysis, { equipment, daysPerWeek })
+  ) {
     const validatedDays = aiAnalysis.customPlanDays
       .map((d, idx) => {
+        const seenIds = new Set();
         const validItems = (Array.isArray(d.items) ? d.items : [])
-          .filter((it) => EXERCISE_MAP[it.exerciseId])
+          .filter((it) => {
+            const ex = EXERCISE_MAP[it.exerciseId];
+            if (!ex || !ex.equipment.includes(equipment) || seenIds.has(ex.id)) return false;
+            seenIds.add(ex.id);
+            return true;
+          })
           .map((it) => {
             const ex = EXERCISE_MAP[it.exerciseId];
             return {

@@ -208,5 +208,65 @@
     "file": "/assets/exercises/chin_up_bicep.webp",
     "frames": 8,
     "frameSize": 448
+  },
+  "trx_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_row.webp"
+  },
+  "trx_t_fly": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_t_fly.webp"
+  },
+  "trx_y_raise": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_y_raise.webp"
+  },
+  "trx_chest_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_chest_press.webp"
+  },
+  "trx_bicep_curl": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_bicep_curl.webp"
+  },
+  "trx_tricep_extension": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_tricep_extension.webp"
+  },
+  "trx_squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_squat.webp"
+  },
+  "trx_suspended_lunge": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_suspended_lunge.webp"
+  },
+  "trx_hamstring_curl": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_hamstring_curl.webp"
+  },
+  "trx_knee_tuck": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_knee_tuck.webp"
   }
 }

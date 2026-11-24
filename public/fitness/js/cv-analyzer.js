@@ -929,6 +929,7 @@ export function renderAnalysisOverlay(canvas, img, analysis, options = {}) {
     showSkeleton = true,
     editMode = false,
     activeHandle = null,
+    largeHandles = false,
   } = options;
 
   const rect = canvas.getBoundingClientRect();
@@ -1157,12 +1158,12 @@ export function renderAnalysisOverlay(canvas, img, analysis, options = {}) {
       if (!pt || typeof pt.x !== 'number') continue;
       const p = px(pt);
       const isActive = activeHandle === key;
-      const radius = editMode ? (isActive ? 9 : 7) : 4.2;
+      const radius = editMode ? (largeHandles ? (isActive ? 12 : 10) : isActive ? 9 : 7) : 4.2;
 
       if (editMode) {
         ctx.fillStyle = isActive ? 'rgba(255, 107, 74, 0.32)' : 'rgba(34, 211, 167, 0.24)';
         ctx.beginPath();
-        ctx.arc(p.x, p.y, radius + 5, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, radius + (largeHandles ? 9 : 5), 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -1192,9 +1193,10 @@ export function attachLandmarkEditor(canvas, getState, onUpdate) {
     };
   };
 
-  const findNearestHandle = (x, y, rect, landmarks) => {
+  const findNearestHandle = (x, y, rect, landmarks, pointerType = 'mouse') => {
     let bestKey = null;
-    let bestDist = 24; // pixels
+    // A fingertip covers ~40px, so touch needs a much wider grab radius than a mouse cursor.
+    let bestDist = pointerType === 'mouse' ? 24 : 44;
     for (const [key, pt] of Object.entries(landmarks)) {
       if (!pt || typeof pt.x !== 'number') continue;
       const dist = Math.hypot((pt.x - x) * rect.width, (pt.y - y) * rect.height);
@@ -1210,8 +1212,9 @@ export function attachLandmarkEditor(canvas, getState, onUpdate) {
     const st = getState();
     if (!st || !st.editMode || !st.analysis) return;
     const { x, y, rect } = getNormCoords(evt);
-    const key = findNearestHandle(x, y, rect, st.analysis.landmarks);
+    const key = findNearestHandle(x, y, rect, st.analysis.landmarks, evt.pointerType);
     if (!key) return;
+    evt.preventDefault();
     draggingKey = key;
     canvas.setPointerCapture(evt.pointerId);
     onUpdate(draggingKey, null);
