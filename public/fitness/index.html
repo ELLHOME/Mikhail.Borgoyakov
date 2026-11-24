@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23111926'/%3E%3Ccircle cx='16' cy='7' r='3' fill='none' stroke='%232ee2ff' stroke-width='1.8'/%3E%3Cpath d='M8 14h16M16 11v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21.5l-1.8 6.5m9.2-6.5 1.8 6.5' fill='none' stroke='%232ee2ff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-9">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-10">
 </head>
 <body>
   <div class="app-shell">
@@ -75,6 +75,14 @@
           <button class="btn btn-ghost btn-sm" id="openAiSettingsBtn" title="Настройки AI Ассистента (опционально)">
             <span class="status-dot" id="aiStatusDot"></span>
             <span>AI Ассистент</span>
+          </button>
+          <button class="btn btn-icon music-trigger-btn" id="openMusicBtn" title="Музыка для тренировки" aria-label="Музыка для тренировки">
+            <svg class="music-note-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+            <span class="eq-bars" aria-hidden="true"><i></i><i></i><i></i></span>
           </button>
           <button class="btn btn-icon" id="themeToggleBtn" title="Переключить тему" aria-label="Переключить тему">
             <span id="themeIcon" style="display:inline-flex;align-items:center;justify-content:center">
@@ -420,7 +428,15 @@
 
           <div class="day-switcher-row">
             <div class="day-tabs" id="planDayTabs"></div>
-            <button class="btn btn-primary btn-lg" id="startWorkoutBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="7,5 19,12 7,19"/></svg><span>Начать тренировку</span></button>
+            <div class="day-cta-group">
+              <button type="button" class="btn btn-outline" id="planMusicBtn" title="Музыка для тренировки">
+                <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+                <span id="planMusicLabel">Музыка</span>
+              </button>
+              <button class="btn btn-primary btn-lg" id="startWorkoutBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="7,5 19,12 7,19"/></svg><span>Начать тренировку</span></button>
+            </div>
           </div>
 
           <div class="day-summary-bar" id="daySummaryBar"></div>
@@ -795,6 +811,69 @@
     </div>
   </div>
 
+  <!-- MODAL: WORKOUT MUSIC PLAYER -->
+  <div class="modal-backdrop music-modal-backdrop hidden" id="musicModal" role="dialog" aria-modal="true" aria-labelledby="musicModalTitle">
+    <div class="modal modal-sm music-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="musicModalTitle">Музыка для тренировки</h3>
+          <p class="muted small">Онлайн-радио по жанрам, офлайн-бит или свои треки с телефона</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="musicModal" aria-label="Закрыть">✕</button>
+      </div>
+
+      <!-- Obsidian 3D Now-Playing Deck -->
+      <div class="music-hero-deck" id="musicHeroDeck">
+        <div class="music-deck-main">
+          <button type="button" class="music-play-orb" id="musicPlayToggleBtn" aria-label="Пуск / Пауза">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" id="musicPlayToggleIcon">
+              <polygon points="8,5 19,12 8,19"/>
+            </svg>
+          </button>
+          <div class="music-deck-meta">
+            <div class="music-deck-status-row">
+              <span class="eq-bars eq-bars-deck" id="musicDeckEq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              <span class="music-status-label" id="musicStatusLabel">Готово к запуску</span>
+            </div>
+            <strong class="music-now-title" id="musicNowTitle">Workout EDM</strong>
+            <span class="music-now-sub" id="musicNowSub">Кардио и темп • 128+ BPM</span>
+          </div>
+          <div class="music-step-btns">
+            <button type="button" class="music-step-btn" id="musicPrevBtn" title="Предыдущая" aria-label="Предыдущая">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+            </button>
+            <button type="button" class="music-step-btn" id="musicNextBtn" title="Следующая" aria-label="Следующая">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="music-vol-row">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+          <input type="range" id="musicVolumeRange" min="0" max="100" value="65" aria-label="Громкость музыки">
+          <span class="music-vol-pct" id="musicVolumePct">65%</span>
+        </div>
+      </div>
+
+      <div class="music-section-head">Станции и офлайн-ритм</div>
+      <div class="music-stations-grid" id="musicStationsGrid"></div>
+
+      <div class="music-local-box">
+        <label class="btn btn-outline btn-block music-local-btn">
+          <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span id="musicLocalBtnText">Выбрать свои треки с телефона (MP3 / M4A)</span>
+          <input type="file" id="musicLocalInput" accept="audio/*" multiple hidden>
+        </label>
+        <span class="muted tiny music-local-hint">Во время сигналов таймера отдыха музыка автоматически плавно приглушается.</span>
+      </div>
+    </div>
+  </div>
+
   <!-- FULLSCREEN OVERLAY: INTERACTIVE WORKOUT PLAYER -->
   <div class="workout-overlay hidden" id="workoutOverlay" role="dialog" aria-modal="true">
     <div class="workout-topbar">
@@ -807,6 +886,13 @@
       </div>
       <div class="workout-meta-right">
         <span class="elapsed-badge" id="wpElapsedClock">00:00</span>
+        <button type="button" class="btn btn-outline btn-sm music-pill-btn" id="wpMusicBtn" title="Музыка для тренировки">
+          <svg class="btn-inline-svg music-note-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          <span class="eq-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span id="wpMusicLabel">Музыка</span>
+        </button>
         <button class="btn btn-ghost btn-sm" id="wpSoundToggleBtn" title="Звук таймера">
           <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
@@ -914,6 +1000,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-9"></script>
+  <script type="module" src="./js/app.js?v=20261124-10"></script>
 </body>
 </html>

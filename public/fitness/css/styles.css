@@ -2465,3 +2465,305 @@ strong, b { font-weight: 500; }
   .field input, .field select { font-size: 1rem; padding: 11px 13px; }
   .nutri-goal-chip { font-size: 0.8rem; }
 }
+
+/* ------------------- 3D Neumorphic Workout Music Player ------------------- */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.music-trigger-btn .eq-bars,
+.music-pill-btn .eq-bars {
+  display: none;
+}
+
+.music-trigger-btn.is-playing,
+.music-pill-btn.is-playing {
+  background: var(--obsidian);
+  color: var(--accent-bright);
+  border-color: rgba(56, 220, 255, 0.48);
+  box-shadow: var(--obsidian-shadow), inset 0 0 10px rgba(46, 226, 255, 0.16);
+}
+.music-trigger-btn.is-playing .music-note-svg,
+.music-pill-btn.is-playing .music-note-svg {
+  display: none;
+}
+.music-trigger-btn.is-playing .eq-bars,
+.music-pill-btn.is-playing .eq-bars {
+  display: inline-flex;
+}
+
+.eq-bars {
+  align-items: flex-end;
+  gap: 2.5px;
+  height: 15px;
+}
+.eq-bars i {
+  display: block;
+  width: 2.5px;
+  height: 5px;
+  border-radius: 2px;
+  background: var(--accent-bright);
+  box-shadow: 0 0 6px rgba(46, 226, 255, 0.55);
+  animation: eqBounce 0.85s ease-in-out infinite alternate;
+}
+.eq-bars i:nth-child(2) { animation-delay: 0.22s; height: 12px; }
+.eq-bars i:nth-child(3) { animation-delay: 0.42s; height: 8px; }
+.eq-bars i:nth-child(4) { animation-delay: 0.14s; height: 10px; }
+
+.eq-bars-deck {
+  display: inline-flex;
+  opacity: 0.35;
+}
+.eq-bars-deck i {
+  animation-play-state: paused;
+  height: 4px;
+}
+.music-hero-deck.is-playing .eq-bars-deck {
+  opacity: 1;
+}
+.music-hero-deck.is-playing .eq-bars-deck i {
+  animation-play-state: running;
+}
+
+@keyframes eqBounce {
+  0% { height: 4px; }
+  100% { height: 15px; }
+}
+
+.music-modal-backdrop {
+  z-index: 125;
+}
+.music-modal {
+  background: var(--bg-card-grad);
+  box-shadow: var(--neu-raised), 0 24px 64px rgba(6, 12, 22, 0.45);
+  border-radius: 30px;
+  padding: 22px 20px;
+}
+
+.music-hero-deck {
+  background: var(--obsidian);
+  box-shadow: var(--obsidian-shadow);
+  border: 1px solid rgba(56, 220, 255, 0.28);
+  border-radius: 24px;
+  padding: 16px;
+  color: #f4fbff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.music-deck-main {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.music-play-orb {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 220, 255, 0.5);
+  background: rgba(46, 226, 255, 0.14);
+  color: var(--accent-bright);
+  box-shadow: inset 0 0 14px rgba(46, 226, 255, 0.22), 0 6px 16px rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.18s ease;
+}
+.music-play-orb:hover {
+  background: rgba(46, 226, 255, 0.24);
+}
+.music-play-orb:active {
+  transform: scale(0.95);
+}
+
+.music-deck-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.music-deck-status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.music-status-label {
+  font-size: 0.75rem;
+  color: var(--accent-bright);
+  letter-spacing: 0.03em;
+}
+.music-now-title {
+  font-family: var(--font-display);
+  font-size: 1.08rem;
+  font-weight: 400;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-now-sub {
+  font-size: 0.8rem;
+  color: rgba(214, 232, 252, 0.68);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-step-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.music-step-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e6f4ff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.music-step-btn:hover {
+  border-color: rgba(56, 220, 255, 0.5);
+  color: var(--accent-bright);
+}
+
+.music-vol-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(214, 232, 252, 0.76);
+}
+.music-vol-row input[type="range"] {
+  flex: 1;
+  accent-color: #2ee2ff;
+  cursor: pointer;
+  height: 5px;
+}
+.music-vol-pct {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.music-section-head {
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 9px;
+}
+
+.music-stations-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.music-station-card {
+  border: 1px solid var(--border);
+  background: var(--bg-card-grad);
+  box-shadow: var(--neu-raised-sm);
+  border-radius: 18px;
+  padding: 11px 12px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: all 0.16s ease;
+}
+.music-station-card:hover {
+  border-color: rgba(14, 165, 214, 0.45);
+}
+.music-station-card.active {
+  background: var(--obsidian);
+  border-color: rgba(56, 220, 255, 0.44);
+  box-shadow: var(--obsidian-shadow);
+}
+.music-station-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.music-station-name {
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  font-weight: 400;
+  color: var(--text);
+}
+.music-station-card.active .music-station-name {
+  color: var(--accent-bright);
+}
+.music-station-tag {
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+.music-station-card.active .music-station-tag {
+  background: rgba(46, 226, 255, 0.16);
+  color: var(--accent-bright);
+}
+.music-station-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+.music-station-card.active .music-station-desc {
+  color: rgba(226, 240, 255, 0.72);
+}
+
+.music-local-box {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.music-local-btn {
+  padding: 11px 14px;
+}
+.music-local-hint {
+  display: block;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .music-stations-grid {
+    grid-template-columns: 1fr;
+  }
+  .topbar-actions #openAiSettingsBtn {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+  .day-cta-group {
+    width: 100%;
+  }
+  .day-cta-group .btn {
+    flex: 1;
+  }
+}
