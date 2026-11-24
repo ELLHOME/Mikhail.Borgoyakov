@@ -11,17 +11,17 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js';
+} from './cv-analyzer.js?v=20261124-5';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-5';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-5';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
   GOAL_LABELS,
-} from './plan-generator.js';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js';
+} from './plan-generator.js?v=20261124-5';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-5';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -45,7 +45,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js';
+} from './storage.js?v=20261124-5';
 
 const ANGLES = [
   {
@@ -368,7 +368,7 @@ function applyCloudModeUi() {
   const aiPanelSub = document.querySelector('#aiVisionPanel .panel-header p');
   if (aiPanelSub) aiPanelSub.textContent = 'Глубокий анализ фигуры по фото через защищённый серверный API (ключ хранится на сервере)';
   const nutriBadge = $('nutritionAiBadge');
-  if (nutriBadge) nutriBadge.textContent = '✦ AI-нутрициолог (сервер ELLHOME) • Фото-анализ тарелки и КБЖУ';
+  if (nutriBadge) nutriBadge.textContent = '✦ ИИ по фото';
   $('inlineAiFields')?.classList.add('hidden');
 }
 
@@ -2084,6 +2084,7 @@ function createDraftIngredient(raw = {}) {
     fat,
     carbs,
     fiber,
+    macrosOpen: Boolean(raw.macrosOpen),
     per100,
   };
 }
@@ -2364,14 +2365,14 @@ function openManualMealDraft() {
   const noteTitle = $('mealNoteInput').value.trim().slice(0, 60);
   openMealDraft(
     {
-      dishName: noteTitle || `${MEAL_TYPE_LABELS[getSelectedMealType()]} (вручную)`,
+      dishName: noteTitle || `${MEAL_TYPE_LABELS[getSelectedMealType()]}`,
       confidence: 'high',
-      portionNote: 'Ручной ввод граммовок и макронутриентов',
+      portionNote: '',
       healthScore: null,
       goalFeedback: '',
       tips: [],
       ingredients: [
-        { name: noteTitle || 'Продукт 1', grams: 150, kcal: 210, protein: 18, fat: 7, carbs: 18, fiber: 2 },
+        { name: noteTitle || 'Продукт 1', grams: 150, kcal: 210, protein: 18, fat: 7, carbs: 18, fiber: 2, macrosOpen: true },
       ],
     },
     null
@@ -2388,8 +2389,8 @@ function renderMealDraftCard() {
   card.classList.remove('hidden');
 
   $('draftModeLabel').textContent = draft.editingId
-    ? 'Редактирование записи — скорректируйте граммы или ингредиенты'
-    : 'Проверьте состав — меняйте граммы для мгновенного пересчёта КБЖУ';
+    ? 'Редактирование записи (кнопки − / + меняют вес и КБЖУ):'
+    : 'Проверьте вес продуктов (кнопки − / + меняют КБЖУ на лету):';
   $('draftDishName').value = draft.dishName;
   $('saveDraftMealBtn').textContent = draft.editingId ? '✓ Обновить запись' : '✓ Сохранить в дневник';
 
@@ -2419,7 +2420,7 @@ function renderMealDraftCard() {
   if (draft.goalFeedback || (draft.tips && draft.tips.length)) {
     fb.classList.remove('hidden');
     fb.innerHTML = `
-      ${draft.goalFeedback ? `<div><strong>Комментарий нутрициолога:</strong> ${escapeHtml(draft.goalFeedback)}</div>` : ''}
+      ${draft.goalFeedback ? `<div><strong>Совет по цели:</strong> ${escapeHtml(draft.goalFeedback)}</div>` : ''}
       ${draft.tips?.length ? `<ul>${draft.tips.map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul>` : ''}
     `;
   } else {
@@ -2436,27 +2437,62 @@ function renderDraftIngredientsRows() {
   wrap.innerHTML = draft.ingredients
     .map(
       (ing) => `
-      <div class="draft-ing-row" data-ing-id="${ing.id}">
-        <input type="text" value="${escapeHtml(ing.name)}" placeholder="Продукт" data-ing-field="name" aria-label="Название ингредиента">
-        <div class="draft-grams-wrap">
-          <input type="number" min="0" max="3000" step="5" value="${ing.grams}" data-ing-field="grams" title="Вес в граммах" aria-label="Вес в граммах">
-          <span class="unit-suffix">г</span>
+      <div class="draft-ing-card" data-ing-id="${ing.id}">
+        <div class="draft-ing-top">
+          <input type="text" class="draft-ing-name-input" value="${escapeHtml(ing.name)}" placeholder="Название продукта" data-ing-field="name" aria-label="Название продукта">
+          <button type="button" class="btn btn-danger-ghost draft-remove-btn" data-remove-ing="${ing.id}" title="Удалить продукт" aria-label="Удалить продукт">✕</button>
         </div>
-        <span class="draft-ing-kcal" data-ing-kcal>${ing.kcal} ккал</span>
-        <div class="draft-ing-macros" title="Белки / Жиры / Углеводы (г)">
-          <label class="macro-mini-field"><span>Б</span><input type="number" min="0" max="500" step="0.5" value="${ing.protein}" data-ing-macro="protein" aria-label="Белки (г)"></label>
-          <label class="macro-mini-field"><span>Ж</span><input type="number" min="0" max="500" step="0.5" value="${ing.fat}" data-ing-macro="fat" aria-label="Жиры (г)"></label>
-          <label class="macro-mini-field"><span>У</span><input type="number" min="0" max="600" step="0.5" value="${ing.carbs}" data-ing-macro="carbs" aria-label="Углеводы (г)"></label>
+        <div class="draft-ing-mid">
+          <div class="gram-stepper">
+            <button type="button" class="gram-step-btn" data-gram-delta="-20" aria-label="Уменьшить вес">−</button>
+            <div class="gram-input-wrap">
+              <input type="number" inputmode="numeric" min="0" max="3000" step="5" value="${ing.grams}" data-ing-field="grams" aria-label="Вес в граммах">
+              <span class="gram-unit">г</span>
+            </div>
+            <button type="button" class="gram-step-btn" data-gram-delta="20" aria-label="Увеличить вес">+</button>
+          </div>
+          <span class="draft-ing-kcal" data-ing-kcal>${ing.kcal} ккал</span>
         </div>
-        <button type="button" class="btn btn-danger-ghost btn-xs draft-remove-btn" data-remove-ing="${ing.id}" title="Удалить ингредиент">✕</button>
+        <div class="draft-ing-bottom">
+          <span class="draft-macro-Readout" data-ing-macro-summary>Б <strong>${ing.protein}</strong> • Ж <strong>${ing.fat}</strong> • У <strong>${ing.carbs}</strong> г</span>
+          <button type="button" class="draft-toggle-macros-btn" data-toggle-macros>${ing.macrosOpen ? 'Скрыть БЖУ' : 'Изм. БЖУ'}</button>
+        </div>
+        <div class="draft-ing-macros ${ing.macrosOpen ? '' : 'hidden'}" data-macros-panel>
+          <label class="macro-mini-field"><span>Белки (г)</span><input type="number" inputmode="decimal" min="0" max="500" step="0.5" value="${ing.protein}" data-ing-macro="protein" aria-label="Белки (г)"></label>
+          <label class="macro-mini-field"><span>Жиры (г)</span><input type="number" inputmode="decimal" min="0" max="500" step="0.5" value="${ing.fat}" data-ing-macro="fat" aria-label="Жиры (г)"></label>
+          <label class="macro-mini-field"><span>Углеводы (г)</span><input type="number" inputmode="decimal" min="0" max="600" step="0.5" value="${ing.carbs}" data-ing-macro="carbs" aria-label="Углеводы (г)"></label>
+        </div>
       </div>
     `
     )
     .join('');
 
-  wrap.querySelectorAll('.draft-ing-row').forEach((row) => {
+  wrap.querySelectorAll('.draft-ing-card').forEach((row) => {
     const ingId = row.dataset.ingId;
     const getIng = () => state.nutrition.draft?.ingredients.find((x) => x.id === ingId);
+
+    const syncRowReadout = (ing) => {
+      row.querySelector('[data-ing-kcal]').textContent = `${ing.kcal} ккал`;
+      row.querySelector('[data-ing-macro-summary]').innerHTML =
+        `Б <strong>${ing.protein}</strong> • Ж <strong>${ing.fat}</strong> • У <strong>${ing.carbs}</strong> г`;
+      row.querySelector('[data-ing-macro="protein"]').value = String(ing.protein);
+      row.querySelector('[data-ing-macro="fat"]').value = String(ing.fat);
+      row.querySelector('[data-ing-macro="carbs"]').value = String(ing.carbs);
+    };
+
+    const applyGrams = (nextGrams) => {
+      const ing = getIng();
+      if (!ing) return;
+      const g = Math.max(0, Math.min(3000, Math.round(Number(nextGrams) || 0)));
+      ing.grams = g;
+      ing.kcal = Math.round((ing.per100.kcal * g) / 100);
+      ing.protein = round1((ing.per100.protein * g) / 100);
+      ing.fat = round1((ing.per100.fat * g) / 100);
+      ing.carbs = round1((ing.per100.carbs * g) / 100);
+      ing.fiber = round1((ing.per100.fiber * g) / 100);
+      syncRowReadout(ing);
+      renderDraftTotalsBar();
+    };
 
     const nameInput = row.querySelector('[data-ing-field="name"]');
     nameInput.addEventListener('input', () => {
@@ -2466,21 +2502,29 @@ function renderDraftIngredientsRows() {
 
     const gramsInput = row.querySelector('[data-ing-field="grams"]');
     gramsInput.addEventListener('input', () => {
+      applyGrams(gramsInput.value);
+    });
+
+    row.querySelectorAll('[data-gram-delta]').forEach((stepBtn) => {
+      stepBtn.addEventListener('click', () => {
+        const ing = getIng();
+        if (!ing) return;
+        const rawDelta = Number(stepBtn.dataset.gramDelta) || 0;
+        const step = rawDelta < 0 && ing.grams <= 30 ? -5 : rawDelta > 0 && ing.grams < 20 ? 10 : rawDelta;
+        const nextG = Math.max(0, ing.grams + step);
+        gramsInput.value = String(nextG);
+        applyGrams(nextG);
+      });
+    });
+
+    const toggleBtn = row.querySelector('[data-toggle-macros]');
+    const macrosPanel = row.querySelector('[data-macros-panel]');
+    toggleBtn.addEventListener('click', () => {
       const ing = getIng();
       if (!ing) return;
-      const g = Math.max(0, Number(gramsInput.value) || 0);
-      ing.grams = Math.round(g);
-      ing.kcal = Math.round((ing.per100.kcal * g) / 100);
-      ing.protein = round1((ing.per100.protein * g) / 100);
-      ing.fat = round1((ing.per100.fat * g) / 100);
-      ing.carbs = round1((ing.per100.carbs * g) / 100);
-      ing.fiber = round1((ing.per100.fiber * g) / 100);
-
-      row.querySelector('[data-ing-kcal]').textContent = `${ing.kcal} ккал`;
-      row.querySelector('[data-ing-macro="protein"]').value = String(ing.protein);
-      row.querySelector('[data-ing-macro="fat"]').value = String(ing.fat);
-      row.querySelector('[data-ing-macro="carbs"]').value = String(ing.carbs);
-      renderDraftTotalsBar();
+      ing.macrosOpen = !ing.macrosOpen;
+      macrosPanel.classList.toggle('hidden', !ing.macrosOpen);
+      toggleBtn.textContent = ing.macrosOpen ? 'Скрыть БЖУ' : 'Изм. БЖУ';
     });
 
     row.querySelectorAll('[data-ing-macro]').forEach((macroInp) => {
@@ -2499,6 +2543,8 @@ function renderDraftIngredientsRows() {
           fiber: (ing.fiber / baseG) * 100,
         };
         row.querySelector('[data-ing-kcal]').textContent = `${ing.kcal} ккал`;
+        row.querySelector('[data-ing-macro-summary]').innerHTML =
+          `Б <strong>${ing.protein}</strong> • Ж <strong>${ing.fat}</strong> • У <strong>${ing.carbs}</strong> г`;
         renderDraftTotalsBar();
       });
     });
@@ -2517,11 +2563,15 @@ function renderDraftTotalsBar() {
   if (!draft) return;
   const t = computeIngredientsTotals(draft.ingredients);
   $('draftTotalsBar').innerHTML = `
-    <div class="draft-total-cell"><span>Общий вес</span><strong>${t.grams} г</strong></div>
-    <div class="draft-total-cell"><span>Калории</span><strong>${t.kcal} ккал</strong></div>
-    <div class="draft-total-cell"><span>Белки</span><strong>${t.protein} г</strong></div>
-    <div class="draft-total-cell"><span>Жиры</span><strong>${t.fat} г</strong></div>
-    <div class="draft-total-cell"><span>Углеводы</span><strong>${t.carbs} г${t.fiber > 0 ? ` (кл. ${t.fiber} г)` : ''}</strong></div>
+    <div class="draft-totals-head">
+      <strong>Итого: ${t.kcal} ккал</strong>
+      <span>Вес: ${t.grams} г${t.fiber > 0 ? ` • Клетч. ${t.fiber} г` : ''}</span>
+    </div>
+    <div class="draft-totals-macros">
+      <div class="draft-total-cell"><span>Белки</span><strong>${t.protein} г</strong></div>
+      <div class="draft-total-cell"><span>Жиры</span><strong>${t.fat} г</strong></div>
+      <div class="draft-total-cell"><span>Углеводы</span><strong>${t.carbs} г</strong></div>
+    </div>
   `;
 }
 
@@ -2624,71 +2674,76 @@ function renderNutritionMacroCards() {
   const targetWaterMl = target.waterMl || Math.round((target.waterLiters || 2.4) * 1000);
 
   const goalName = GOAL_LABELS[state.profile.goal] || 'Сбалансированная форма';
-  $('nutritionTargetSub').textContent = `Цель: ${goalName} • Вес ${state.profile.weightKg} кг • ${target.kcalNote}`;
+  $('nutritionTargetSub').textContent = `Цель: ${goalName} • ${state.profile.weightKg} кг`;
 
   const pct = (val, max) => (max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0);
+  const kcalPctRaw = target.targetKcal > 0 ? Math.round((eaten.kcal / target.targetKcal) * 100) : 0;
+  const kcalPctRing = Math.min(100, Math.max(0, kcalPctRaw));
+  const ringCirc = 182.21; // 2 * pi * 29
+  const ringOffset = +(ringCirc * (1 - kcalPctRing / 100)).toFixed(2);
+  const isOverKcal = eaten.kcal > target.targetKcal * 1.06;
+
   const kcalDiff = target.targetKcal - eaten.kcal;
   const kcalSub = kcalDiff >= 0
     ? `Осталось ${kcalDiff} ккал`
     : `Превышение +${Math.abs(kcalDiff)} ккал`;
 
   $('nutritionMacroCards').innerHTML = `
-    <div class="macro-card">
-      <div class="macro-card-top">
-        <span class="macro-name">Калории</span>
-        <span class="macro-nums">${eaten.kcal} <small>/ ${target.targetKcal} ккал</small></span>
+    <div class="nutri-summary-layout">
+      <div class="nutri-kcal-hero">
+        <div class="nutri-ring-wrap">
+          <svg viewBox="0 0 72 72" aria-hidden="true">
+            <circle cx="36" cy="36" r="29" fill="none" stroke="rgba(148, 163, 184, 0.26)" stroke-width="7"></circle>
+            <circle cx="36" cy="36" r="29" fill="none"
+              stroke="${isOverKcal ? 'var(--coral)' : 'var(--accent)'}"
+              stroke-width="7" stroke-linecap="round"
+              stroke-dasharray="${ringCirc}" stroke-dashoffset="${ringOffset}"></circle>
+          </svg>
+          <span class="nutri-ring-pct">${kcalPctRaw}%</span>
+        </div>
+        <div class="nutri-kcal-copy">
+          <div class="nutri-kcal-main">${eaten.kcal} <small>/ ${target.targetKcal} ккал</small></div>
+          <div class="nutri-kcal-rem ${kcalDiff < 0 ? 'over' : ''}">${kcalSub}</div>
+        </div>
       </div>
-      <div class="macro-bar-track">
-        <div class="macro-bar-fill ${eaten.kcal > target.targetKcal * 1.06 ? 'over' : ''}" style="width:${pct(eaten.kcal, target.targetKcal)}%"></div>
-      </div>
-      <div class="macro-sub"><span>${kcalSub}</span><span>${pct(eaten.kcal, target.targetKcal)}%</span></div>
-    </div>
 
-    <div class="macro-card">
-      <div class="macro-card-top">
-        <span class="macro-name">Белки</span>
-        <span class="macro-nums">${eaten.protein} <small>/ ${target.proteinGrams} г</small></span>
+      <div class="nutri-macros-3col">
+        <div class="macro-mini-card">
+          <span class="macro-mini-name">Белки</span>
+          <span class="macro-mini-val">${eaten.protein} <small>/ ${target.proteinGrams} г</small></span>
+          <div class="macro-bar-track">
+            <div class="macro-bar-fill protein" style="width:${pct(eaten.protein, target.proteinGrams)}%"></div>
+          </div>
+        </div>
+        <div class="macro-mini-card">
+          <span class="macro-mini-name">Жиры</span>
+          <span class="macro-mini-val">${eaten.fat} <small>/ ${target.fatGrams} г</small></span>
+          <div class="macro-bar-track">
+            <div class="macro-bar-fill fat ${eaten.fat > target.fatGrams * 1.15 ? 'over' : ''}" style="width:${pct(eaten.fat, target.fatGrams)}%"></div>
+          </div>
+        </div>
+        <div class="macro-mini-card">
+          <span class="macro-mini-name">Углеводы</span>
+          <span class="macro-mini-val">${eaten.carbs} <small>/ ${target.carbsGrams} г</small></span>
+          <div class="macro-bar-track">
+            <div class="macro-bar-fill carbs" style="width:${pct(eaten.carbs, target.carbsGrams)}%"></div>
+          </div>
+        </div>
       </div>
-      <div class="macro-bar-track">
-        <div class="macro-bar-fill protein" style="width:${pct(eaten.protein, target.proteinGrams)}%"></div>
-      </div>
-      <div class="macro-sub"><span>Мышцы и сытость</span><span>${pct(eaten.protein, target.proteinGrams)}%</span></div>
-    </div>
 
-    <div class="macro-card">
-      <div class="macro-card-top">
-        <span class="macro-name">Жиры</span>
-        <span class="macro-nums">${eaten.fat} <small>/ ${target.fatGrams} г</small></span>
-      </div>
-      <div class="macro-bar-track">
-        <div class="macro-bar-fill fat ${eaten.fat > target.fatGrams * 1.15 ? 'over' : ''}" style="width:${pct(eaten.fat, target.fatGrams)}%"></div>
-      </div>
-      <div class="macro-sub"><span>Гормональный баланс</span><span>${pct(eaten.fat, target.fatGrams)}%</span></div>
-    </div>
-
-    <div class="macro-card">
-      <div class="macro-card-top">
-        <span class="macro-name">Углеводы</span>
-        <span class="macro-nums">${eaten.carbs} <small>/ ${target.carbsGrams} г</small></span>
-      </div>
-      <div class="macro-bar-track">
-        <div class="macro-bar-fill carbs" style="width:${pct(eaten.carbs, target.carbsGrams)}%"></div>
-      </div>
-      <div class="macro-sub"><span>Клетчатка: ${eaten.fiber}/${target.fiberGrams} г</span><span>${pct(eaten.carbs, target.carbsGrams)}%</span></div>
-    </div>
-
-    <div class="macro-card">
-      <div class="macro-card-top">
-        <span class="macro-name">Вода за день</span>
-        <span class="macro-nums">${waterMl} <small>/ ${targetWaterMl} мл</small></span>
-      </div>
-      <div class="macro-bar-track">
-        <div class="macro-bar-fill water" style="width:${pct(waterMl, targetWaterMl)}%"></div>
-      </div>
-      <div class="water-btns">
-        <button type="button" class="btn btn-outline btn-xs" data-water-delta="250">+250 мл</button>
-        <button type="button" class="btn btn-outline btn-xs" data-water-delta="500">+500</button>
-        <button type="button" class="btn btn-ghost btn-xs" data-water-delta="-250">−250</button>
+      <div class="nutri-water-card">
+        <div class="nutri-water-top">
+          <span class="nutri-water-label">💧 Вода</span>
+          <span class="nutri-water-val">${waterMl} <small>/ ${targetWaterMl} мл</small></span>
+        </div>
+        <div class="macro-bar-track">
+          <div class="macro-bar-fill water" style="width:${pct(waterMl, targetWaterMl)}%"></div>
+        </div>
+        <div class="water-btns">
+          <button type="button" class="btn btn-outline btn-xs" data-water-delta="250">+250 мл</button>
+          <button type="button" class="btn btn-outline btn-xs" data-water-delta="500">+500 мл</button>
+          <button type="button" class="btn btn-ghost btn-xs water-minus-btn" data-water-delta="-250" title="Убрать 250 мл" aria-label="Убрать 250 мл">−</button>
+        </div>
       </div>
     </div>
   `;
@@ -2703,14 +2758,14 @@ function renderDailyMealsList() {
   const dayMeals = getMealsForDate(dateKey);
   const totalKcal = Math.round(dayMeals.reduce((a, m) => a + (Number(m.totals?.kcal) || 0), 0));
 
-  $('dailyMealsTitle').textContent = `Рацион • ${formatDateKeyLabel(dateKey)}`;
-  $('dailyMealsSummaryBadge').textContent = `${dayMeals.length} ${
-    dayMeals.length === 1 ? 'приём' : dayMeals.length >= 2 && dayMeals.length <= 4 ? 'приёма' : 'приёмов'
-  } • ${totalKcal} ккал`;
+  $('dailyMealsTitle').textContent = 'Съедено за день';
+  $('dailyMealsSummaryBadge').textContent = dayMeals.length
+    ? `${dayMeals.length} ${dayMeals.length === 1 ? 'приём' : dayMeals.length >= 2 && dayMeals.length <= 4 ? 'приёма' : 'приёмов'} • ${totalKcal} ккал`
+    : '0 ккал';
 
   const list = $('dailyMealsList');
   if (!dayMeals.length) {
-    list.innerHTML = `<p class="muted small" style="padding:18px 0">За выбранный день пока нет записей. Сфотографируйте тарелку слева или опишите приём пищи текстом, чтобы посчитать КБЖУ.</p>`;
+    list.innerHTML = `<p class="muted small" style="padding:10px 0">Пока нет записей за этот день. Снимите блюдо на камеру или напишите текстом выше — ИИ посчитает КБЖУ.</p>`;
     return;
   }
 
@@ -2821,10 +2876,18 @@ function renderWeeklyNutritionMini() {
 }
 
 function renderNutritionTab() {
+  const today = getLocalDateKey();
   if (!state.nutrition.selectedDate) {
-    state.nutrition.selectedDate = getLocalDateKey();
+    state.nutrition.selectedDate = today;
   }
-  $('mealDateInput').value = state.nutrition.selectedDate;
+  const dk = state.nutrition.selectedDate;
+  $('mealDateInput').value = dk;
+  if ($('mealDateLabel')) {
+    $('mealDateLabel').textContent = formatDateKeyLabel(dk);
+  }
+  if ($('mealTodayBtn')) {
+    $('mealTodayBtn').classList.toggle('hidden', dk === today);
+  }
   renderNutritionMacroCards();
   renderDailyMealsList();
   renderWeeklyNutritionMini();
@@ -2995,7 +3058,7 @@ function initEvents() {
     if (state.camera.angleKey === 'meal' && state.camera.capturedDataUrl) {
       await setMealPhotoDataUrl(state.camera.capturedDataUrl);
       closeModal('cameraModal');
-      showToast('Фото блюда добавлено — нажмите «Разобрать состав и КБЖУ»');
+      showToast('Фото добавлено — нажмите «Посчитать калории и БЖУ»');
       return;
     }
     if (state.camera.angleKey && state.camera.capturedDataUrl) {
@@ -3209,16 +3272,30 @@ function initEvents() {
     }
   });
 
-  $('mealCameraBtn').addEventListener('click', () => openCameraModal('meal'));
-  $('mealPhotoInput').addEventListener('change', (e) => {
+  const handleMealFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = () => setMealPhotoDataUrl(reader.result);
+      reader.onload = async () => {
+        await setMealPhotoDataUrl(reader.result);
+        showToast('Фото добавлено — нажмите «Посчитать калории и БЖУ»');
+      };
       reader.readAsDataURL(file);
     }
     e.target.value = '';
+  };
+
+  $('mealCameraBtn').addEventListener('click', () => {
+    const isTouchMobile =
+      window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+    if (isTouchMobile && $('mealCameraNativeInput')) {
+      $('mealCameraNativeInput').click();
+      return;
+    }
+    openCameraModal('meal');
   });
+  $('mealCameraNativeInput')?.addEventListener('change', handleMealFileSelect);
+  $('mealPhotoInput').addEventListener('change', handleMealFileSelect);
   $('clearMealPhotoBtn').addEventListener('click', clearMealPhoto);
   $('mealSampleBtn').addEventListener('click', async () => {
     const sampleUrl = generateSampleMealDataUrl();
@@ -3226,7 +3303,7 @@ function initEvents() {
     if (!$('mealNoteInput').value.trim()) {
       $('mealNoteInput').value = 'Куриная грудка на гриле, отварная гречка и свежий салат с авокадо';
     }
-    showToast('Подставлено фото блюда — нажмите «Разобрать состав и КБЖУ»');
+    showToast('Демо-фото добавлено — нажмите «Посчитать калории и БЖУ»');
   });
 
   const mealDrop = $('mealPhotoDropzone');
@@ -3270,7 +3347,7 @@ function initEvents() {
   $('addDraftIngredientBtn').addEventListener('click', () => {
     if (!state.nutrition.draft) return;
     state.nutrition.draft.ingredients.push(
-      createDraftIngredient({ name: '', grams: 100, kcal: 120, protein: 6, fat: 4, carbs: 15, fiber: 1 })
+      createDraftIngredient({ name: '', grams: 100, kcal: 120, protein: 6, fat: 4, carbs: 15, fiber: 1, macrosOpen: true })
     );
     renderDraftIngredientsRows();
     renderDraftTotalsBar();
