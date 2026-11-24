@@ -268,5 +268,29 @@
     "frameSize": 448,
     "durationMs": 180,
     "url": "/assets/exercises/trx_knee_tuck.webp"
+  },
+  "trx_plank": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_plank.webp"
+  },
+  "trx_side_plank": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_side_plank.webp"
+  },
+  "trx_mountain_climber": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_mountain_climber.webp"
+  },
+  "trx_pike": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_pike.webp"
   }
 }

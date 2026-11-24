@@ -11,18 +11,22 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-12';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-12';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-12';
+} from './cv-analyzer.js?v=20261124-13';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-13';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-13';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
+  getModeExercises,
   GOAL_LABELS,
-} from './plan-generator.js?v=20261124-12';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-12';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-12';
+  normalizePlan,
+  PLAN_VERSION,
+  selectPlanWeek,
+} from './plan-generator.js?v=20261124-13';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-13';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-13';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -46,7 +50,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-12';
+} from './storage.js?v=20261124-13';
 
 const ANGLES = [
   {
@@ -154,7 +158,7 @@ const state = {
   analyses: {}, // angleKey -> cv analysis result
   metrics: null,
   aiAnalysis: null,
-  plan: loadActivePlan(),
+  plan: normalizePlan(loadActivePlan()),
   selectedPlanDay: 0,
   selectedAnalysisAngle: 'front',
   overlay: {
@@ -956,7 +960,7 @@ async function callVisionAiProxy() {
   for (const [k, v] of Object.entries(state.photos)) {
     if (v) compactPhotos[k] = await compressImageDataUrl(v, 768, 0.76);
   }
-  const catalogPayload = EXERCISES.map((e) => ({
+  const catalogPayload = getModeExercises(state.profile?.equipment || 'home_bodyweight').map((e) => ({
     id: e.id,
     name: e.name,
     category: e.category,
@@ -1304,6 +1308,53 @@ function destroyPlanCardPlayers() {
   state.planCardPlayers = [];
 }
 
+function pluralRu(n, one, few, many) {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
+function renderPlanWeekBar(plan) {
+  const weeks = plan.weeks || [];
+  const bar = $('planWeekBar');
+  if (!plan.coverage || !weeks.length) {
+    bar.classList.add('hidden');
+    return;
+  }
+  bar.classList.remove('hidden');
+  const total = plan.coverage.total;
+  const exWord = pluralRu(total, 'упражнение', 'упражнения', 'упражнений');
+  const cycleText =
+    weeks.length > 1
+      ? `Цикл из ${weeks.length} ${pluralRu(weeks.length, 'недели', 'недель', 'недель')}: за него вы пройдёте все ${total} ${exWord} режима «${plan.equipmentLabel}», затем цикл повторяется.`
+      : `Все ${total} ${exWord} режима «${plan.equipmentLabel}» помещаются в одну неделю, повторяйте её.`;
+  const priorityText = !plan.priorityExerciseIds?.length
+    ? ''
+    : weeks.length > 1
+      ? ' ★ — упражнения на слабые места по фото: они стоят в первой неделе и повторяются чаще, в основном блоке на 1 подход больше.'
+      : ' ★ — упражнения на слабые места по фото: в основном блоке на 1 подход больше.';
+  $('planCycleNote').textContent = cycleText + priorityText;
+
+  const tabs = $('planWeekTabs');
+  tabs.classList.toggle('hidden', weeks.length < 2);
+  tabs.innerHTML = weeks
+    .map(
+      (w, idx) =>
+        `<button type="button" class="week-tab ${idx === plan.currentWeek ? 'active' : ''}" role="tab" aria-selected="${idx === plan.currentWeek}" data-plan-week="${idx}">Неделя ${w.weekIndex}${w.source === 'ai' ? ' • AI' : ''}</button>`
+    )
+    .join('');
+  tabs.querySelectorAll('[data-plan-week]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      selectPlanWeek(plan, Number(btn.dataset.planWeek));
+      state.selectedPlanDay = 0;
+      saveActivePlan(plan);
+      renderPlanTab();
+    });
+  });
+}
+
 function renderPlanTab() {
   destroyPlanCardPlayers();
   const plan = state.plan;
@@ -1321,7 +1372,7 @@ function renderPlanTab() {
   $('planGoalBadge').textContent = plan.generatedByAi
     ? `✦ AI Ассистент (${plan.aiProviderLabel}) • ${plan.goalLabel} • ${plan.levelLabel}`
     : `${plan.goalLabel} • ${plan.levelLabel}`;
-  $('planTitle').textContent = `Программа на ${plan.daysPerWeek} дня (${plan.equipmentLabel})`;
+  $('planTitle').textContent = `Программа на ${plan.daysPerWeek} ${pluralRu(plan.daysPerWeek, 'день', 'дня', 'дней')} в неделю (${plan.equipmentLabel})`;
   $('planFocusChips').innerHTML = (plan.focusSummary || [])
     .map((f) => `<span class="focus-chip">✦ ${escapeHtml(f)}</span>`)
     .join('');
@@ -1347,6 +1398,8 @@ function renderPlanTab() {
     `;
     $('gotoNutritionFromPlanBtn')?.addEventListener('click', () => switchTab('nutrition'));
   }
+
+  renderPlanWeekBar(plan);
 
   // Day tabs
   $('planDayTabs').innerHTML = plan.days
@@ -1410,6 +1463,7 @@ function renderPlanTab() {
         <div class="ex-card-body">
           <div class="ex-card-title">${escapeHtml(ex.name)}</div>
           <div class="ex-rx-row">
+            ${item.priority ? '<span class="rx-pill rx-pill-priority" title="Упражнение на слабое место, найденное по фото">★ Слабое место</span>' : ''}
             <span class="rx-pill rx-pill-accent">${item.sets} × ${escapeHtml(item.reps)}</span>
             <span class="rx-pill">Отдых ${item.restSec} сек</span>
             <span class="rx-pill">Темп ${escapeHtml(ex.tempo)}</span>
@@ -1800,8 +1854,9 @@ function finishWorkoutSession() {
   const doneSets = state.wp.setsState.reduce((a, arr) => a + arr.filter((s) => s.done).length, 0);
   const doneExercises = state.wp.setsState.filter((arr) => arr.some((s) => s.done)).length;
 
+  const weekCount = state.plan.weeks?.length || 1;
   state.workouts = addWorkoutLog({
-    dayTitle: day.title,
+    dayTitle: weekCount > 1 ? `Неделя ${(state.plan.currentWeek || 0) + 1} • ${day.title}` : day.title,
     equipmentLabel: state.plan.equipmentLabel,
     durationSec,
     doneSets,
@@ -3170,7 +3225,7 @@ function initEvents() {
     state.profile.daysPerWeek = Number($('quickDaysSelect').value);
     saveProfile(state.profile);
     syncProfileFormFromState();
-    state.plan = generateWorkoutPlan(state.metrics || {}, state.profile, state.aiAnalysis);
+    state.plan = generateWorkoutPlan(planMetricsSource(), state.profile, state.aiAnalysis);
     state.selectedPlanDay = 0;
     saveActivePlan(state.plan);
     renderPlanTab();
@@ -3387,7 +3442,7 @@ function initEvents() {
       try {
         importAllDataJson(reader.result);
         state.profile = loadProfile();
-        state.plan = loadActivePlan();
+        state.plan = normalizePlan(loadActivePlan());
         state.checkins = loadCheckins();
         state.workouts = loadWorkoutLogs();
         state.meals = loadMeals();
@@ -3610,6 +3665,26 @@ async function detectServerEnvProviders(notifyUser = false) {
   }
 }
 
+// Without a fresh analysis in memory, reuse the weak spots the current plan was built from.
+function planMetricsSource() {
+  if (state.metrics) return state.metrics;
+  const focusTags = state.plan?.focusTags || state.checkins?.[0]?.metrics?.focusTags || [];
+  return { focusTags };
+}
+
+// Plans saved before the weekly cycle mixed in exercises from other equipment; rebuild them once.
+function upgradeLegacyPlan() {
+  const plan = state.plan;
+  if (!plan || plan.version >= PLAN_VERSION || plan.generatedByAi) return;
+  const profile = {
+    ...state.profile,
+    equipment: plan.equipment || state.profile.equipment,
+    daysPerWeek: plan.days?.length || state.profile.daysPerWeek,
+  };
+  state.plan = generateWorkoutPlan(planMetricsSource(), profile, null);
+  saveActivePlan(state.plan);
+}
+
 function bootstrap() {
   state.nutrition.selectedDate = getLocalDateKey();
   setSelectedMealType(pickDefaultMealTypeByHour());
@@ -3624,6 +3699,7 @@ function bootstrap() {
   renderAnglesGrid();
   syncProfileFormFromState();
   initEvents();
+  upgradeLegacyPlan();
   if (state.plan) renderPlanTab();
   renderNutritionTab();
   detectServerEnvProviders();

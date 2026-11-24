@@ -4,7 +4,7 @@
  * into a structured multi-day workout program with explicit per-exercise rationale.
  */
 
-import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-12';
+import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-13';
 
 export const GOAL_LABELS = {
   recomp: 'Рельеф и жиросжигание',
@@ -99,297 +99,463 @@ function buildReasonText(ex, metrics, aiRecSet) {
   return ex.whyTemplate;
 }
 
-function matchesSlot(ex, slot) {
-  if (slot === 'biceps') return ex.category === 'arms' && ex.muscles.includes('biceps');
-  if (slot === 'triceps') return ex.category === 'arms' && ex.muscles.includes('triceps');
-  if (slot === 'posture_upper') {
-    return ex.category === 'posture' && (ex.postureTags.includes('rounded_shoulders') || ex.postureTags.includes('forward_head'));
-  }
-  if (slot === 'posture_lower') {
-    return ex.category === 'posture' && (ex.postureTags.includes('anterior_pelvic_tilt') || ex.postureTags.includes('asymmetry'));
-  }
-  return ex.category === slot;
+const WEAK_SPOT_TAGS = ['forward_head', 'rounded_shoulders', 'anterior_pelvic_tilt', 'asymmetry', 'v_taper_boost'];
+const MAX_CYCLE_WEEKS = 4;
+export const PLAN_VERSION = 2;
+
+// Bodyweight leg patterns that are normally loaded with dumbbells or a barbell.
+const LOADABLE_BODYWEIGHT = {
+  home_dumbbells: ['reverse_lunges', 'glute_bridge'],
+  gym: ['reverse_lunges', 'glute_bridge'],
+};
+
+const GROUP_LABELS = {
+  back: 'Спина',
+  chest: 'Грудь',
+  shoulders: 'Плечи',
+  biceps: 'Бицепс',
+  triceps: 'Трицепс',
+  legs: 'Ноги и ягодицы',
+  core: 'Кор',
+  cardio: 'Кардио',
+};
+
+const GROUP_FOCUS = {
+  back: 'тяги для ширины и толщины спины',
+  chest: 'жимы для грудных мышц',
+  shoulders: 'дельты и ширина плеч',
+  biceps: 'бицепс',
+  triceps: 'трицепс',
+  legs: 'квадрицепсы, ягодицы и задняя поверхность бедра',
+  core: 'пресс и глубокий кор',
+  cardio: 'жиросжигающие интервалы',
+};
+
+// Used only when a day already holds every exercise of the slot's own group.
+const GROUP_FALLBACKS = {
+  back: ['shoulders', 'biceps'],
+  biceps: ['back', 'triceps'],
+  shoulders: ['back', 'chest'],
+  chest: ['shoulders', 'triceps'],
+  triceps: ['chest', 'shoulders'],
+  legs: [],
+  core: ['cardio'],
+  cardio: ['core'],
+};
+
+export function exerciseRole(ex) {
+  if (ex.block === 'main') return 'main';
+  if (ex.block === 'corrective' || ex.category === 'posture') return 'corrective';
+  return 'core';
 }
 
-function scoreExerciseForSlot(ex, slotSpec, focusTags, goal, equipment, aiRecSet, weekUseCount, prevDayIds) {
-  let score = 0;
-  const primary = typeof slotSpec === 'string' ? slotSpec : slotSpec.primary;
-  const fallbacks = typeof slotSpec === 'string' ? [] : slotSpec.fallbacks || [];
+export function exerciseGroup(ex) {
+  if (ex.category === 'arms') return ex.muscles[0] === 'biceps' ? 'biceps' : 'triceps';
+  return ex.category;
+}
 
-  if (matchesSlot(ex, primary)) {
-    score += 130;
-  } else {
-    const fbIdx = fallbacks.findIndex((fb) => matchesSlot(ex, fb));
-    if (fbIdx >= 0) {
-      score += Math.max(45, 78 - fbIdx * 16);
-    } else if (primary === 'biceps' && ex.muscles.includes('biceps')) {
-      score += 36;
-    } else if (primary === 'triceps' && ex.muscles.includes('triceps')) {
-      score += 36;
+/**
+ * Main work (and core work with TRX) must use the selected equipment; posture drills
+ * and generic core work may be bodyweight in any mode.
+ */
+export function isExerciseAllowedInMode(ex, equipment) {
+  if (!ex || !ex.equipment.includes(equipment)) return false;
+  if (equipment === 'home_bodyweight') return true;
+  const role = exerciseRole(ex);
+  if (role === 'corrective') return true;
+  const needsEquipment = !ex.equipment.includes('home_bodyweight');
+  if (role === 'core') return equipment !== 'home_trx' || needsEquipment;
+  return needsEquipment || (LOADABLE_BODYWEIGHT[equipment] || []).includes(ex.id);
+}
+
+export function getModeExercises(equipment) {
+  return EXERCISES.filter((ex) => isExerciseAllowedInMode(ex, equipment));
+}
+
+function matchesCorrectiveSlot(ex, slot) {
+  if (slot === 'posture_upper') {
+    return ex.postureTags.includes('rounded_shoulders') || ex.postureTags.includes('forward_head');
+  }
+  if (slot === 'posture_lower') {
+    return ex.postureTags.includes('anterior_pelvic_tilt') || ex.postureTags.includes('asymmetry');
+  }
+  return true;
+}
+
+function weakSpotHits(ex, focusTags) {
+  return ex.postureTags.filter((t) => WEAK_SPOT_TAGS.includes(t) && focusTags.includes(t)).length;
+}
+
+function buildDayTemplates(daysPerWeek, equipment) {
+  const days = Math.min(5, Math.max(3, daysPerWeek));
+  if (equipment === 'home_bodyweight') {
+    // No pulling or curling equipment at home, so the split is built around what the body alone can load.
+    const upper = { region: 'upper', main: ['chest', 'back', 'triceps', 'triceps'] };
+    const legs = { region: 'lower', main: ['legs', 'legs', 'legs', 'legs'] };
+    const coreDay = {
+      region: 'full',
+      main: ['core', 'cardio', 'core', 'core'],
+      title: 'Кор и кардио',
+      focus: 'Пресс, глубокий кор и жиросжигающие интервалы',
+    };
+    const full = {
+      region: 'full',
+      main: ['legs', 'chest', 'back', 'triceps'],
+      title: 'Всё тело',
+      focus: 'Базовые движения на все крупные группы мышц за одну тренировку',
+    };
+    if (days === 3) return [upper, legs, full];
+    if (days === 4) return [upper, legs, coreDay, full];
+    return [upper, legs, coreDay, full, { ...upper }];
+  }
+
+  if (days === 3) {
+    return [
+      { region: 'upper', main: ['back', 'back', 'biceps', 'shoulders'] },
+      { region: 'lower', main: ['legs', 'legs', 'legs', 'legs'] },
+      { region: 'upper', main: ['chest', 'shoulders', 'triceps', 'chest'] },
+    ];
+  }
+  if (days === 4) {
+    return [
+      { region: 'upper', main: ['back', 'back', 'biceps', 'biceps'] },
+      { region: 'lower', main: ['legs', 'legs', 'legs', 'legs'] },
+      { region: 'upper', main: ['chest', 'chest', 'shoulders', 'triceps'] },
+      { region: 'upper', main: ['shoulders', 'biceps', 'triceps', 'shoulders'] },
+    ];
+  }
+  return [
+    { region: 'upper', main: ['back', 'back', 'back', 'biceps'] },
+    { region: 'lower', main: ['legs', 'legs', 'legs', 'legs'] },
+    { region: 'upper', main: ['chest', 'chest', 'triceps', 'triceps'] },
+    { region: 'upper', main: ['shoulders', 'shoulders', 'back'] },
+    { region: 'upper', main: ['biceps', 'triceps', 'biceps', 'triceps'] },
+  ];
+}
+
+function joinRu(parts) {
+  if (parts.length <= 1) return parts.join('');
+  return `${parts.slice(0, -1).join(', ')} и ${parts[parts.length - 1]}`;
+}
+
+function describeDay(tpl, mainExercises) {
+  if (tpl.title) return { title: tpl.title, focus: tpl.focus };
+  const groups = [...new Set(mainExercises.map(exerciseGroup))];
+  if (!groups.length) return { title: 'Осанка и кор', focus: 'Коррекция осанки и стабилизация корпуса' };
+  const title = joinRu(groups.map((g, i) => {
+    const label = GROUP_LABELS[g] || g;
+    return i === 0 ? label : label.toLowerCase();
+  }));
+  const focusText = joinRu(groups.map((g) => GROUP_FOCUS[g] || g));
+  return { title, focus: focusText.charAt(0).toUpperCase() + focusText.slice(1) };
+}
+
+function buildCorrectiveSlots(region, focusTags, dayPos) {
+  const upperFocus = focusTags.includes('forward_head') || focusTags.includes('rounded_shoulders');
+  const lowerFocus = focusTags.includes('anterior_pelvic_tilt') || focusTags.includes('asymmetry');
+  const regionSlot =
+    region === 'upper' ? 'posture_upper' : region === 'lower' ? 'posture_lower' : dayPos % 2 ? 'posture_lower' : 'posture_upper';
+  if (!upperFocus && !lowerFocus) return [regionSlot];
+  if (upperFocus && lowerFocus) return [regionSlot, regionSlot === 'posture_upper' ? 'posture_lower' : 'posture_upper'];
+  return [regionSlot, upperFocus ? 'posture_upper' : 'posture_lower'];
+}
+
+/**
+ * Generate the training cycle: as many weeks as needed (max 4) for every exercise
+ * of the chosen equipment mode to appear at least once, with weak spots found on
+ * the photos placed first, given an extra set and kept in every week when possible.
+ */
+export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
+  const equipment = profile.equipment || 'home_bodyweight';
+  const goal = profile.goal || 'recomp';
+  const level = profile.level || 'beginner';
+  const daysPerWeek = Number(profile.daysPerWeek) || 3;
+  const focusTags = metrics?.focusTags || [];
+  const aiRecSet = new Set(Array.isArray(aiAnalysis?.recommendedExerciseIds) ? aiAnalysis.recommendedExerciseIds : []);
+
+  const modeExercises = getModeExercises(equipment);
+  const pools = { main: [], corrective: [], core: [] };
+  modeExercises.forEach((ex) => pools[exerciseRole(ex)].push(ex));
+
+  const templates = buildDayTemplates(daysPerWeek, equipment);
+  const mainCount = level === 'beginner' ? 3 : 4;
+  const coreCount = goal === 'recomp' ? 2 : 1;
+  const finishGroups = goal === 'recomp' ? ['cardio', 'core'] : ['core', 'cardio'];
+  const finishPreferred = finishGroups[0];
+
+  const isWeakSpot = (ex) => weakSpotHits(ex, focusTags) > 0 || aiRecSet.has(ex.id);
+
+  // Main exercises that target a weak spot recur weekly, but only in groups with room to rotate the rest.
+  const slotsPerGroup = {};
+  templates.forEach((tpl) => tpl.main.slice(0, mainCount).forEach((g) => {
+    slotsPerGroup[g] = (slotsPerGroup[g] || 0) + 1;
+  }));
+  const anchors = new Set();
+  const anchorGroups = new Set();
+  pools.main
+    .filter(isWeakSpot)
+    .map((ex) => ({ ex, w: weakSpotHits(ex, focusTags) * 2 + (aiRecSet.has(ex.id) ? 3 : 0) }))
+    .sort((a, b) => b.w - a.w)
+    .forEach(({ ex }) => {
+      const g = exerciseGroup(ex);
+      if (anchors.size >= 3 || anchorGroups.has(g) || (slotsPerGroup[g] || 0) < 2) return;
+      anchors.add(ex.id);
+      anchorGroups.add(g);
+    });
+
+  const reachableGroups = new Set();
+  templates.forEach((tpl) => tpl.main.forEach((g) => {
+    reachableGroups.add(g);
+    (GROUP_FALLBACKS[g] || []).forEach((fb) => reachableGroups.add(fb));
+  }));
+  finishGroups.forEach((g) => reachableGroups.add(g));
+  const coverageIds = new Set(
+    modeExercises
+      .filter((ex) => exerciseRole(ex) !== 'main' || reachableGroups.has(exerciseGroup(ex)))
+      .map((ex) => ex.id)
+  );
+
+  const cycleUse = new Map();
+  const bump = (map, id) => map.set(id, (map.get(id) || 0) + 1);
+
+  const scoreOf = (ex, weekUse, prevDayIds, finishBias = null) => {
+    let s = 0;
+    if (!cycleUse.has(ex.id)) s += 60;
+    if (anchors.has(ex.id) && !weekUse.has(ex.id)) s += 80;
+    s += Math.min(24, weakSpotHits(ex, focusTags) * 12);
+    if (aiRecSet.has(ex.id)) s += 20;
+    if (ex.goalTags.includes(goal)) s += 4;
+    if (!ex.level.includes(level)) s -= 15;
+    if (finishBias && exerciseGroup(ex) === finishBias) s += 8;
+    if (equipment !== 'home_bodyweight' && !ex.equipment.includes('home_bodyweight')) s += 5;
+    s -= (weekUse.get(ex.id) || 0) * 70;
+    if (prevDayIds.has(ex.id)) s -= 25;
+    s -= (cycleUse.get(ex.id) || 0) * 6;
+    return s;
+  };
+
+  const pickBest = (candidates, weekUse, prevDayIds, finishBias = null) => {
+    let best = null;
+    let bestScore = -Infinity;
+    for (const ex of candidates) {
+      const sc = scoreOf(ex, weekUse, prevDayIds, finishBias);
+      if (sc > bestScore) {
+        best = ex;
+        bestScore = sc;
+      }
+    }
+    return best;
+  };
+
+  const groupPool = (group) => (group === 'core' || group === 'cardio' ? pools.core : pools.main);
+
+  const pickForGroup = (group, dayIds, weekUse, prevDayIds) => {
+    for (const g of [group, ...(GROUP_FALLBACKS[group] || [])]) {
+      const candidates = groupPool(g).filter((ex) => exerciseGroup(ex) === g && !dayIds.has(ex.id));
+      const chosen = pickBest(candidates, weekUse, prevDayIds);
+      if (chosen) return chosen;
+    }
+    return null;
+  };
+
+  const toItem = (ex, section) => {
+    const rx = tunePrescription(ex, goal, level);
+    const priority = isWeakSpot(ex) && exerciseRole(ex) !== 'core';
+    return {
+      exerciseId: ex.id,
+      section,
+      sets: priority && exerciseRole(ex) === 'main' ? Math.min(5, rx.sets + 1) : rx.sets,
+      reps: rx.reps,
+      restSec: rx.restSec,
+      holdSeconds: rx.holdSeconds,
+      priority,
+      reason: buildReasonText(ex, metrics || {}, aiRecSet),
+    };
+  };
+
+  const finalizeDay = (dayIndex, title, focus, items) => {
+    const totalSets = items.reduce((acc, it) => acc + it.sets, 0);
+    const estMinutes = Math.round(6 + totalSets * 1.9);
+    const estKcal = Math.round(estMinutes * (goal === 'recomp' ? 7.6 : 6.4));
+    return { dayIndex, title: `День ${dayIndex} • ${title}`, focus, estMinutes, estKcal, totalSets, items };
+  };
+
+  const buildWeek = () => {
+    const weekUse = new Map();
+    let prevDayIds = new Set();
+    return templates.map((tpl, pos) => {
+      const dayIds = new Set();
+      const take = (ex) => {
+        dayIds.add(ex.id);
+        bump(weekUse, ex.id);
+        bump(cycleUse, ex.id);
+        return ex;
+      };
+
+      const corrective = [];
+      for (const slot of buildCorrectiveSlots(tpl.region, focusTags, pos)) {
+        let candidates = pools.corrective.filter((ex) => !dayIds.has(ex.id) && matchesCorrectiveSlot(ex, slot));
+        if (!candidates.length) candidates = pools.corrective.filter((ex) => !dayIds.has(ex.id));
+        const chosen = pickBest(candidates, weekUse, prevDayIds);
+        if (chosen) corrective.push(take(chosen));
+      }
+
+      const main = [];
+      for (const group of tpl.main.slice(0, mainCount)) {
+        const chosen = pickForGroup(group, dayIds, weekUse, prevDayIds);
+        if (chosen) main.push(take(chosen));
+      }
+
+      // Core and cardio share the finisher so every one of them rotates in; the goal only tilts the choice.
+      const core = [];
+      for (let i = 0; i < coreCount; i += 1) {
+        const candidates = pools.core.filter((ex) => !dayIds.has(ex.id));
+        const chosen = pickBest(candidates, weekUse, prevDayIds, i === 0 ? finishPreferred : finishGroups[1]);
+        if (chosen) core.push(take(chosen));
+      }
+
+      prevDayIds = dayIds;
+      const { title, focus } = describeDay(tpl, main);
+      const items = [
+        ...corrective.map((ex) => toItem(ex, 'Разминка и осанка')),
+        ...main.map((ex) => toItem(ex, 'Основной блок')),
+        ...core.map((ex) => toItem(ex, 'Кор и финиш')),
+      ];
+      return finalizeDay(pos + 1, title, focus, items);
+    });
+  };
+
+  const focusSummary = [];
+  if (focusTags.includes('forward_head')) focusSummary.push('Выравнивание шеи и головы');
+  if (focusTags.includes('rounded_shoulders')) focusSummary.push('Раскрытие грудного отдела и верх спины');
+  if (focusTags.includes('asymmetry')) focusSummary.push('Унилатеральный баланс сторон');
+  if (focusTags.includes('anterior_pelvic_tilt')) focusSummary.push('Стабилизация таза и глубокий кор');
+  if (focusTags.includes('v_taper_boost')) focusSummary.push('Акцент на плечи и V-силуэт');
+  if (!focusSummary.length) focusSummary.push('Гармоничное развитие всех мышечных групп');
+
+  const weeks = [];
+  let generatedByAi = false;
+
+  // A valid AI-built week (catalog IDs, same equipment and week length) becomes week 1; rotation covers the rest.
+  if (
+    Array.isArray(aiAnalysis?.customPlanDays) &&
+    aiAnalysis.customPlanDays.length >= 2 &&
+    aiPlanMatchesProfile(aiAnalysis, { equipment, daysPerWeek })
+  ) {
+    const validatedDays = aiAnalysis.customPlanDays
+      .map((d) => {
+        const seenIds = new Set();
+        const validItems = (Array.isArray(d.items) ? d.items : [])
+          .filter((it) => {
+            const ex = EXERCISE_MAP[it.exerciseId];
+            if (!isExerciseAllowedInMode(ex, equipment) || seenIds.has(ex.id)) return false;
+            seenIds.add(ex.id);
+            return true;
+          })
+          .map((it) => {
+            const ex = EXERCISE_MAP[it.exerciseId];
+            const role = exerciseRole(ex);
+            return {
+              exerciseId: ex.id,
+              section: role === 'corrective' ? 'Разминка и осанка' : role === 'core' ? 'Кор и финиш' : 'Основной блок',
+              sets: Math.max(2, Math.min(5, Number(it.sets) || ex.defaultSets)),
+              reps: String(it.reps || ex.defaultReps),
+              restSec: Math.max(20, Math.min(150, Number(it.restSec) || ex.defaultRestSec)),
+              holdSeconds: ex.holdSeconds || 40,
+              priority: isWeakSpot(ex) && role !== 'core',
+              reason: it.reason ? `AI Ассистент • ${it.reason}` : `AI Ассистент • ${ex.whyTemplate}`,
+            };
+          });
+        return validItems.length >= 3 ? { d, items: validItems } : null;
+      })
+      .filter(Boolean)
+      .map(({ d, items }, idx) => {
+        items.forEach((it) => bump(cycleUse, it.exerciseId));
+        const rawTitle = String(d.title || 'Персональная тренировка AI').replace(/^\s*День\s*\d+\s*[•:.\-–—]?\s*/i, '');
+        return finalizeDay(idx + 1, rawTitle, d.focus || 'Составлено AI Ассистентом по результатам анализа фото', items);
+      });
+
+    if (validatedDays.length >= 2) {
+      weeks.push({ weekIndex: 1, source: 'ai', days: validatedDays });
+      generatedByAi = true;
     }
   }
 
-  // Posture tags guide WHICH exercise wins inside its slot without overriding arms/muscle slots
-  let postureBonus = 0;
-  for (const tag of focusTags) {
-    if (ex.postureTags.includes(tag)) postureBonus += 10;
-  }
-  score += Math.min(22, postureBonus);
-
-  if (ex.goalTags.includes(goal)) score += 10;
-  if (aiRecSet.has(ex.id)) score += 20;
-
-  // Prefer signature gym machines/barbells in gym mode, and dumbbell moves over bodyweight in dumbbell mode
-  if (equipment === 'gym' && ex.equipment.length === 1 && ex.equipment[0] === 'gym') {
-    score += 24;
-  } else if (equipment !== 'home_bodyweight' && !ex.equipment.includes('home_bodyweight')) {
-    score += 16;
+  const isCovered = () => [...coverageIds].every((id) => cycleUse.has(id));
+  while (weeks.length < MAX_CYCLE_WEEKS && (!weeks.length || !isCovered())) {
+    weeks.push({ weekIndex: weeks.length + 1, source: 'rotation', days: buildWeek() });
   }
 
-  // Strong frequency-based anti-duplication so no two workout days repeat the same lineup
-  const uses = weekUseCount.get(ex.id) || 0;
-  if (uses > 0) {
-    const stepPenalty = ex.block === 'corrective' ? 85 : ex.block === 'core' || ex.block === 'warmup' ? 95 : 120;
-    score -= uses * stepPenalty;
-  }
-  if (prevDayIds.has(ex.id)) {
-    score -= ex.block === 'corrective' ? 32 : 48;
-  }
-  return score;
+  const coveredCount = [...coverageIds].filter((id) => cycleUse.has(id)).length;
+
+  return {
+    id: `plan_${Date.now()}`,
+    version: PLAN_VERSION,
+    createdAt: new Date().toISOString(),
+    generatedByAi,
+    aiProviderLabel: generatedByAi ? `${(aiAnalysis?.provider || 'AI').toUpperCase()} ${aiAnalysis?.model || ''}`.trim() : null,
+    goal,
+    goalLabel: GOAL_LABELS[goal] || goal,
+    equipment,
+    equipmentLabel: EQUIPMENT_LABELS[equipment] || equipment,
+    level,
+    levelLabel: LEVEL_LABELS[level] || level,
+    daysPerWeek: weeks[0].days.length,
+    focusTags: [...focusTags],
+    focusSummary,
+    priorityExerciseIds: modeExercises.filter((ex) => isWeakSpot(ex) && exerciseRole(ex) !== 'core').map((ex) => ex.id),
+    coverage: { total: coverageIds.size, covered: coveredCount },
+    nutrition: buildNutritionGuidance(profile, metrics || {}, aiAnalysis),
+    weeks,
+    currentWeek: 0,
+    days: weeks[0].days,
+  };
 }
 
-function pickExercisesBySlots(pool, slotSpecs, focusTags, goal, equipment, aiRecSet, dayUsedIds, weekUseCount, prevDayIds) {
-  const picked = [];
-  for (const slotSpec of slotSpecs) {
-    const candidates = pool
-      .filter((ex) => !dayUsedIds.has(ex.id))
-      .map((ex) => ({
-        ex,
-        score: scoreExerciseForSlot(ex, slotSpec, focusTags, goal, equipment, aiRecSet, weekUseCount, prevDayIds),
-      }))
-      .sort((a, b) => b.score - a.score);
-
-    if (!candidates.length) break;
-    const chosen = candidates[0].ex;
-    picked.push(chosen);
-    dayUsedIds.add(chosen.id);
-    weekUseCount.set(chosen.id, (weekUseCount.get(chosen.id) || 0) + 1);
+/**
+ * Plans are stored as JSON, so `days` must be re-pointed at the selected week after loading.
+ * Plans saved before the weekly cycle existed become a one-week cycle.
+ */
+export function normalizePlan(plan) {
+  if (!plan || !Array.isArray(plan.days)) return plan;
+  if (!Array.isArray(plan.weeks) || !plan.weeks.length) {
+    plan.weeks = [{ weekIndex: 1, source: plan.generatedByAi ? 'ai' : 'rotation', days: plan.days }];
   }
-  return picked;
+  const w = Math.min(Math.max(0, Number(plan.currentWeek) || 0), plan.weeks.length - 1);
+  plan.currentWeek = w;
+  plan.days = plan.weeks[w].days;
+  return plan;
 }
 
-function buildSplitTemplates(daysPerWeek, goal) {
-  const finishSlot = goal === 'recomp' ? { primary: 'cardio', fallbacks: ['core'] } : { primary: 'core', fallbacks: ['cardio'] };
+export function selectPlanWeek(plan, weekIdx) {
+  if (!plan?.weeks?.[weekIdx]) return plan;
+  plan.currentWeek = weekIdx;
+  plan.days = plan.weeks[weekIdx].days;
+  return plan;
+}
 
-  if (daysPerWeek <= 3) {
-    return [
-      {
-        dayIndex: 1,
-        title: 'День 1 • Спина, бицепс и осанка',
-        focus: 'Тяги для широкой спины, рельеф бицепса и раскрытие плеч',
-        correctiveSlots: [
-          { primary: 'posture_upper', fallbacks: ['posture'] },
-          { primary: 'posture', fallbacks: ['posture_upper'] },
-        ],
-        mainSlots: [
-          { primary: 'back', fallbacks: ['shoulders', 'core'] },
-          { primary: 'back', fallbacks: ['shoulders', 'core'] },
-          { primary: 'biceps', fallbacks: ['arms', 'back'] },
-          { primary: 'shoulders', fallbacks: ['biceps', 'back'] },
-        ],
-        coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }, finishSlot],
-      },
-      {
-        dayIndex: 2,
-        title: 'День 2 • Ноги, ягодицы и контроль таза',
-        focus: 'Сильные ноги, ягодичные, задняя цепь и стабильный кор',
-        correctiveSlots: [
-          { primary: 'posture_lower', fallbacks: ['posture'] },
-          { primary: 'posture', fallbacks: ['posture_lower'] },
-        ],
-        mainSlots: [
-          { primary: 'legs', fallbacks: ['core'] },
-          { primary: 'legs', fallbacks: ['core'] },
-          { primary: 'legs', fallbacks: ['core'] },
-          { primary: 'legs', fallbacks: ['core'] },
-        ],
-        coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }, finishSlot],
-      },
-      {
-        dayIndex: 3,
-        title: 'День 3 • Грудь, плечи и трицепс',
-        focus: 'Атлетичный верх тела, трицепс и симметричный рельеф рук',
-        correctiveSlots: [
-          { primary: 'posture_upper', fallbacks: ['posture'] },
-          { primary: 'posture_lower', fallbacks: ['posture'] },
-        ],
-        mainSlots: [
-          { primary: 'chest', fallbacks: ['shoulders', 'triceps'] },
-          { primary: 'shoulders', fallbacks: ['triceps', 'chest'] },
-          { primary: 'triceps', fallbacks: ['arms', 'chest'] },
-          { primary: 'biceps', fallbacks: ['triceps', 'shoulders'] },
-        ],
-        coreSlots: [finishSlot, { primary: 'core', fallbacks: ['cardio'] }],
-      },
-    ];
-  }
-
-  if (daysPerWeek === 4) {
-    return [
-      {
-        dayIndex: 1,
-        title: 'День 1 • Спина и бицепс (Тяги + Осанка)',
-        focus: 'Укрепление верха и ширины спины, прицельная работа на бицепс',
-        correctiveSlots: [
-          { primary: 'posture_upper', fallbacks: ['posture'] },
-          { primary: 'posture', fallbacks: ['posture_upper'] },
-        ],
-        mainSlots: [
-          { primary: 'back', fallbacks: ['biceps', 'shoulders'] },
-          { primary: 'back', fallbacks: ['shoulders', 'biceps'] },
-          { primary: 'biceps', fallbacks: ['arms', 'back'] },
-          { primary: 'biceps', fallbacks: ['shoulders', 'back'] },
-        ],
-        coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }],
-      },
-      {
-        dayIndex: 2,
-        title: 'День 2 • Ноги, ягодицы и стабилизация таза',
-        focus: 'Квадрицепсы, задняя поверхность бедра, ягодицы и глубокий кор',
-        correctiveSlots: [
-          { primary: 'posture_lower', fallbacks: ['posture'] },
-          { primary: 'posture', fallbacks: ['posture_lower'] },
-        ],
-        mainSlots: [
-          { primary: 'legs', fallbacks: ['core'] },
-          { primary: 'legs', fallbacks: ['core'] },
-          { primary: 'legs', fallbacks: ['core'] },
-          { primary: 'legs', fallbacks: ['core'] },
-        ],
-        coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }, finishSlot],
-      },
-      {
-        dayIndex: 3,
-        title: 'День 3 • Грудь, плечи и трицепс (Жимы)',
-        focus: 'Сильный верх корпуса, V-силуэт и прицельная нагрузка на трицепс',
-        correctiveSlots: [
-          { primary: 'posture_upper', fallbacks: ['posture'] },
-          { primary: 'posture', fallbacks: ['posture_upper'] },
-        ],
-        mainSlots: [
-          { primary: 'chest', fallbacks: ['shoulders', 'triceps'] },
-          { primary: 'shoulders', fallbacks: ['chest', 'triceps'] },
-          { primary: 'triceps', fallbacks: ['arms', 'chest'] },
-          { primary: 'triceps', fallbacks: ['shoulders', 'chest'] },
-        ],
-        coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }],
-      },
-      {
-        dayIndex: 4,
-        title: 'День 4 • Руки (бицепс + трицепс), плечи и рельеф',
-        focus: 'Изолированный акцент на бицепс, трицепс, дельты и жиросжигающий финиш',
-        correctiveSlots: [
-          { primary: 'posture_lower', fallbacks: ['posture'] },
-          { primary: 'posture_upper', fallbacks: ['posture'] },
-        ],
-        mainSlots: [
-          { primary: 'shoulders', fallbacks: ['chest', 'back'] },
-          { primary: 'biceps', fallbacks: ['arms', 'back'] },
-          { primary: 'triceps', fallbacks: ['arms', 'chest'] },
-          { primary: 'chest', fallbacks: ['back', 'shoulders'] },
-        ],
-        coreSlots: [
-          { primary: 'cardio', fallbacks: ['core'] },
-          { primary: 'core', fallbacks: ['cardio'] },
-        ],
-      },
-    ];
-  }
-
-  return [
-    {
-      dayIndex: 1,
-      title: 'День 1 • Спина и здоровая осанка',
-      focus: 'Тяги, широчайшие, ромбовидные и раскрытие плеч',
-      correctiveSlots: [
-        { primary: 'posture_upper', fallbacks: ['posture'] },
-        { primary: 'posture', fallbacks: ['posture_upper'] },
-      ],
-      mainSlots: [
-        { primary: 'back', fallbacks: ['shoulders'] },
-        { primary: 'back', fallbacks: ['biceps'] },
-        { primary: 'back', fallbacks: ['shoulders', 'biceps'] },
-        { primary: 'biceps', fallbacks: ['arms', 'back'] },
-      ],
-      coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }],
-    },
-    {
-      dayIndex: 2,
-      title: 'День 2 • Ноги и ягодицы',
-      focus: 'Квадрицепсы, ягодичные и задняя поверхность бедра',
-      correctiveSlots: [
-        { primary: 'posture_lower', fallbacks: ['posture'] },
-        { primary: 'posture', fallbacks: ['posture_lower'] },
-      ],
-      mainSlots: [
-        { primary: 'legs', fallbacks: ['core'] },
-        { primary: 'legs', fallbacks: ['core'] },
-        { primary: 'legs', fallbacks: ['core'] },
-        { primary: 'legs', fallbacks: ['core'] },
-      ],
-      coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }],
-    },
-    {
-      dayIndex: 3,
-      title: 'День 3 • Грудь и трицепс',
-      focus: 'Жимы, грудные мышцы и объём трицепса',
-      correctiveSlots: [
-        { primary: 'posture_upper', fallbacks: ['posture'] },
-        { primary: 'posture', fallbacks: ['posture_upper'] },
-      ],
-      mainSlots: [
-        { primary: 'chest', fallbacks: ['shoulders'] },
-        { primary: 'chest', fallbacks: ['triceps'] },
-        { primary: 'triceps', fallbacks: ['arms', 'chest'] },
-        { primary: 'triceps', fallbacks: ['shoulders', 'chest'] },
-      ],
-      coreSlots: [{ primary: 'core', fallbacks: ['cardio'] }],
-    },
-    {
-      dayIndex: 4,
-      title: 'День 4 • Плечи, кор и кардио-тонус',
-      focus: 'Ширина плеч, глубокий кор, симметрия и выносливость',
-      correctiveSlots: [
-        { primary: 'posture_lower', fallbacks: ['posture'] },
-        { primary: 'posture_upper', fallbacks: ['posture'] },
-      ],
-      mainSlots: [
-        { primary: 'shoulders', fallbacks: ['back', 'chest'] },
-        { primary: 'shoulders', fallbacks: ['back', 'triceps'] },
-        { primary: 'back', fallbacks: ['chest', 'biceps'] },
-      ],
-      coreSlots: [
-        { primary: 'cardio', fallbacks: ['core'] },
-        { primary: 'core', fallbacks: ['cardio'] },
-      ],
-    },
-    {
-      dayIndex: 5,
-      title: 'День 5 • Руки (бицепс + трицепс) и рельеф',
-      focus: 'Специализация на бицепс и трицепс плюс тонус нижней цепи',
-      correctiveSlots: [
-        { primary: 'posture_upper', fallbacks: ['posture'] },
-        { primary: 'posture_lower', fallbacks: ['posture'] },
-      ],
-      mainSlots: [
-        { primary: 'biceps', fallbacks: ['arms', 'back'] },
-        { primary: 'triceps', fallbacks: ['arms', 'chest'] },
-        { primary: 'biceps', fallbacks: ['shoulders', 'back'] },
-        { primary: 'legs', fallbacks: ['triceps', 'chest'] },
-      ],
-      coreSlots: [finishSlot, { primary: 'core', fallbacks: ['cardio'] }],
-    },
-  ];
+/**
+ * Return compatible replacement exercises for swapping in the UI.
+ */
+export function getAlternativeExercises(currentExerciseId, equipment) {
+  const current = EXERCISE_MAP[currentExerciseId];
+  if (!current) return [];
+  const role = exerciseRole(current);
+  const group = exerciseGroup(current);
+  const currentPrimaryMuscle = current.muscles?.[0];
+  const rank = (ex) =>
+    (exerciseGroup(ex) === group ? 30 : 0) +
+    (currentPrimaryMuscle && ex.muscles.includes(currentPrimaryMuscle) ? 20 : 0);
+  const nearGroups = new Set([group, ...(GROUP_FALLBACKS[group] || [])]);
+  return getModeExercises(equipment)
+    .filter(
+      (ex) =>
+        ex.id !== currentExerciseId &&
+        exerciseRole(ex) === role &&
+        (role !== 'main' || nearGroups.has(exerciseGroup(ex)))
+    )
+    .sort((a, b) => rank(b) - rank(a))
+    .slice(0, 6);
 }
 
 export function buildNutritionGuidance(profile = {}, metrics = {}, aiAnalysis = null) {
@@ -449,229 +615,4 @@ export function buildNutritionGuidance(profile = {}, metrics = {}, aiAnalysis = 
     stepsTarget: profile.goal === 'recomp' ? '9 000–11 000 шагов/день' : '7 500–9 000 шагов/день',
     aiHint: aiAnalysis?.nutritionHint || null,
   };
-}
-
-function getPoolForSlot(basePool, extraCorePool, slotSpec) {
-  const wanted = typeof slotSpec === 'string'
-    ? [slotSpec]
-    : [slotSpec.primary, ...(slotSpec.fallbacks || [])];
-  if (wanted.includes('core') || wanted.includes('cardio')) {
-    return [...basePool, ...extraCorePool];
-  }
-  return basePool;
-}
-
-/**
- * Generate full weekly workout plan object.
- */
-export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
-  const equipment = profile.equipment || 'home_bodyweight';
-  const goal = profile.goal || 'recomp';
-  const level = profile.level || 'beginner';
-  const daysPerWeek = Number(profile.daysPerWeek) || 3;
-  const focusTags = metrics?.focusTags || [];
-  const aiRecSet = new Set(Array.isArray(aiAnalysis?.recommendedExerciseIds) ? aiAnalysis.recommendedExerciseIds : []);
-
-  const compatible = EXERCISES.filter((ex) => ex.equipment.includes(equipment));
-  const correctivePool = compatible.filter((ex) => ex.block === 'corrective' || ex.category === 'posture');
-  const mainPool = compatible.filter((ex) => ex.block === 'main');
-  const corePool = compatible.filter((ex) => ex.block === 'core' || ex.block === 'warmup' || ex.category === 'cardio');
-
-  const templates = buildSplitTemplates(daysPerWeek, goal);
-  const weekUseCount = new Map();
-  let prevDayIds = new Set();
-
-  const days = templates.map((tpl) => {
-    const dayUsedIds = new Set();
-    const isBodyweight = equipment === 'home_bodyweight';
-    const hasPostureFocus = focusTags.some((t) =>
-      ['forward_head', 'rounded_shoulders', 'anterior_pelvic_tilt', 'asymmetry'].includes(t)
-    );
-    const correctiveCount = hasPostureFocus && !(isBodyweight && daysPerWeek >= 4) ? 2 : 1;
-    const mainCount = level === 'beginner' || isBodyweight
-      ? Math.min(3, tpl.mainSlots.length)
-      : tpl.mainSlots.length;
-    const coreCount = goal === 'recomp' || (isBodyweight && daysPerWeek >= 4)
-      ? Math.min(2, tpl.coreSlots.length)
-      : 1;
-
-    const pickedCorrective = pickExercisesBySlots(
-      correctivePool,
-      tpl.correctiveSlots.slice(0, correctiveCount),
-      focusTags,
-      goal,
-      equipment,
-      aiRecSet,
-      dayUsedIds,
-      weekUseCount,
-      prevDayIds
-    );
-
-    const pickedMain = [];
-    for (const slotSpec of tpl.mainSlots.slice(0, mainCount)) {
-      const slotPool = getPoolForSlot(mainPool, corePool, slotSpec);
-      const chosenList = pickExercisesBySlots(
-        slotPool,
-        [slotSpec],
-        focusTags,
-        goal,
-        equipment,
-        aiRecSet,
-        dayUsedIds,
-        weekUseCount,
-        prevDayIds
-      );
-      if (chosenList.length) pickedMain.push(chosenList[0]);
-    }
-
-    const pickedCore = pickExercisesBySlots(
-      corePool,
-      tpl.coreSlots.slice(0, coreCount),
-      focusTags,
-      goal,
-      equipment,
-      aiRecSet,
-      dayUsedIds,
-      weekUseCount,
-      prevDayIds
-    );
-
-    prevDayIds = new Set(dayUsedIds);
-
-    const ordered = [
-      ...pickedCorrective.map((ex) => ({ ex, section: 'Разминка и осанка' })),
-      ...pickedMain.map((ex) => ({ ex, section: 'Основной блок' })),
-      ...pickedCore.map((ex) => ({ ex, section: 'Кор и финиш' })),
-    ];
-
-    const items = ordered.map(({ ex, section }) => {
-      const rx = tunePrescription(ex, goal, level);
-      return {
-        exerciseId: ex.id,
-        section,
-        sets: rx.sets,
-        reps: rx.reps,
-        restSec: rx.restSec,
-        holdSeconds: rx.holdSeconds,
-        reason: buildReasonText(ex, metrics || {}, aiRecSet),
-      };
-    });
-
-    const totalSets = items.reduce((acc, it) => acc + it.sets, 0);
-    const estMinutes = Math.round(6 + totalSets * 1.9);
-    const estKcal = Math.round(estMinutes * (goal === 'recomp' ? 7.6 : 6.4));
-
-    return {
-      dayIndex: tpl.dayIndex,
-      title: tpl.title,
-      focus: tpl.focus,
-      estMinutes,
-      estKcal,
-      totalSets,
-      items,
-    };
-  });
-
-  const focusSummary = [];
-  if (focusTags.includes('forward_head')) focusSummary.push('Выравнивание шеи и головы');
-  if (focusTags.includes('rounded_shoulders')) focusSummary.push('Раскрытие грудного отдела и верх спины');
-  if (focusTags.includes('asymmetry')) focusSummary.push('Унилатеральный баланс сторон');
-  if (focusTags.includes('anterior_pelvic_tilt')) focusSummary.push('Стабилизация таза и глубокий кор');
-  if (focusTags.includes('v_taper_boost')) focusSummary.push('Акцент на плечи и V-силуэт');
-  if (!focusSummary.length) focusSummary.push('Гармоничное развитие всех мышечных групп');
-
-  // If Vision AI returned a valid structured multi-day custom plan using our catalog IDs, prioritize it!
-  let finalDays = days;
-  let generatedByAi = false;
-  if (
-    Array.isArray(aiAnalysis?.customPlanDays) &&
-    aiAnalysis.customPlanDays.length >= 2 &&
-    aiPlanMatchesProfile(aiAnalysis, { equipment, daysPerWeek })
-  ) {
-    const validatedDays = aiAnalysis.customPlanDays
-      .map((d, idx) => {
-        const seenIds = new Set();
-        const validItems = (Array.isArray(d.items) ? d.items : [])
-          .filter((it) => {
-            const ex = EXERCISE_MAP[it.exerciseId];
-            if (!ex || !ex.equipment.includes(equipment) || seenIds.has(ex.id)) return false;
-            seenIds.add(ex.id);
-            return true;
-          })
-          .map((it) => {
-            const ex = EXERCISE_MAP[it.exerciseId];
-            return {
-              exerciseId: ex.id,
-              section: it.section || (ex.block === 'corrective' ? 'Разминка и осанка' : ex.block === 'core' ? 'Кор и финиш' : 'Основной блок'),
-              sets: Math.max(2, Math.min(5, Number(it.sets) || ex.defaultSets)),
-              reps: String(it.reps || ex.defaultReps),
-              restSec: Math.max(20, Math.min(150, Number(it.restSec) || ex.defaultRestSec)),
-              holdSeconds: ex.holdSeconds || 40,
-              reason: it.reason ? `AI Ассистент • ${it.reason}` : `AI Ассистент • ${ex.whyTemplate}`,
-            };
-          });
-        if (validItems.length < 3) return null;
-        const totalSets = validItems.reduce((acc, it) => acc + it.sets, 0);
-        const estMinutes = Math.round(6 + totalSets * 1.9);
-        const estKcal = Math.round(estMinutes * (goal === 'recomp' ? 7.6 : 6.4));
-        return {
-          dayIndex: Number(d.dayIndex) || idx + 1,
-          title: d.title || `День ${idx + 1} • Персональная тренировка AI`,
-          focus: d.focus || 'Составлено AI Ассистентом по результатам анализа фото',
-          estMinutes,
-          estKcal,
-          totalSets,
-          items: validItems,
-        };
-      })
-      .filter(Boolean);
-
-    if (validatedDays.length >= 2) {
-      finalDays = validatedDays;
-      generatedByAi = true;
-    }
-  }
-
-  return {
-    id: `plan_${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    generatedByAi,
-    aiProviderLabel: generatedByAi ? `${(aiAnalysis?.provider || 'AI').toUpperCase()} ${aiAnalysis?.model || ''}`.trim() : null,
-    goal,
-    goalLabel: GOAL_LABELS[goal] || goal,
-    equipment,
-    equipmentLabel: EQUIPMENT_LABELS[equipment] || equipment,
-    level,
-    levelLabel: LEVEL_LABELS[level] || level,
-    daysPerWeek: finalDays.length,
-    focusSummary,
-    nutrition: buildNutritionGuidance(profile, metrics || {}, aiAnalysis),
-    days: finalDays,
-  };
-}
-
-/**
- * Return compatible replacement exercises for swapping in the UI.
- */
-export function getAlternativeExercises(currentExerciseId, equipment) {
-  const current = EXERCISE_MAP[currentExerciseId];
-  if (!current) return [];
-  const candidates = EXERCISES.filter(
-    (ex) =>
-      ex.id !== currentExerciseId &&
-      ex.equipment.includes(equipment) &&
-      (ex.category === current.category || ex.block === current.block)
-  );
-  const currentPrimaryMuscle = current.muscles?.[0];
-  return candidates
-    .sort((a, b) => {
-      const aScore =
-        (a.category === current.category ? 10 : 0) +
-        (currentPrimaryMuscle && a.muscles.includes(currentPrimaryMuscle) ? 20 : 0);
-      const bScore =
-        (b.category === current.category ? 10 : 0) +
-        (currentPrimaryMuscle && b.muscles.includes(currentPrimaryMuscle) ? 20 : 0);
-      return bScore - aScore;
-    })
-    .slice(0, 6);
 }
