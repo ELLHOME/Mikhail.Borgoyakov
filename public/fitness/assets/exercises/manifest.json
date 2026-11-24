@@ -292,5 +292,41 @@
     "frameSize": 448,
     "durationMs": 180,
     "url": "/assets/exercises/trx_pike.webp"
+  },
+  "leg_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/leg_press.webp"
+  },
+  "leg_curl_machine": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/leg_curl_machine.webp"
+  },
+  "leg_extension": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/leg_extension.webp"
+  },
+  "cable_fly": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/cable_fly.webp"
+  },
+  "barbell_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/barbell_row.webp"
+  },
+  "machine_shoulder_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/machine_shoulder_press.webp"
   }
 }

@@ -4,7 +4,7 @@
  * into a structured multi-day workout program with explicit per-exercise rationale.
  */
 
-import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-13';
+import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-14';
 
 export const GOAL_LABELS = {
   recomp: 'Рельеф и жиросжигание',
@@ -82,7 +82,8 @@ function buildReasonText(ex, metrics, aiRecSet) {
     return `AI-приоритет • ${ex.whyTemplate}`;
   }
   if (ex.postureTags.includes('forward_head') && tags.includes('forward_head')) {
-    return `По фото: выдвинутая голова (${metrics.forwardHeadDeg ?? ''}°) • ${ex.whyTemplate}`;
+    const deg = Number.isFinite(metrics.forwardHeadDeg) ? ` (${metrics.forwardHeadDeg}°)` : '';
+    return `По фото: выдвинутая голова${deg} • ${ex.whyTemplate}`;
   }
   if (ex.postureTags.includes('rounded_shoulders') && tags.includes('rounded_shoulders')) {
     return `По фото: коррекция сутулости • ${ex.whyTemplate}`;
@@ -101,7 +102,8 @@ function buildReasonText(ex, metrics, aiRecSet) {
 
 const WEAK_SPOT_TAGS = ['forward_head', 'rounded_shoulders', 'anterior_pelvic_tilt', 'asymmetry', 'v_taper_boost'];
 const MAX_CYCLE_WEEKS = 4;
-export const PLAN_VERSION = 2;
+const MIN_CYCLE_WEEKS = 2;
+export const PLAN_VERSION = 3;
 
 // Bodyweight leg patterns that are normally loaded with dumbbells or a barbell.
 const LOADABLE_BODYWEIGHT = {
@@ -294,7 +296,10 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   const anchorGroups = new Set();
   pools.main
     .filter(isWeakSpot)
-    .map((ex) => ({ ex, w: weakSpotHits(ex, focusTags) * 2 + (aiRecSet.has(ex.id) ? 3 : 0) }))
+    .map((ex) => ({
+      ex,
+      w: weakSpotHits(ex, focusTags) * 2 + (aiRecSet.has(ex.id) ? 3 : 0) + (equipment === 'gym' && ex.equipment.length === 1 ? 1 : 0),
+    }))
     .sort((a, b) => b.w - a.w)
     .forEach(({ ex }) => {
       const g = exerciseGroup(ex);
@@ -318,8 +323,12 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   const cycleUse = new Map();
   const bump = (map, id) => map.set(id, (map.get(id) || 0) + 1);
 
-  const scoreOf = (ex, weekUse, prevDayIds, finishBias = null) => {
-    let s = 0;
+  // Machines, barbells and cables define a gym plan; shared dumbbell moves rotate in after them.
+  const signatureBonus = (ex) =>
+    equipment === 'gym' && exerciseRole(ex) === 'main' && ex.equipment.length === 1 ? 30 : 0;
+
+  const scoreOf = (ex, weekUse, prevDayIds, finishBias = null, lastWeekSameDay = null) => {
+    let s = signatureBonus(ex);
     if (!cycleUse.has(ex.id)) s += 60;
     if (anchors.has(ex.id) && !weekUse.has(ex.id)) s += 80;
     s += Math.min(24, weakSpotHits(ex, focusTags) * 12);
@@ -330,15 +339,19 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
     if (equipment !== 'home_bodyweight' && !ex.equipment.includes('home_bodyweight')) s += 5;
     s -= (weekUse.get(ex.id) || 0) * 70;
     if (prevDayIds.has(ex.id)) s -= 25;
+    if (lastWeekSameDay?.has(ex.id)) s -= 30;
     s -= (cycleUse.get(ex.id) || 0) * 6;
     return s;
   };
+
+  let lastWeekDays = [];
+  let lastWeekSameDay = null;
 
   const pickBest = (candidates, weekUse, prevDayIds, finishBias = null) => {
     let best = null;
     let bestScore = -Infinity;
     for (const ex of candidates) {
-      const sc = scoreOf(ex, weekUse, prevDayIds, finishBias);
+      const sc = scoreOf(ex, weekUse, prevDayIds, finishBias, lastWeekSameDay);
       if (sc > bestScore) {
         best = ex;
         bestScore = sc;
@@ -383,8 +396,11 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   const buildWeek = () => {
     const weekUse = new Map();
     let prevDayIds = new Set();
-    return templates.map((tpl, pos) => {
+    const thisWeekDays = [];
+    const days = templates.map((tpl, pos) => {
+      lastWeekSameDay = lastWeekDays[pos] || null;
       const dayIds = new Set();
+      thisWeekDays.push(dayIds);
       const take = (ex) => {
         dayIds.add(ex.id);
         bump(weekUse, ex.id);
@@ -423,6 +439,9 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
       ];
       return finalizeDay(pos + 1, title, focus, items);
     });
+    lastWeekDays = thisWeekDays;
+    lastWeekSameDay = null;
+    return days;
   };
 
   const focusSummary = [];
@@ -471,6 +490,7 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
       .filter(Boolean)
       .map(({ d, items }, idx) => {
         items.forEach((it) => bump(cycleUse, it.exerciseId));
+        lastWeekDays[idx] = new Set(items.map((it) => it.exerciseId));
         const rawTitle = String(d.title || 'Персональная тренировка AI').replace(/^\s*День\s*\d+\s*[•:.\-–—]?\s*/i, '');
         return finalizeDay(idx + 1, rawTitle, d.focus || 'Составлено AI Ассистентом по результатам анализа фото', items);
       });
@@ -482,7 +502,8 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   }
 
   const isCovered = () => [...coverageIds].every((id) => cycleUse.has(id));
-  while (weeks.length < MAX_CYCLE_WEEKS && (!weeks.length || !isCovered())) {
+  // At least two weeks so the second one rotates exercises across days even when the whole mode fits in one.
+  while (weeks.length < MAX_CYCLE_WEEKS && (weeks.length < MIN_CYCLE_WEEKS || !isCovered())) {
     weeks.push({ weekIndex: weeks.length + 1, source: 'rotation', days: buildWeek() });
   }
 

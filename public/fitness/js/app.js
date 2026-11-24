@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-13';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-13';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-13';
+} from './cv-analyzer.js?v=20261124-14';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-14';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-14';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
@@ -24,9 +24,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-13';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-13';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-13';
+} from './plan-generator.js?v=20261124-14';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-14';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-14';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -50,7 +50,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-13';
+} from './storage.js?v=20261124-14';
 
 const ANGLES = [
   {
@@ -960,12 +960,15 @@ async function callVisionAiProxy() {
   for (const [k, v] of Object.entries(state.photos)) {
     if (v) compactPhotos[k] = await compressImageDataUrl(v, 768, 0.76);
   }
-  const catalogPayload = getModeExercises(state.profile?.equipment || 'home_bodyweight').map((e) => ({
-    id: e.id,
-    name: e.name,
-    category: e.category,
-    equipment: e.equipment,
-  }));
+  // Equipment-specific moves go first so the model leans on them rather than on shared dumbbell or bodyweight moves.
+  const catalogPayload = getModeExercises(state.profile?.equipment || 'home_bodyweight')
+    .sort((a, b) => a.equipment.length - b.equipment.length)
+    .map((e) => ({
+      id: e.id,
+      name: e.name,
+      category: e.category,
+      equipment: e.equipment,
+    }));
 
   if (IS_CLOUD_MODE) {
     const controller = new AbortController();
@@ -3672,16 +3675,38 @@ function planMetricsSource() {
   return { focusTags };
 }
 
-// Plans saved before the weekly cycle mixed in exercises from other equipment; rebuild them once.
+// Plans saved by an older generator are rebuilt once with the current rules.
 function upgradeLegacyPlan() {
   const plan = state.plan;
-  if (!plan || plan.version >= PLAN_VERSION || plan.generatedByAi) return;
+  if (!plan || plan.version >= PLAN_VERSION) return;
   const profile = {
     ...state.profile,
     equipment: plan.equipment || state.profile.equipment,
     daysPerWeek: plan.days?.length || state.profile.daysPerWeek,
   };
-  state.plan = generateWorkoutPlan(planMetricsSource(), profile, null);
+  // An old AI week stays as week 1 (filtered to the equipment); rotation weeks are added after it.
+  const aiDays = plan.weeks?.find((w) => w.source === 'ai')?.days || plan.days;
+  const aiWeek = plan.generatedByAi
+    ? {
+        provider: plan.aiProviderLabel || 'AI',
+        model: '',
+        planParams: { equipment: profile.equipment, daysPerWeek: profile.daysPerWeek },
+        customPlanDays: aiDays.map((d) => ({
+          dayIndex: d.dayIndex,
+          title: d.title,
+          focus: d.focus,
+          items: d.items.map((it) => ({
+            exerciseId: it.exerciseId,
+            sets: it.sets,
+            reps: it.reps,
+            restSec: it.restSec,
+            reason: String(it.reason || '').replace(/^AI Ассистент •\s*/, ''),
+          })),
+        })),
+      }
+    : null;
+  state.plan = generateWorkoutPlan(planMetricsSource(), profile, aiWeek);
+  if (state.plan.generatedByAi) state.plan.aiProviderLabel = plan.aiProviderLabel || state.plan.aiProviderLabel;
   saveActivePlan(state.plan);
 }
 
