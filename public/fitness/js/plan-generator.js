@@ -4,7 +4,7 @@
  * into a structured multi-day workout program with explicit per-exercise rationale.
  */
 
-import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-6';
+import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-7';
 
 export const GOAL_LABELS = {
   recomp: 'Рельеф и жиросжигание',
@@ -584,7 +584,7 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
               reps: String(it.reps || ex.defaultReps),
               restSec: Math.max(20, Math.min(150, Number(it.restSec) || ex.defaultRestSec)),
               holdSeconds: ex.holdSeconds || 40,
-              reason: it.reason ? `AI Vision • ${it.reason}` : `AI Vision • ${ex.whyTemplate}`,
+              reason: it.reason ? `AI Ассистент • ${it.reason}` : `AI Ассистент • ${ex.whyTemplate}`,
             };
           });
         if (validItems.length < 3) return null;
@@ -594,7 +594,7 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
         return {
           dayIndex: Number(d.dayIndex) || idx + 1,
           title: d.title || `День ${idx + 1} • Персональная тренировка AI`,
-          focus: d.focus || 'Составлено нейросетью по результатам разбора фото',
+          focus: d.focus || 'Составлено AI Ассистентом по результатам анализа фото',
           estMinutes,
           estKcal,
           totalSets,

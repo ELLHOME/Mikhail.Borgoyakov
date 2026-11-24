@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
-  <title>BodyCoach AI — Разбор фигуры по фото и план тренировок</title>
+  <title>BodyCoach AI — Анализ фигуры по фото и план тренировок</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23111926'/%3E%3Ccircle cx='16' cy='7' r='3' fill='none' stroke='%232ee2ff' stroke-width='1.8'/%3E%3Cpath d='M8 14h16M16 11v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21.5l-1.8 6.5m9.2-6.5 1.8 6.5' fill='none' stroke='%232ee2ff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-6">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-7">
 </head>
 <body>
   <div class="app-shell">
@@ -44,8 +44,8 @@
               <circle cx="12" cy="5" r="2.5"/>
               <path d="M7 11h10M12 8.5v7.5m-3 5 3-5 3 5"/>
             </svg>
-            <span class="tab-label-full">Разбор фигуры</span>
-            <span class="tab-label-short">Разбор</span>
+            <span class="tab-label-full">Анализ фигуры</span>
+            <span class="tab-label-short">Анализ</span>
           </button>
           <button class="nav-tab" data-tab="plan">
             <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -72,9 +72,9 @@
         </nav>
 
         <div class="topbar-actions">
-          <button class="btn btn-ghost btn-sm" id="openAiSettingsBtn" title="Настройки Vision AI (опционально)">
+          <button class="btn btn-ghost btn-sm" id="openAiSettingsBtn" title="Настройки AI Ассистента (опционально)">
             <span class="status-dot" id="aiStatusDot"></span>
-            <span>AI Vision</span>
+            <span>AI Ассистент</span>
           </button>
           <button class="btn btn-icon" id="themeToggleBtn" title="Переключить тему" aria-label="Переключить тему">
             <span id="themeIcon">☀</span>
@@ -89,12 +89,12 @@
       <section class="tab-panel active" id="tab-capture">
         <div class="hero-card">
           <div class="hero-copy">
-            <div class="pill-badge">AI Vision (сервер ELLHOME) + CV-анализ осанки</div>
-            <h1>Разбор фигуры по фото и персональный план с живыми студийными упражнениями</h1>
+            <div class="pill-badge">AI Ассистент + алгоритм анализа осанки</div>
+            <h1>Анализ фигуры по фото и составление персонального плана тренировок</h1>
             <p class="muted">
               Сделайте фото с 3–4 ракурсов на камеру с таймером или загрузите снимки.
-              Локальное компьютерное зрение построит линии осанки и пропорций поверх фото, а подключённый AI Vision
-              проведёт глубокий разбор телосложения и соберёт программу с реалистичными анимациями упражнений.
+              Специальный алгоритм построит линии осанки и пропорций поверх фото, а AI Ассистент
+              проведёт глубокий анализ телосложения и соберёт программу с релевантными упражнениями.
             </p>
           </div>
           <div class="demo-strip">
@@ -109,7 +109,7 @@
             <div class="panel-header">
               <div>
                 <h2>Шаг 1. Фото с разных ракурсов</h2>
-                <p class="muted small">Для максимально точного разбора осанки и V-пропорций добавьте минимум «Спереди» и «Сбоку».</p>
+                <p class="muted small">Для максимально точного анализа осанки и V-пропорций добавьте минимум «Спереди» и «Сбоку».</p>
               </div>
               <button class="btn btn-ghost btn-sm" id="clearPhotosBtn">Очистить фото</button>
             </div>
@@ -220,12 +220,12 @@
                 </div>
               </div>
 
-              <!-- Inline AI Vision API Card -->
+              <!-- Inline AI Assistant Card -->
               <div class="ai-inline-card" id="inlineAiCard">
                 <div class="ai-inline-head">
                   <div>
-                    <span class="ai-inline-title">✦ Серверный AI Vision (ELLHOME)</span>
-                    <span class="muted tiny" id="inlineAiSub">Подключаемся к защищённому серверу AI Vision (ключ хранится на сервере)...</span>
+                    <span class="ai-inline-title">✦ AI Ассистент (сервер ELLHOME)</span>
+                    <span class="muted tiny" id="inlineAiSub">Подключаемся к защищённому серверу AI Ассистента (ключ хранится на сервере)...</span>
                   </div>
                   <label class="switch-compact">
                     <input type="checkbox" id="inlineAiToggle" checked>
@@ -245,7 +245,7 @@
                       </select>
                     </label>
                     <label class="field">
-                      <span>Модель Vision</span>
+                      <span>Модель ИИ</span>
                       <input type="text" id="inlineAiModel" list="aiModelSuggestions" placeholder="gpt-6-luna">
                     </label>
                   </div>
@@ -256,7 +256,7 @@
                   </label>
                   <div class="ai-key-row">
                     <label class="field" style="flex:1">
-                      <span>API-ключ (необязательно — без ключа сработает локальный CV)</span>
+                      <span>API-ключ (необязательно — без ключа сработает специальный алгоритм)</span>
                       <input type="password" id="inlineAiKey" placeholder="sk-... / AIza... / sk-or-..." autocomplete="off">
                     </label>
                     <button type="button" class="btn btn-outline btn-sm" id="inlineAiTestBtn">Проверить</button>
@@ -267,7 +267,7 @@
 
               <div class="analyze-cta-wrap">
                 <button type="submit" class="btn btn-primary btn-lg btn-block" id="runAnalysisBtn">
-                  <span>Разобрать фигуру и составить план</span>
+                  <span>Проанализировать и составить план</span>
                 </button>
                 <div class="analyze-status hidden" id="analyzeStatus">
                   <span class="spinner"></span>
@@ -283,8 +283,8 @@
       <section class="tab-panel" id="tab-analysis">
         <div class="empty-state" id="analysisEmptyState">
           <div class="empty-icon">📐</div>
-          <h2>Пока нет данных разбора</h2>
-          <p class="muted">Добавьте фотографии (или выберите демо-пример) на шаге 1 и нажмите «Разобрать фигуру».</p>
+          <h2>Пока нет данных анализа</h2>
+          <p class="muted">Добавьте фотографии (или выберите демо-пример) на шаге 1 и нажмите «Проанализировать и составить план».</p>
           <button class="btn btn-primary" data-goto-tab="capture">Перейти к фото</button>
         </div>
 
@@ -293,7 +293,7 @@
           <div class="panel analysis-stage-panel">
             <div class="panel-header">
               <div class="angle-tabs" id="analysisAngleTabs"></div>
-              <span class="badge badge-muted" id="cvMethodBadge">CV-анализ</span>
+              <span class="badge badge-muted" id="cvMethodBadge">Алгоритм анализа</span>
             </div>
 
             <div class="overlay-toolbar">
@@ -331,7 +331,7 @@
                 </div>
                 <div class="score-meta">
                   <div class="pill-badge" id="bodyFrameBadge">Силуэт</div>
-                  <h2 id="analysisHeadline">Результат биомеханического разбора</h2>
+                  <h2 id="analysisHeadline">Результат биомеханического анализа</h2>
                   <p class="muted small" id="analysisSubline">Метрики рассчитаны по загруженным ракурсам.</p>
                 </div>
               </div>
@@ -349,10 +349,10 @@
             <div class="panel" id="aiVisionPanel">
               <div class="panel-header">
                 <div>
-                  <h3>Разбор от Vision AI (OpenAI / Gemini / OpenRouter)</h3>
-                  <p class="muted small">Глубокий анализ фигуры по фото и составление персональной программы через API ИИ</p>
+                  <h3>Анализ от AI Ассистента (OpenAI / Gemini / OpenRouter)</h3>
+                  <p class="muted small">Глубокий анализ фигуры по фото и составление персональной программы тренировок</p>
                 </div>
-                <button class="btn btn-sm btn-outline" id="runAiVisionNowBtn">Запустить AI-разбор</button>
+                <button class="btn btn-sm btn-outline" id="runAiVisionNowBtn">Запустить AI-анализ</button>
               </div>
               <div id="aiVisionBody"></div>
             </div>
@@ -716,14 +716,14 @@
     <div class="modal modal-sm">
       <div class="modal-header">
         <div>
-          <h3>Настройки AI Vision API</h3>
+          <h3>Настройки AI Ассистента</h3>
           <p class="muted small">Подключите OpenAI, Google Gemini, OpenRouter или совместимый прокси</p>
         </div>
         <button class="btn btn-icon" data-close-modal="aiSettingsModal" aria-label="Закрыть">✕</button>
       </div>
       <form id="aiSettingsForm" class="stack-form">
         <label class="switch-row">
-          <span>Автоматически запускать AI Vision при анализе фото</span>
+          <span>Автоматически запускать AI Ассистента при анализе фото</span>
           <input type="checkbox" id="aiEnabledCheck">
         </label>
         <label class="field">
@@ -878,6 +878,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-6"></script>
+  <script type="module" src="./js/app.js?v=20261124-7"></script>
 </body>
 </html>

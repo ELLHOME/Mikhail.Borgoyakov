@@ -11,17 +11,17 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-6';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-6';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-6';
+} from './cv-analyzer.js?v=20261124-7';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-7';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-7';
 import {
   buildNutritionGuidance,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
   GOAL_LABELS,
-} from './plan-generator.js?v=20261124-6';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-6';
+} from './plan-generator.js?v=20261124-7';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-7';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -45,7 +45,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-6';
+} from './storage.js?v=20261124-7';
 
 const ANGLES = [
   {
@@ -340,10 +340,10 @@ function updateAiStatusIndicator() {
     dot.classList.toggle('online', online);
     if (btn) {
       btn.title = !enabled
-        ? 'AI Vision отключён (работает только локальный CV)'
+        ? 'AI Ассистент отключён (работает только специальный алгоритм)'
         : state.cloudAi.ready
-          ? `Серверный AI Vision готов (${state.cloudAi.model || 'Gemini'})`
-          : 'Серверный AI Vision (ELLHOME) — нажмите, чтобы проверить статус';
+          ? `AI Ассистент готов (${state.cloudAi.model || 'Gemini'})`
+          : 'AI Ассистент (ELLHOME) — нажмите, чтобы проверить статус';
     }
     return;
   }
@@ -352,23 +352,23 @@ function updateAiStatusIndicator() {
   if (btn) {
     const meta = getProviderMeta(state.aiSettings.provider);
     btn.title = ready
-      ? `AI Vision активен: ${meta.label} (${state.aiSettings.model || meta.model})`
-      : 'Настройки AI Vision API (OpenAI / Gemini / OpenRouter)';
+      ? `AI Ассистент активен: ${meta.label} (${state.aiSettings.model || meta.model})`
+      : 'Настройки AI Ассистента (OpenAI / Gemini / OpenRouter)';
   }
 }
 
 function applyCloudModeUi() {
   if (!IS_CLOUD_MODE) return;
   const heroBadge = document.querySelector('#tab-capture .hero-copy .pill-badge');
-  if (heroBadge) heroBadge.textContent = 'AI Vision (сервер ELLHOME) + CV-анализ осанки';
+  if (heroBadge) heroBadge.textContent = 'AI Ассистент + алгоритм анализа осанки';
   const inlineTitle = document.querySelector('#inlineAiCard .ai-inline-title');
-  if (inlineTitle) inlineTitle.textContent = '✦ Серверный AI Vision (ELLHOME)';
+  if (inlineTitle) inlineTitle.textContent = '✦ AI Ассистент (сервер ELLHOME)';
   const aiPanelTitle = document.querySelector('#aiVisionPanel h3');
-  if (aiPanelTitle) aiPanelTitle.textContent = 'Разбор от AI Vision (сервер ELLHOME)';
+  if (aiPanelTitle) aiPanelTitle.textContent = 'Анализ от AI Ассистента (сервер ELLHOME)';
   const aiPanelSub = document.querySelector('#aiVisionPanel .panel-header p');
   if (aiPanelSub) aiPanelSub.textContent = 'Глубокий анализ фигуры по фото через защищённый серверный API (ключ хранится на сервере)';
   const nutriBadge = $('nutritionAiBadge');
-  if (nutriBadge) nutriBadge.textContent = '✦ ИИ по фото';
+  if (nutriBadge) nutriBadge.textContent = '✦ AI по фото';
   $('inlineAiFields')?.classList.add('hidden');
 }
 
@@ -380,14 +380,14 @@ function syncInlineAiFromState() {
     $('inlineAiFields').classList.add('hidden');
     const sub = $('inlineAiSub');
     if (!s.enabled) {
-      sub.textContent = 'Выключено — сработает только быстрый локальный CV-анализ осанки в браузере';
+      sub.textContent = 'Выключено — сработает только специальный алгоритм анализа осанки в браузере';
     } else if (!state.cloudAi.checked) {
-      sub.textContent = 'Подключаемся к защищённому серверу AI Vision (ключ хранится на сервере)...';
+      sub.textContent = 'Подключаемся к защищённому серверу AI Ассистента (ключ хранится на сервере)...';
     } else if (state.cloudAi.ready) {
       const mLabel = state.cloudAi.model ? ` (${state.cloudAi.model})` : '';
-      sub.textContent = `Сервер AI Vision готов${mLabel} — ключ защищён на сервере, ничего вводить не нужно`;
+      sub.textContent = `AI Ассистент готов${mLabel} — ключ защищён на сервере, ничего вводить не нужно`;
     } else {
-      sub.textContent = 'Сервер AI просыпается (при первом запросе 20–50 сек) • локальный CV работает мгновенно';
+      sub.textContent = 'Сервер AI Ассистента просыпается (при первом запросе 20–50 сек) • алгоритм работает мгновенно';
     }
     return;
   }
@@ -408,11 +408,11 @@ function syncInlineAiFromState() {
 
   const sub = $('inlineAiSub');
   if (hasEnv && !s.apiKey) {
-    sub.textContent = `Обнаружен серверный ключ ${meta.label} (из переменных окружения) — ИИ-анализ готов к работе`;
+    sub.textContent = `Обнаружен серверный ключ ${meta.label} (из переменных окружения) — AI Ассистент готов к работе`;
   } else if (s.apiKey) {
-    sub.textContent = `Подключён ${meta.label} (${s.model || meta.model}) — фото и замеры будут разобраны ИИ`;
+    sub.textContent = `Подключён ${meta.label} (${s.model || meta.model}) — фото и замеры проанализирует AI Ассистент`;
   } else {
-    sub.textContent = 'OpenAI / Gemini / OpenRouter — глубокий разбор фото и составление плана ИИ';
+    sub.textContent = 'OpenAI / Gemini / OpenRouter — глубокий анализ фото и составление плана тренировок';
   }
 }
 
@@ -530,7 +530,7 @@ function renderDemoPresets() {
 
 async function loadDemoPreset(presetId) {
   try {
-    showToast('Загружаем студийные фото и запускаем разбор...');
+    showToast('Загружаем студийные фото и запускаем анализ...');
     const { preset, photos } = await generateDemoPhotoSet(presetId);
     state.photos = { front: photos.front, side: photos.side, back: photos.back, side2: null };
     state.profile = { ...state.profile, ...preset.profile };
@@ -813,20 +813,20 @@ async function runFullAnalysis() {
     state.metrics = computeBodyMetrics(state.analyses, profile);
     state.selectedAnalysisAngle = uploadedKeys.includes('front') ? 'front' : uploadedKeys[0];
 
-    // Automatic Vision AI call when enabled & configured (cloud server or local key/env)
+    // Automatic AI Assistant call when enabled & configured (cloud server or local key/env)
     if (state.aiSettings.enabled && isAiReady()) {
       if (IS_CLOUD_MODE) {
         statusTxt.textContent = state.cloudAi.ready
-          ? 'Отправляем фото в AI Vision для глубокого разбора фигуры...'
-          : 'Пробуждаем сервер AI Vision (первый запуск может занять 25–50 сек)...';
+          ? 'Отправляем фото в AI Ассистента для глубокого анализа фигуры...'
+          : 'Пробуждаем сервер AI Ассистента (первый запуск может занять 25–50 сек)...';
       } else {
         const meta = getProviderMeta(state.aiSettings.provider);
-        statusTxt.textContent = `Отправляем фото в ${meta.label} (${state.aiSettings.model || meta.model}) для глубокого AI-разбора...`;
+        statusTxt.textContent = `Отправляем фото в ${meta.label} (${state.aiSettings.model || meta.model}) для глубокого AI-анализа...`;
       }
       try {
         state.aiAnalysis = await callVisionAiProxy();
       } catch (err) {
-        showToast(`Локальный CV-разбор готов, но AI Vision ответил с ошибкой: ${err.message}`, true);
+        showToast(`Базовый анализ по алгоритму готов, но AI Ассистент ответил с ошибкой: ${err.message}`, true);
       }
     }
 
@@ -840,8 +840,8 @@ async function runFullAnalysis() {
     switchTab('analysis');
     showToast(
       state.plan.generatedByAi
-        ? `Разбор фигуры и персональный план от ${state.plan.aiProviderLabel} готовы!`
-        : 'Разбор фигуры и план тренировок готовы!'
+        ? `Анализ фигуры и персональный план от ${state.plan.aiProviderLabel} готовы!`
+        : 'Анализ фигуры и план тренировок готовы!'
     );
   } catch (err) {
     showToast(`Ошибка анализа: ${err.message}`, true);
@@ -853,7 +853,7 @@ async function runFullAnalysis() {
 
 async function callVisionAiProxy() {
   if (!isAiReady()) {
-    throw new Error('Не указан API-ключ в настройках AI Vision');
+    throw new Error('Не указан API-ключ в настройках AI Ассистента');
   }
   const compactPhotos = {};
   for (const [k, v] of Object.entries(state.photos)) {
@@ -884,9 +884,9 @@ async function callVisionAiProxy() {
       });
     } catch (err) {
       if (err.name === 'AbortError') {
-        throw new Error('Сервер AI не успел ответить за 95 сек. Попробуйте нажать «Запустить AI-разбор» ещё раз.');
+        throw new Error('Сервер AI Ассистента не успел ответить за 95 сек. Попробуйте нажать «Запустить AI-анализ» ещё раз.');
       }
-      throw new Error('Не удалось связаться с сервером AI Vision.');
+      throw new Error('Не удалось связаться с сервером AI Ассистента.');
     } finally {
       clearTimeout(timer);
     }
@@ -968,7 +968,7 @@ function renderAnalysisTab() {
 
   const cur = state.analyses[state.selectedAnalysisAngle];
   $('cvMethodBadge').textContent =
-    cur.method === 'mediapipe_hybrid' ? 'MediaPipe Pose + Силуэт' : 'Локальный CV-анализ силуэта';
+    cur.method === 'mediapipe_hybrid' ? 'MediaPipe Pose + Силуэт' : 'Алгоритм анализа силуэта';
 
   drawCurrentAnalysisCanvas();
   renderAnalysisMetricsPanel();
@@ -1077,28 +1077,28 @@ function renderAiVisionBlock() {
 
   if (!state.aiAnalysis) {
     if (IS_CLOUD_MODE) {
-      btn.textContent = 'Запустить AI-разбор';
+      btn.textContent = 'Запустить AI-анализ';
       const modelNote = state.cloudAi.model ? ` (${escapeHtml(state.cloudAi.model)})` : '';
-      body.innerHTML = `<p class="muted small">Сейчас выполнен локальный CV-анализ осанки и пропорций. Нажмите <strong>«Запустить AI-разбор»</strong>, чтобы защищённый сервер AI Vision${modelNote} проанализировал фото и дополнил программу тренировок (первый запуск может занять 25–50 сек).</p>`;
+      body.innerHTML = `<p class="muted small">Сейчас выполнен анализ осанки и пропорций специальным алгоритмом. Нажмите <strong>«Запустить AI-анализ»</strong>, чтобы AI Ассистент${modelNote} проанализировал фото и дополнил программу тренировок (первый запуск может занять 25–50 сек).</p>`;
       return;
     }
     const ready = isAiReady();
     const meta = getProviderMeta(state.aiSettings.provider);
     const modelLabel = state.aiSettings.model || meta.model;
-    btn.textContent = ready ? 'Запустить AI-разбор' : 'Подключить AI API';
+    btn.textContent = ready ? 'Запустить AI-анализ' : 'Подключить AI Ассистента';
     body.innerHTML = `<p class="muted small">${
       ready
-        ? `Готов провайдер <strong>${escapeHtml(meta.label)}</strong> (${escapeHtml(modelLabel)}). Нажмите «Запустить AI-разбор», чтобы нейросеть проанализировала фото и собрала персональный план тренировок.`
-        : 'Сейчас выполнен локальный CV-анализ осанки и пропорций. Укажите API-ключ OpenAI, Google Gemini, OpenRouter или совместимого прокси, чтобы подключить глубокий разбор фото и генерацию программы от Vision AI.'
+        ? `Готов провайдер <strong>${escapeHtml(meta.label)}</strong> (${escapeHtml(modelLabel)}). Нажмите «Запустить AI-анализ», чтобы AI Ассистент проанализировал фото и собрал персональный план тренировок.`
+        : 'Сейчас выполнен анализ осанки и пропорций специальным алгоритмом. Укажите API-ключ OpenAI, Google Gemini, OpenRouter или совместимого прокси, чтобы подключить глубокий анализ фото и генерацию программы от AI Ассистента.'
     }</p>`;
     return;
   }
 
-  btn.textContent = 'Обновить AI-разбор';
+  btn.textContent = 'Обновить AI-анализ';
   const ai = state.aiAnalysis;
   body.innerHTML = `
     <div class="ai-result-block">
-      <div class="pill-badge" style="margin-bottom:0">✦ AI Vision • ${escapeHtml((ai.provider || '').toUpperCase())} ${escapeHtml(ai.model || '')}</div>
+      <div class="pill-badge" style="margin-bottom:0">✦ AI Ассистент • ${escapeHtml((ai.provider || '').toUpperCase())} ${escapeHtml(ai.model || '')}</div>
       <p>${escapeHtml(ai.summary || '')}</p>
       ${ai.somatotype ? `<p class="muted small"><strong>Телосложение:</strong> ${escapeHtml(ai.somatotype)}</p>` : ''}
       ${ai.visualComposition ? `<p class="muted small"><strong>Тонус и композиция:</strong> ${escapeHtml(ai.visualComposition)}</p>` : ''}
@@ -1147,14 +1147,14 @@ async function handleManualAiRun() {
     renderPlanTab();
     showToast(
       state.plan.generatedByAi
-        ? `AI Vision разбор готов, план собран моделью ${state.plan.aiProviderLabel}!`
-        : 'AI Vision разбор добавлен и учтён в плане тренировок!'
+        ? `Анализ от AI Ассистента готов, план собран моделью ${state.plan.aiProviderLabel}!`
+        : 'Анализ от AI Ассистента добавлен и учтён в плане тренировок!'
     );
   } catch (err) {
-    showToast(`Ошибка Vision AI: ${err.message}`, true);
+    showToast(`Ошибка AI Ассистента: ${err.message}`, true);
   } finally {
     btn.disabled = false;
-    btn.textContent = state.aiAnalysis ? 'Обновить AI-разбор' : 'Запустить AI-разбор';
+    btn.textContent = state.aiAnalysis ? 'Обновить AI-анализ' : 'Запустить AI-анализ';
   }
 }
 
@@ -1179,7 +1179,7 @@ function renderPlanTab() {
   if (state.selectedPlanDay >= plan.days.length) state.selectedPlanDay = 0;
 
   $('planGoalBadge').textContent = plan.generatedByAi
-    ? `✦ AI Vision (${plan.aiProviderLabel}) • ${plan.goalLabel} • ${plan.levelLabel}`
+    ? `✦ AI Ассистент (${plan.aiProviderLabel}) • ${plan.goalLabel} • ${plan.levelLabel}`
     : `${plan.goalLabel} • ${plan.levelLabel}`;
   $('planTitle').textContent = `Программа на ${plan.daysPerWeek} дня (${plan.equipmentLabel})`;
   $('planFocusChips').innerHTML = (plan.focusSummary || [])
@@ -1690,7 +1690,7 @@ function closeWorkoutOverlay() {
 /* --------------------------- Tab 4: History & Progress --------------------------- */
 async function saveCurrentCheckin() {
   if (!state.metrics) {
-    showToast('Сначала выполните разбор фигуры', true);
+    showToast('Сначала проанализируйте фигуру', true);
     return;
   }
   const id = `chk_${Date.now()}`;
@@ -1761,7 +1761,7 @@ function renderProgressChart() {
   const wrap = $('progressChartWrap');
   const items = [...state.checkins].reverse();
   if (items.length < 2) {
-    wrap.innerHTML = `<p class="muted small" style="text-align:center;padding:30px">Сохраните минимум 2 замера в разборе фигуры, чтобы увидеть график динамики осанки и V-индекса.</p>`;
+    wrap.innerHTML = `<p class="muted small" style="text-align:center;padding:30px">Сохраните минимум 2 замера на экране анализа фигуры, чтобы увидеть график динамики осанки и V-индекса.</p>`;
     return;
   }
 
@@ -1897,7 +1897,7 @@ async function renderCompareSection() {
 async function renderCheckinsList() {
   const list = $('checkinsList');
   if (!state.checkins.length) {
-    list.innerHTML = '<p class="muted small">Сохранённых замеров пока нет. Нажмите «Сохранить замер в историю» на экране разбора.</p>';
+    list.innerHTML = '<p class="muted small">Сохранённых замеров пока нет. Нажмите «Сохранить замер в историю» на экране анализа.</p>';
     return;
   }
 
@@ -2281,7 +2281,7 @@ async function callMealVisionApi() {
 
   if (!isAiReady()) {
     openAiSettingsModal();
-    throw new Error('Укажите API-ключ AI Vision или нажмите «+ Вручную» для самостоятельного ввода.');
+    throw new Error('Укажите API-ключ AI Ассистента или нажмите «+ Вручную» для самостоятельного ввода.');
   }
 
   const meta = getProviderMeta(state.aiSettings.provider);
@@ -3144,7 +3144,7 @@ function initEvents() {
     updateAiStatusIndicator();
     if (state.metrics) renderAiVisionBlock();
     closeModal('aiSettingsModal');
-    showToast('Настройки AI Vision сохранены');
+    showToast('Настройки AI Ассистента сохранены');
   });
 
   // Workout player overlay controls
@@ -3383,8 +3383,8 @@ async function detectServerEnvProviders(notifyUser = false) {
       if (notifyUser) {
         showToast(
           state.cloudAi.ready
-            ? `Серверный AI Vision готов (${state.cloudAi.model || 'Gemini'})`
-            : 'Сервер AI ответил, но ключ ещё не активирован — локальный CV-анализ работает',
+            ? `AI Ассистент готов (${state.cloudAi.model || 'Gemini'})`
+            : 'Сервер ответил, но ключ ещё не активирован — специальный алгоритм анализа работает',
           !state.cloudAi.ready
         );
       }
