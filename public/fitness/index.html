@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>BodyCoach AI — Разбор фигуры по фото и план тренировок</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1320'/%3E%3Ccircle cx='16' cy='7' r='3' fill='none' stroke='%2322d3a7' stroke-width='2.2'/%3E%3Cpath d='M8 14h16M16 11v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21.5l-1.8 6.5m9.2-6.5 1.8 6.5' fill='none' stroke='%2322d3a7' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand" id="brandHome" role="button" tabindex="0">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="24" height="24" fill="none">
+              <circle cx="16" cy="6.5" r="3" stroke="currentColor" stroke-width="2.2"/>
+              <path d="M8 13.5h16M16 10.5v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21l-1.8 7m9.2-7 1.8 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 13.5h22" stroke="#ff6b4a" stroke-width="1.4" stroke-dasharray="2 2"/>
+            </svg>
+          </div>
+          <div>
+            <span class="brand-name">BodyCoach</span>
+            <span class="brand-sub">Анализ фигуры и тренировки</span>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="Разделы приложения">
+          <button class="nav-tab active" data-tab="capture">
+            <span class="step-num">1</span>
+            <span class="tab-label">Фото и цели</span>
+          </button>
+          <button class="nav-tab" data-tab="analysis">
+            <span class="step-num">2</span>
+            <span class="tab-label">Разбор фигуры</span>
+          </button>
+          <button class="nav-tab" data-tab="plan">
+            <span class="step-num">3</span>
+            <span class="tab-label">План тренировок</span>
+          </button>
+          <button class="nav-tab" data-tab="history">
+            <span class="step-num">4</span>
+            <span class="tab-label">Прогресс</span>
+          </button>
+        </nav>
+
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm" id="openAiSettingsBtn" title="Настройки Vision AI (опционально)">
+            <span class="status-dot" id="aiStatusDot"></span>
+            <span>AI Vision</span>
+          </button>
+          <button class="btn btn-icon" id="themeToggleBtn" title="Переключить тему" aria-label="Переключить тему">
+            <span id="themeIcon">☀</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- TAB 1: CAPTURE & PROFILE -->
+      <section class="tab-panel active" id="tab-capture">
+        <div class="hero-card">
+          <div class="hero-copy">
+            <div class="pill-badge">AI Vision (сервер ELLHOME) + CV-анализ осанки</div>
+            <h1>Разбор фигуры по фото и персональный план с живыми студийными упражнениями</h1>
+            <p class="muted">
+              Сделайте фото с 3–4 ракурсов на камеру с таймером или загрузите снимки.
+              Локальное компьютерное зрение построит линии осанки и пропорций поверх фото, а подключённый AI Vision
+              проведёт глубокий разбор телосложения и соберёт программу с реалистичными анимациями упражнений.
+            </p>
+          </div>
+          <div class="demo-strip">
+            <span class="demo-label">Быстрый тест на студийных фото:</span>
+            <div class="demo-buttons" id="demoPresetButtons"></div>
+          </div>
+        </div>
+
+        <div class="capture-layout">
+          <!-- Photo Upload / Camera Grid -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Шаг 1. Фото с разных ракурсов</h2>
+                <p class="muted small">Для максимально точного разбора осанки и V-пропорций добавьте минимум «Спереди» и «Сбоку».</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="clearPhotosBtn">Очистить фото</button>
+            </div>
+
+            <div class="angles-grid" id="anglesGrid"></div>
+
+            <div class="tips-bar">
+              <span><strong>Советы для точности:</strong> встаньте в полный рост на расстоянии 2–3 м, облегающая спортивная одежда, ровный фон, руки слегка отведены от корпуса.</span>
+            </div>
+          </div>
+
+          <!-- User Profile & Equipment -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Шаг 2. Параметры, цель и инвентарь</h2>
+                <p class="muted small">План автоматически подстроится под ваши данные и доступное оборудование.</p>
+              </div>
+            </div>
+
+            <form id="profileForm" class="profile-form">
+              <div class="form-row-4">
+                <label class="field">
+                  <span>Пол</span>
+                  <select name="sex" id="profileSex">
+                    <option value="male">Мужской</option>
+                    <option value="female">Женский</option>
+                    <option value="unspecified">Не указывать</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Возраст</span>
+                  <input type="number" name="age" id="profileAge" min="14" max="85" value="28">
+                </label>
+                <label class="field">
+                  <span>Рост (см)</span>
+                  <input type="number" name="heightCm" id="profileHeight" min="120" max="230" value="178">
+                </label>
+                <label class="field">
+                  <span>Вес (кг)</span>
+                  <input type="number" name="weightKg" id="profileWeight" min="35" max="220" step="0.5" value="78">
+                </label>
+              </div>
+
+              <div class="field-group">
+                <span class="group-label">Главная цель</span>
+                <div class="choice-grid choice-grid-2" id="goalChoices">
+                  <label class="choice-card">
+                    <input type="radio" name="goal" value="recomp" checked>
+                    <span class="choice-title">Рельеф и жиросжигание</span>
+                    <span class="choice-desc">Тонус, подтяжка и расход калорий</span>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="goal" value="muscle">
+                    <span class="choice-title">Набор мышечной массы</span>
+                    <span class="choice-desc">Гипертрофия, плечи и V-силуэт</span>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="goal" value="posture">
+                    <span class="choice-title">Осанка и здоровый тонус</span>
+                    <span class="choice-desc">Спина, шея, таз и мобильность</span>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="goal" value="strength">
+                    <span class="choice-title">Сила и атлетизм</span>
+                    <span class="choice-desc">Базовые движения и прогресс весов</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <span class="group-label">Место и инвентарь</span>
+                <div class="choice-grid choice-grid-3" id="equipmentChoices">
+                  <label class="choice-card">
+                    <input type="radio" name="equipment" value="home_bodyweight" checked>
+                    <span class="choice-title">Дома (свой вес)</span>
+                    <span class="choice-desc">Коврик и стена</span>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="equipment" value="home_dumbbells">
+                    <span class="choice-title">Дома с гантелями</span>
+                    <span class="choice-desc">Пара гантелей / скамья</span>
+                  </label>
+                  <label class="choice-card">
+                    <input type="radio" name="equipment" value="gym">
+                    <span class="choice-title">Тренажёрный зал</span>
+                    <span class="choice-desc">Штанга, блоки, турник</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="field-group">
+                  <span class="group-label">Уровень подготовки</span>
+                  <div class="segmented" id="levelChoices">
+                    <label><input type="radio" name="level" value="beginner" checked><span>Новичок</span></label>
+                    <label><input type="radio" name="level" value="intermediate"><span>Средний</span></label>
+                    <label><input type="radio" name="level" value="advanced"><span>Продвинутый</span></label>
+                  </div>
+                </div>
+                <div class="field-group">
+                  <span class="group-label">Тренировок в неделю</span>
+                  <div class="segmented" id="daysChoices">
+                    <label><input type="radio" name="daysPerWeek" value="3" checked><span>3 дня</span></label>
+                    <label><input type="radio" name="daysPerWeek" value="4"><span>4 дня</span></label>
+                    <label><input type="radio" name="daysPerWeek" value="5"><span>5 дней</span></label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Inline AI Vision API Card -->
+              <div class="ai-inline-card" id="inlineAiCard">
+                <div class="ai-inline-head">
+                  <div>
+                    <span class="ai-inline-title">✦ Серверный AI Vision (ELLHOME)</span>
+                    <span class="muted tiny" id="inlineAiSub">Подключаемся к защищённому серверу AI Vision (ключ хранится на сервере)...</span>
+                  </div>
+                  <label class="switch-compact">
+                    <input type="checkbox" id="inlineAiToggle" checked>
+                    <span>Вкл</span>
+                  </label>
+                </div>
+
+                <div class="ai-inline-body hidden" id="inlineAiFields">
+                  <div class="form-row-2">
+                    <label class="field">
+                      <span>Провайдер ИИ</span>
+                      <select id="inlineAiProvider">
+                        <option value="openai">OpenAI (GPT-6 Luna / 6.2 Sol)</option>
+                        <option value="gemini">Google Gemini (4 Hydrogen / 3.8 Flash / 3.5 Lite)</option>
+                        <option value="openrouter">OpenRouter (Gemini / GPT / Claude)</option>
+                        <option value="custom">Custom / ProxyAPI / Ollama</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Модель Vision</span>
+                      <input type="text" id="inlineAiModel" list="aiModelSuggestions" placeholder="gpt-6-luna">
+                    </label>
+                  </div>
+                  <datalist id="aiModelSuggestions"></datalist>
+                  <label class="field hidden" id="inlineAiBaseUrlWrap">
+                    <span>Base URL (OpenAI-совместимый эндпоинт)</span>
+                    <input type="url" id="inlineAiBaseUrl" placeholder="https://api.proxyapi.ru/openai/v1">
+                  </label>
+                  <div class="ai-key-row">
+                    <label class="field" style="flex:1">
+                      <span>API-ключ (необязательно — без ключа сработает локальный CV)</span>
+                      <input type="password" id="inlineAiKey" placeholder="sk-... / AIza... / sk-or-..." autocomplete="off">
+                    </label>
+                    <button type="button" class="btn btn-outline btn-sm" id="inlineAiTestBtn">Проверить</button>
+                  </div>
+                  <div class="ai-test-feedback hidden" id="inlineAiFeedback"></div>
+                </div>
+              </div>
+
+              <div class="analyze-cta-wrap">
+                <button type="submit" class="btn btn-primary btn-lg btn-block" id="runAnalysisBtn">
+                  <span>Разобрать фигуру и составить план</span>
+                </button>
+                <div class="analyze-status hidden" id="analyzeStatus">
+                  <span class="spinner"></span>
+                  <span id="analyzeStatusText">Анализируем ключевые точки и осанку...</span>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: BODY & POSTURE ANALYSIS -->
+      <section class="tab-panel" id="tab-analysis">
+        <div class="empty-state" id="analysisEmptyState">
+          <div class="empty-icon">📐</div>
+          <h2>Пока нет данных разбора</h2>
+          <p class="muted">Добавьте фотографии (или выберите демо-пример) на шаге 1 и нажмите «Разобрать фигуру».</p>
+          <button class="btn btn-primary" data-goto-tab="capture">Перейти к фото</button>
+        </div>
+
+        <div class="analysis-layout hidden" id="analysisContent">
+          <!-- Left: Interactive Photo Overlay Canvas -->
+          <div class="panel analysis-stage-panel">
+            <div class="panel-header">
+              <div class="angle-tabs" id="analysisAngleTabs"></div>
+              <span class="badge badge-muted" id="cvMethodBadge">CV-анализ</span>
+            </div>
+
+            <div class="overlay-toolbar">
+              <label class="toggle-chip"><input type="checkbox" id="layerPosture" checked><span>Линии осанки</span></label>
+              <label class="toggle-chip"><input type="checkbox" id="layerProportions" checked><span>Пропорции</span></label>
+              <label class="toggle-chip"><input type="checkbox" id="layerSkeleton" checked><span>Скелет</span></label>
+              <button class="btn btn-sm btn-outline" id="toggleEditPointsBtn">Поправить точки</button>
+              <button class="btn btn-sm btn-ghost" id="downloadAnnotatedBtn">Скачать PNG</button>
+            </div>
+
+            <div class="edit-hint hidden" id="editPointsHint">
+              Перетаскивайте цветные точки прямо на фото для точной калибровки плеч, талии, головы или таза — метрики пересчитываются в реальном времени.
+              <button class="btn btn-xs btn-primary" id="rebuildPlanFromEditsBtn">Обновить план по точкам</button>
+            </div>
+
+            <div class="canvas-stage">
+              <canvas id="analysisCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Right: Metrics, Findings, AI Vision -->
+          <div class="analysis-report-col">
+            <div class="panel">
+              <div class="score-hero">
+                <div class="score-ring-wrap">
+                  <svg viewBox="0 0 110 110" class="score-ring">
+                    <circle cx="55" cy="55" r="46" class="ring-track"/>
+                    <circle cx="55" cy="55" r="46" class="ring-fill" id="postureScoreArc"/>
+                  </svg>
+                  <div class="score-ring-text">
+                    <span class="score-val" id="postureScoreVal">—</span>
+                    <span class="score-sub">Осанка</span>
+                  </div>
+                </div>
+                <div class="score-meta">
+                  <div class="pill-badge" id="bodyFrameBadge">Силуэт</div>
+                  <h2 id="analysisHeadline">Результат биомеханического разбора</h2>
+                  <p class="muted small" id="analysisSubline">Метрики рассчитаны по загруженным ракурсам.</p>
+                </div>
+              </div>
+
+              <div class="metrics-grid" id="metricsGrid"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Ключевые наблюдения и зоны внимания</h3>
+              </div>
+              <div class="findings-list" id="findingsList"></div>
+            </div>
+
+            <div class="panel" id="aiVisionPanel">
+              <div class="panel-header">
+                <div>
+                  <h3>Разбор от Vision AI (OpenAI / Gemini / OpenRouter)</h3>
+                  <p class="muted small">Глубокий анализ фигуры по фото и составление персональной программы через API ИИ</p>
+                </div>
+                <button class="btn btn-sm btn-outline" id="runAiVisionNowBtn">Запустить AI-разбор</button>
+              </div>
+              <div id="aiVisionBody"></div>
+            </div>
+
+            <div class="action-bar">
+              <button class="btn btn-outline" id="saveCheckinBtn">Сохранить замер в историю</button>
+              <button class="btn btn-primary btn-lg" id="gotoPlanBtn">Перейти к плану тренировок →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: WORKOUT PLAN & ANIMATED EXERCISES -->
+      <section class="tab-panel" id="tab-plan">
+        <div class="empty-state" id="planEmptyState">
+          <div class="empty-icon">🏋️</div>
+          <h2>План тренировок ещё не создан</h2>
+          <p class="muted">Сначала загрузите фото или выберите демо-пример, чтобы мы собрали персональную программу.</p>
+          <button class="btn btn-primary" data-goto-tab="capture">Создать план</button>
+        </div>
+
+        <div class="hidden" id="planContent">
+          <div class="panel plan-header-panel">
+            <div class="plan-header-top">
+              <div>
+                <div class="pill-badge" id="planGoalBadge">Персональный план</div>
+                <h2 id="planTitle">Ваша недельная программа</h2>
+                <div class="focus-chips" id="planFocusChips"></div>
+              </div>
+              <div class="plan-quick-controls">
+                <select id="quickEquipmentSelect" title="Быстро сменить инвентарь">
+                  <option value="home_bodyweight">Дома (свой вес)</option>
+                  <option value="home_dumbbells">Дома с гантелями</option>
+                  <option value="gym">Тренажёрный зал</option>
+                </select>
+                <select id="quickDaysSelect" title="Дней в неделю">
+                  <option value="3">3 дня / нед</option>
+                  <option value="4">4 дня / нед</option>
+                  <option value="5">5 дней / нед</option>
+                </select>
+                <button class="btn btn-outline btn-sm" id="openCatalogBtn">Все упражнения (36)</button>
+              </div>
+            </div>
+
+            <div class="nutrition-strip" id="nutritionStrip"></div>
+          </div>
+
+          <div class="day-switcher-row">
+            <div class="day-tabs" id="planDayTabs"></div>
+            <button class="btn btn-primary btn-lg" id="startWorkoutBtn">▶ Начать тренировку</button>
+          </div>
+
+          <div class="day-summary-bar" id="daySummaryBar"></div>
+
+          <div id="planExercisesContainer"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: PROGRESS & HISTORY -->
+      <section class="tab-panel" id="tab-history">
+        <div class="history-kpis" id="historyKpis"></div>
+
+        <div class="history-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Динамика осанки и V-пропорций</h2>
+                <p class="muted small">Сохраняйте контрольные замеры раз в 2–4 недели, чтобы видеть прогресс.</p>
+              </div>
+              <div class="backup-actions">
+                <button class="btn btn-ghost btn-sm" id="exportBackupBtn">Экспорт JSON</button>
+                <label class="btn btn-ghost btn-sm">
+                  Импорт JSON
+                  <input type="file" id="importBackupInput" accept="application/json" hidden>
+                </label>
+              </div>
+            </div>
+            <div class="chart-wrap" id="progressChartWrap"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Сравнение «До / После»</h2>
+            </div>
+            <div id="compareContainer"></div>
+          </div>
+        </div>
+
+        <div class="history-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Сохранённые замеры фигуры</h2>
+            </div>
+            <div class="checkins-list" id="checkinsList"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Журнал выполненных тренировок</h2>
+            </div>
+            <div class="workout-logs-list" id="workoutLogsList"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: CAMERA CAPTURE -->
+  <div class="modal-backdrop hidden" id="cameraModal" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+    <div class="modal modal-camera">
+      <div class="modal-header">
+        <div>
+          <h3 id="cameraModalTitle">Съёмка ракурса</h3>
+          <p class="muted small" id="cameraModalHint">Встаньте в контур силуэта в полный рост</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="cameraModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="camera-stage">
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <img id="cameraPreviewImg" class="hidden" alt="Предпросмотр фото">
+        <div class="camera-guide-overlay" id="cameraGuideOverlay"></div>
+        <div class="camera-countdown hidden" id="cameraCountdown">3</div>
+        <div class="camera-error hidden" id="cameraError"></div>
+      </div>
+      <div class="camera-controls">
+        <div class="camera-settings-row" id="cameraLiveControls">
+          <div class="segmented segmented-sm" id="timerChoices">
+            <label><input type="radio" name="camTimer" value="0"><span>Сразу</span></label>
+            <label><input type="radio" name="camTimer" value="3" checked><span>3 сек</span></label>
+            <label><input type="radio" name="camTimer" value="5"><span>5 сек</span></label>
+            <label><input type="radio" name="camTimer" value="10"><span>10 сек</span></label>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="cameraMirrorBtn">Зеркало</button>
+          <button class="btn btn-ghost btn-sm" id="cameraFlipBtn">Камера ⇄</button>
+          <button class="btn btn-primary" id="cameraSnapBtn">Сделать фото</button>
+        </div>
+        <div class="camera-review-row hidden" id="cameraReviewControls">
+          <button class="btn btn-outline" id="cameraRetakeBtn">Переснять</button>
+          <button class="btn btn-primary" id="cameraAcceptBtn">Использовать это фото</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXERCISE DETAIL & ANIMATION -->
+  <div class="modal-backdrop hidden" id="exerciseModal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle">
+    <div class="modal modal-exercise">
+      <div class="modal-header">
+        <div>
+          <div class="pill-badge" id="exModalCategory">Упражнение</div>
+          <h3 id="exerciseModalTitle">Название упражнения</h3>
+        </div>
+        <button class="btn btn-icon" data-close-modal="exerciseModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="ex-modal-grid">
+        <div class="ex-anim-col">
+          <div class="ex-canvas-wrap">
+            <canvas id="exModalCanvas" width="520" height="390"></canvas>
+            <span class="phase-pill" id="exModalPhase">Движение</span>
+          </div>
+          <div class="anim-controls">
+            <button class="btn btn-sm btn-outline" id="exModalPlayPauseBtn">Пауза</button>
+            <div class="segmented segmented-sm" id="exModalSpeed">
+              <label><input type="radio" name="exSpeed" value="0.5"><span>0.5×</span></label>
+              <label><input type="radio" name="exSpeed" value="1" checked><span>1×</span></label>
+              <label><input type="radio" name="exSpeed" value="1.5"><span>1.5×</span></label>
+            </div>
+            <label class="toggle-chip"><input type="checkbox" id="exModalMusclesToggle" checked><span>Подсветка мышц</span></label>
+          </div>
+          <div class="muscle-tags" id="exModalMuscles"></div>
+        </div>
+        <div class="ex-info-col">
+          <div class="info-callout" id="exModalBreathing"></div>
+          <div class="info-block">
+            <h4>Техника выполнения</h4>
+            <ol id="exModalSteps"></ol>
+          </div>
+          <div class="info-block">
+            <h4>Частые ошибки</h4>
+            <ul id="exModalMistakes" class="mistakes-list"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SWAP EXERCISE -->
+  <div class="modal-backdrop hidden" id="swapModal" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Заменить упражнение</h3>
+        <button class="btn btn-icon" data-close-modal="swapModal" aria-label="Закрыть">✕</button>
+      </div>
+      <p class="muted small" id="swapModalSubtitle">Выберите подходящую альтернативу под ваш инвентарь:</p>
+      <div class="swap-list" id="swapOptionsList"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXERCISE CATALOG (ALL 36 ANIMATED) -->
+  <div class="modal-backdrop hidden" id="catalogModal" role="dialog" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <div>
+          <h3>Библиотека анимированных упражнений</h3>
+          <p class="muted small">Нажмите на любое упражнение, чтобы изучить технику и работу мышц</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="catalogModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="catalog-filters" id="catalogFilters">
+        <button class="filter-chip active" data-cat="all">Все (36)</button>
+        <button class="filter-chip" data-cat="posture">Осанка</button>
+        <button class="filter-chip" data-cat="back">Спина</button>
+        <button class="filter-chip" data-cat="legs">Ноги и ягодицы</button>
+        <button class="filter-chip" data-cat="chest">Грудь</button>
+        <button class="filter-chip" data-cat="shoulders">Плечи</button>
+        <button class="filter-chip" data-cat="arms">Руки</button>
+        <button class="filter-chip" data-cat="core">Кор и пресс</button>
+        <button class="filter-chip" data-cat="cardio">Кардио</button>
+      </div>
+      <div class="catalog-grid" id="catalogGrid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI VISION SETTINGS -->
+  <div class="modal-backdrop hidden" id="aiSettingsModal" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div>
+          <h3>Настройки AI Vision API</h3>
+          <p class="muted small">Подключите OpenAI, Google Gemini, OpenRouter или совместимый прокси</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="aiSettingsModal" aria-label="Закрыть">✕</button>
+      </div>
+      <form id="aiSettingsForm" class="stack-form">
+        <label class="switch-row">
+          <span>Автоматически запускать AI Vision при анализе фото</span>
+          <input type="checkbox" id="aiEnabledCheck">
+        </label>
+        <label class="field">
+          <span>Провайдер</span>
+          <select id="aiProviderSelect">
+            <option value="openai">OpenAI (GPT-6 Luna / 6.2 Sol)</option>
+            <option value="gemini">Google Gemini (4 Hydrogen / 3.8 Flash / 3.5 Lite)</option>
+            <option value="openrouter">OpenRouter (Gemini / GPT / Claude)</option>
+            <option value="custom">Custom / ProxyAPI / Ollama</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Модель</span>
+          <input type="text" id="aiModelInput" list="aiModelSuggestions" placeholder="gpt-6-luna">
+        </label>
+        <label class="field" id="aiBaseUrlField">
+          <span>Custom Base URL (опционально, для OpenAI-совместимых прокси)</span>
+          <input type="url" id="aiBaseUrlInput" placeholder="https://api.openai.com/v1">
+        </label>
+        <label class="field">
+          <span>API-ключ</span>
+          <input type="password" id="aiApiKeyInput" placeholder="sk-... / AIza... / sk-or-..." autocomplete="off">
+        </label>
+        <div class="ai-test-feedback hidden" id="modalAiFeedback"></div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="aiRememberKeyCheck">
+          <span>Сохранить ключ в этом браузере (иначе только до закрытия вкладки)</span>
+        </label>
+        <p class="muted tiny">
+          Ключ не записывается на диск сервера и используется только для прокси-запроса к выбранному провайдеру.
+          Можно также задать OPENAI_API_KEY / GEMINI_API_KEY / OPENROUTER_API_KEY в переменных окружения.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="modalAiTestBtn">Проверить ключ</button>
+          <button type="button" class="btn btn-ghost" data-close-modal="aiSettingsModal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN OVERLAY: INTERACTIVE WORKOUT PLAYER -->
+  <div class="workout-overlay hidden" id="workoutOverlay" role="dialog" aria-modal="true">
+    <div class="workout-topbar">
+      <div class="workout-title-wrap">
+        <button class="btn btn-ghost btn-sm" id="exitWorkoutBtn">← Выйти</button>
+        <div>
+          <strong id="wpDayTitle">Тренировка</strong>
+          <span class="muted small" id="wpProgressLabel">0 / 0 подходов</span>
+        </div>
+      </div>
+      <div class="workout-meta-right">
+        <span class="elapsed-badge" id="wpElapsedClock">00:00</span>
+        <button class="btn btn-ghost btn-sm" id="wpSoundToggleBtn" title="Звук таймера">🔔 Звук вкл</button>
+        <button class="btn btn-primary btn-sm" id="wpFinishBtn">Завершить</button>
+      </div>
+    </div>
+    <div class="workout-progress-bar"><div class="workout-progress-fill" id="wpProgressBar"></div></div>
+
+    <div class="workout-body" id="wpActiveBody">
+      <!-- Left: Large live exercise animation -->
+      <div class="wp-stage-col">
+        <div class="wp-canvas-card">
+          <canvas id="wpAnimCanvas" width="560" height="420"></canvas>
+          <span class="phase-pill" id="wpPhasePill">Движение</span>
+        </div>
+        <div class="anim-controls">
+          <button class="btn btn-sm btn-outline" id="wpPlayPauseBtn">Пауза</button>
+          <div class="segmented segmented-sm" id="wpSpeedChoices">
+            <label><input type="radio" name="wpSpeed" value="0.5"><span>0.5×</span></label>
+            <label><input type="radio" name="wpSpeed" value="1" checked><span>1×</span></label>
+            <label><input type="radio" name="wpSpeed" value="1.5"><span>1.5×</span></label>
+          </div>
+          <label class="toggle-chip"><input type="checkbox" id="wpMusclesToggle" checked><span>Мышцы</span></label>
+        </div>
+        <div class="wp-cues-card">
+          <div class="wp-breathing" id="wpBreathingCue"></div>
+          <ol class="wp-steps" id="wpStepsList"></ol>
+        </div>
+      </div>
+
+      <!-- Right: Set tracker + Hold / Rest Timers -->
+      <div class="wp-tracker-col">
+        <div class="wp-ex-header">
+          <span class="pill-badge" id="wpSectionBadge">Основной блок</span>
+          <h2 id="wpExerciseTitle">Название упражнения</h2>
+          <p class="muted small" id="wpExerciseReason"></p>
+        </div>
+
+        <!-- Hold Timer (only for timed exercises like Plank) -->
+        <div class="timer-card hidden" id="wpHoldTimerCard">
+          <div class="timer-card-left">
+            <span class="timer-label">Таймер подхода (статика / интервал)</span>
+            <strong class="timer-big" id="wpHoldClock">00:45</strong>
+          </div>
+          <div class="timer-card-actions">
+            <button class="btn btn-primary btn-sm" id="wpHoldStartBtn">Старт</button>
+            <button class="btn btn-ghost btn-sm" id="wpHoldResetBtn">Сброс</button>
+          </div>
+        </div>
+
+        <!-- Rest Timer Banner -->
+        <div class="timer-card rest-card hidden" id="wpRestTimerCard">
+          <div class="rest-ring-wrap">
+            <svg viewBox="0 0 64 64" class="rest-ring">
+              <circle cx="32" cy="32" r="27" class="ring-track"/>
+              <circle cx="32" cy="32" r="27" class="ring-fill" id="wpRestArc"/>
+            </svg>
+            <span class="rest-sec" id="wpRestClock">60</span>
+          </div>
+          <div class="timer-card-left">
+            <span class="timer-label">Отдых между подходами</span>
+            <span class="muted small">Восстановите дыхание перед следующим подходом</span>
+          </div>
+          <div class="timer-card-actions">
+            <button class="btn btn-ghost btn-sm" id="wpRestPlusBtn">+15с</button>
+            <button class="btn btn-outline btn-sm" id="wpRestSkipBtn">Пропустить</button>
+          </div>
+        </div>
+
+        <div class="sets-list" id="wpSetsList"></div>
+
+        <div class="wp-nav-footer">
+          <button class="btn btn-outline" id="wpPrevExBtn">← Предыдущее</button>
+          <span class="muted small" id="wpExCounter">1 / 6</span>
+          <button class="btn btn-primary" id="wpNextExBtn">Следующее →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workout Completed Summary -->
+    <div class="workout-summary hidden" id="wpSummaryBody">
+      <div class="summary-card">
+        <div class="summary-badge">Тренировка завершена</div>
+        <h2>Отличная работа!</h2>
+        <p class="muted" id="wpSummarySubtitle">Сессия сохранена в вашу историю прогресса.</p>
+        <div class="summary-stats" id="wpSummaryStats"></div>
+        <div class="summary-actions">
+          <button class="btn btn-outline" id="wpViewHistoryBtn">Открыть прогресс</button>
+          <button class="btn btn-primary" id="wpDoneCloseBtn">Вернуться к плану</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script>
+    window.__BODYCOACH_CONFIG__ = {
+      mode: 'cloud',
+      apiBase: 'https://ellhome-bot-api.onrender.com'
+    };
+  </script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
