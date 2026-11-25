@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-19';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-19';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-19';
+} from './cv-analyzer.js?v=20261124-20';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-20';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-20';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,9 +26,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-19';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-19';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-19';
+} from './plan-generator.js?v=20261124-20';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-20';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-20';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -52,7 +52,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-19';
+} from './storage.js?v=20261124-20';
 
 const ANGLES = [
   {
@@ -809,6 +809,7 @@ function initCameraGuideDrag() {
     const line = e.target.closest('[data-guide-line]');
     if (!line) return;
     e.preventDefault();
+    hideCameraTip();
     drag = { line, which: line.dataset.guideLine, id: e.pointerId };
     line.classList.add('dragging');
     try {
@@ -847,11 +848,11 @@ function clampNum(v, min, max) {
 // Body photos are always portrait; phone browsers often deliver a landscape 4:3 stream even in portrait.
 const BODY_FRAME_RATIO = 3 / 4;
 
-// Tall phone screens get a taller crop (down to 9:16) so the person appears as large as possible.
+// Tall phone screens get a taller crop (down to 1:2) so the person appears as large as possible.
 function bodyFrameRatio() {
   const vp = $('cameraViewport');
   const r = vp.clientWidth && vp.clientHeight ? vp.clientWidth / vp.clientHeight : BODY_FRAME_RATIO;
-  return Math.min(BODY_FRAME_RATIO, Math.max(9 / 16, r));
+  return Math.min(BODY_FRAME_RATIO, Math.max(1 / 2, r));
 }
 
 function cameraCropRect() {
@@ -889,7 +890,61 @@ function fitCameraStage() {
   stage.style.width = `${Math.floor(w)}px`;
   stage.style.height = `${Math.floor(h)}px`;
 }
+const CAMERA_FS_MQ = window.matchMedia('(max-width: 820px), (pointer: coarse) and (max-height: 520px)');
+const CAM_TIMER_STEPS = [0, 3, 5, 10];
+
+// Browser bars can only be hidden through the Fullscreen API, and only from a user tap (iPhone Safari has no support).
+function enterCameraFullscreen() {
+  if (!CAMERA_FS_MQ.matches || document.fullscreenElement || document.webkitFullscreenElement) return;
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!req) return;
+  try {
+    state.camera.ownFullscreen = true;
+    const p = req.call(el, { navigationUI: 'hide' });
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {
+        state.camera.ownFullscreen = false;
+      });
+    }
+  } catch {
+    state.camera.ownFullscreen = false;
+  }
+}
+
+function exitCameraFullscreen() {
+  if (!state.camera.ownFullscreen) return;
+  state.camera.ownFullscreen = false;
+  if (!(document.fullscreenElement || document.webkitFullscreenElement)) return;
+  const exit = document.exitFullscreen || document.webkitExitFullscreen;
+  try {
+    const p = exit?.call(document);
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch {
+    // Already left fullscreen
+  }
+}
+
+function syncCameraTimerLabel() {
+  const val = Number(document.querySelector('input[name="camTimer"]:checked')?.value || 0);
+  $('cameraTimerCycleBtn').textContent = val > 0 ? `Таймер ${val} с` : 'Без таймера';
+}
+
+function cycleCameraTimer() {
+  const cur = Number(document.querySelector('input[name="camTimer"]:checked')?.value || 0);
+  const next = CAM_TIMER_STEPS[(CAM_TIMER_STEPS.indexOf(cur) + 1) % CAM_TIMER_STEPS.length];
+  const radio = document.querySelector(`input[name="camTimer"][value="${next}"]`);
+  if (radio) radio.checked = true;
+  syncCameraTimerLabel();
+}
+
+function hideCameraTip() {
+  clearTimeout(state.camera.tipTimer);
+  $('cameraTipChip').classList.add('hidden');
+}
+
 async function openCameraModal(angleKey) {
+  enterCameraFullscreen();
   state.camera.angleKey = angleKey;
   state.camera.capturedDataUrl = null;
   if (!state.camera.guide) state.camera.guide = loadCameraGuide();
@@ -903,13 +958,18 @@ async function openCameraModal(angleKey) {
     renderCameraGuide(null);
     const immediateRadio = document.querySelector('input[name="camTimer"][value="0"]');
     if (immediateRadio) immediateRadio.checked = true;
+    hideCameraTip();
   } else {
     const meta = ANGLES.find((a) => a.key === angleKey) || ANGLES[0];
     $('cameraModalTitle').textContent = `Съёмка: ${meta.title}`;
     $('cameraModalHint').textContent = meta.hint;
     $('cameraGuideTip').classList.remove('hidden');
     renderCameraGuide(meta);
+    $('cameraTipChip').classList.remove('hidden');
+    clearTimeout(state.camera.tipTimer);
+    state.camera.tipTimer = setTimeout(hideCameraTip, 6000);
   }
+  syncCameraTimerLabel();
 
   $('cameraPreviewImg').classList.add('hidden');
   $('cameraVideo').classList.remove('hidden');
@@ -3344,6 +3404,8 @@ function closeModal(id) {
   $(id).classList.add('hidden');
   if (id === 'cameraModal') {
     stopCameraStream();
+    hideCameraTip();
+    exitCameraFullscreen();
     if (!$('analysisCanvasStage').classList.contains('is-fullscreen')) document.body.classList.remove('no-scroll');
   }
   if (id === 'exerciseModal' && state.exModalPlayer) {
@@ -3489,6 +3551,9 @@ function initEvents() {
   $('cameraVideo').addEventListener('loadedmetadata', fitCameraStage);
   $('cameraVideo').addEventListener('resize', fitCameraStage);
   window.addEventListener('resize', fitCameraStage);
+  document.addEventListener('fullscreenchange', fitCameraStage);
+  $('cameraTimerCycleBtn').addEventListener('click', cycleCameraTimer);
+  document.querySelectorAll('input[name="camTimer"]').forEach((r) => r.addEventListener('change', syncCameraTimerLabel));
   initCameraGuideDrag();
   $('cameraRetakeBtn').addEventListener('click', () => {
     state.camera.capturedDataUrl = null;
