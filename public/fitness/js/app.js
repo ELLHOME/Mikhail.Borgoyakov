@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-20';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-20';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-20';
+} from './cv-analyzer.js?v=20261124-21';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-21';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-21';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,9 +26,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-20';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-20';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-20';
+} from './plan-generator.js?v=20261124-21';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-21';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-21';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -52,7 +52,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-20';
+} from './storage.js?v=20261124-21';
 
 const ANGLES = [
   {
@@ -220,33 +220,103 @@ let musicController = null;
 
 function openMusicModal() {
   renderMusicStationsGrid();
-  if (musicController) renderMusicPlayerUi(musicController.getState());
   $('musicModal')?.classList.remove('hidden');
+  if (musicController) renderMusicPlayerUi(musicController.getState());
 }
 
 function renderMusicStationsGrid() {
-  const grid = $('musicStationsGrid');
-  if (!grid || !musicController) return;
+  if (!musicController) return;
   const st = musicController.getState();
-  grid.innerHTML = WORKOUT_STATIONS.map((s) => {
-    const isActive = st.sourceMode === 'station' && st.stationId === s.id;
-    return `
-      <button type="button" class="music-station-card ${isActive ? 'active' : ''}" data-music-station="${s.id}">
-        <div class="music-station-top">
-          <span class="music-station-name">${escapeHtml(s.name)}</span>
-          <span class="music-station-tag">${escapeHtml(s.tag)}</span>
-        </div>
-        <span class="music-station-desc">${escapeHtml(s.desc)}</span>
-      </button>
-    `;
-  }).join('');
-
-  grid.querySelectorAll('[data-music-station]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      musicController.selectStation(btn.dataset.musicStation);
+  const fill = (grid, list) => {
+    if (!grid) return;
+    grid.innerHTML = list.map((s) => {
+      const isActive = st.sourceMode === 'station' && st.stationId === s.id;
+      return `
+        <button type="button" class="music-station-card ${isActive ? 'active' : ''}" data-music-station="${s.id}">
+          <div class="music-station-top">
+            <span class="music-station-name">${escapeHtml(s.name)}</span>
+            <span class="music-station-tag">${escapeHtml(s.tag)}</span>
+          </div>
+          <span class="music-station-desc">${escapeHtml(s.desc)}</span>
+        </button>
+      `;
+    }).join('');
+    grid.querySelectorAll('[data-music-station]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        musicController.selectStation(btn.dataset.musicStation);
+      });
     });
-  });
+  };
+  fill($('musicBlocksGrid'), WORKOUT_STATIONS.filter((s) => s.group === 'blocks'));
+  fill($('musicStationsGrid'), WORKOUT_STATIONS.filter((s) => s.group !== 'blocks'));
 }
+
+let beatLoopId = 0;
+let lastBeatKey = '';
+function beatLoopVisible() {
+  return !$('musicModal')?.classList.contains('hidden') || !$('workoutOverlay')?.classList.contains('hidden');
+}
+
+function renderBeat(info) {
+  const row = $('musicBeatRow');
+  const chip = $('wpBeatChip');
+  row?.classList.toggle('hidden', !info);
+  chip?.classList.toggle('hidden', !info);
+  if (!info) {
+    lastBeatKey = '';
+    return;
+  }
+  const key = `${info.beatIndex}`;
+  if (key === lastBeatKey) return;
+  lastBeatKey = key;
+  const phraseStart = info.phraseBeat === 0;
+  if ($('musicBeatCount')) $('musicBeatCount').textContent = String(info.count);
+  if ($('musicBeatEight')) $('musicBeatEight').textContent = `Восьмёрка ${info.eight} из 4`;
+  if ($('musicBeatBpm')) $('musicBeatBpm').textContent = `${info.bpm} BPM`;
+  if ($('wpBeatNum')) $('wpBeatNum').textContent = String(info.count);
+  if ($('wpBeatEight')) $('wpBeatEight').textContent = `${info.eight}/4`;
+  $('musicBeatDots')?.querySelectorAll('i').forEach((dot, i) => {
+    dot.classList.toggle('on', i < info.count);
+    dot.classList.toggle('now', i === info.count - 1);
+  });
+  [row, chip].forEach((el) => {
+    if (!el) return;
+    el.classList.toggle('is-one', info.count === 1);
+    el.classList.toggle('is-phrase', phraseStart);
+  });
+  const pulseEl = !$('musicModal')?.classList.contains('hidden') ? $('musicBeatCount') : chip;
+  pulseEl?.animate?.([{ transform: 'scale(1.16)' }, { transform: 'scale(1)' }], { duration: 160, easing: 'ease-out' });
+}
+
+function beatLoopTick() {
+  beatLoopId = 0;
+  if (!musicController || document.hidden) return;
+  const st = musicController.getState();
+  if (!st.playing || !st.hasBeat) {
+    renderBeat(null);
+    return;
+  }
+  const info = beatLoopVisible() ? musicController.getBeatInfo() : null;
+  renderBeat(info);
+  // Before the first beat, while buffering, or when nothing shows the count, poll slowly.
+  beatLoopId = info ? requestAnimationFrame(beatLoopTick) : window.setTimeout(beatLoopTick, 300);
+}
+
+function ensureBeatLoop() {
+  if (beatLoopId) return;
+  beatLoopTick();
+}
+
+function tapMusicDownbeat() {
+  if (!musicController?.tapDownbeat()) return;
+  lastBeatKey = '';
+  ensureBeatLoop();
+  showToast('Счёт подстроен: «раз» здесь');
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && musicController?.getBeatInfo()) ensureBeatLoop();
+});
 
 function renderMusicPlayerUi(st) {
   const isPlaying = Boolean(st.playing && !st.buffering);
@@ -257,24 +327,35 @@ function renderMusicPlayerUi(st) {
   $('planMusicBtn')?.classList.toggle('active', isActive);
   $('musicHeroDeck')?.classList.toggle('is-playing', isPlaying);
 
+  const shortTitle = st.shortTitle || st.title;
   if ($('planMusicLabel')) {
-    $('planMusicLabel').textContent = isActive ? st.title : 'Музыка';
+    $('planMusicLabel').textContent = isActive ? shortTitle : 'Музыка';
   }
   if ($('wpMusicLabel')) {
-    $('wpMusicLabel').textContent = isActive ? st.title : 'Музыка';
+    $('wpMusicLabel').textContent = isActive ? shortTitle : 'Музыка';
   }
   if ($('musicNowTitle')) $('musicNowTitle').textContent = st.title;
   if ($('musicNowSub')) $('musicNowSub').textContent = st.subtitle;
+  const credit = $('musicNowCredit');
+  if (credit) {
+    credit.classList.toggle('hidden', !st.credit);
+    if (st.credit) {
+      credit.href = st.credit.url || st.credit.licenseUrl || 'https://www.jamendo.com';
+      credit.textContent = 'Jamendo • лицензия Creative Commons';
+    }
+  }
 
   if ($('musicStatusLabel')) {
     $('musicStatusLabel').textContent = st.errorText
       ? st.errorText
       : st.buffering
-        ? 'Подключение к потоку...'
+        ? (st.stationMode === 'jamendo' ? 'Загрузка трека...' : 'Подключение к потоку...')
         : st.playing
           ? 'Сейчас играет'
           : 'На паузе';
   }
+  if (st.playing && st.hasBeat) ensureBeatLoop();
+  else renderBeat(null);
 
   const iconWrap = $('musicPlayToggleIcon');
   if (iconWrap) {
@@ -3769,6 +3850,8 @@ function initEvents() {
   $('planMusicBtn')?.addEventListener('click', openMusicModal);
   $('wpMusicBtn')?.addEventListener('click', openMusicModal);
   $('musicPlayToggleBtn')?.addEventListener('click', () => musicController?.togglePlay());
+  $('musicBeatTapBtn')?.addEventListener('click', tapMusicDownbeat);
+  $('wpBeatChip')?.addEventListener('click', tapMusicDownbeat);
   $('musicPrevBtn')?.addEventListener('click', () => musicController?.prev());
   $('musicNextBtn')?.addEventListener('click', () => musicController?.next());
   $('musicVolumeRange')?.addEventListener('input', (e) => {

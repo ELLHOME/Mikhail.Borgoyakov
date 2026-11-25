@@ -2921,6 +2921,151 @@ body.no-scroll { overflow: hidden; }
   text-align: center;
 }
 
+.music-now-credit {
+  font-size: 0.72rem;
+  color: rgba(130, 226, 255, 0.78);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.music-now-credit:hover {
+  text-decoration: underline;
+}
+
+.music-beat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(56, 220, 255, 0.18);
+}
+.music-beat-count {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #ffffff;
+  background: rgba(46, 226, 255, 0.12);
+  border: 1px solid rgba(56, 220, 255, 0.35);
+}
+.music-beat-row.is-one .music-beat-count {
+  color: #06121f;
+  background: var(--accent-bright);
+  border-color: var(--accent-bright);
+}
+.music-beat-row.is-phrase .music-beat-count {
+  background: #ffd166;
+  border-color: #ffd166;
+  box-shadow: 0 0 18px rgba(255, 209, 102, 0.55);
+}
+.music-beat-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.music-beat-dots {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+.music-beat-dots i {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.08s linear;
+}
+.music-beat-dots i.on {
+  background: rgba(46, 226, 255, 0.55);
+}
+.music-beat-dots i.now {
+  background: var(--accent-bright);
+}
+.music-beat-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.74rem;
+  color: rgba(214, 232, 252, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+.music-beat-tap {
+  flex-shrink: 0;
+  border: 1px solid rgba(56, 220, 255, 0.45);
+  background: rgba(46, 226, 255, 0.1);
+  color: var(--accent-bright);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.music-beat-tap:active {
+  transform: scale(0.96);
+}
+
+.wp-beat-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.wp-beat-chip b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.05rem;
+  min-width: 0.7em;
+  text-align: center;
+}
+.wp-beat-chip small {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.wp-beat-chip.is-one {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.wp-beat-chip.is-phrase {
+  background: #ffd166;
+  border-color: #ffd166;
+  color: #1b1300;
+}
+.wp-beat-chip.is-phrase small {
+  color: #3d2c00;
+}
+@media (max-width: 420px) {
+  .workout-meta-right {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .workout-meta-right:has(.wp-beat-chip:not(.hidden)) #wpSoundToggleBtn span {
+    display: none;
+  }
+  .music-beat-row {
+    gap: 9px;
+    padding: 9px 10px;
+  }
+  .music-beat-tap {
+    padding: 7px 8px;
+  }
+}
 @media (max-width: 520px) {
   .music-stations-grid {
     grid-template-columns: 1fr;
