@@ -68,7 +68,7 @@
   "mountain_climbers": {
     "frames": 8,
     "frameSize": 448,
-    "durationMs": 140,
+    "durationMs": 150,
     "url": "/assets/exercises/mountain_climbers.webp"
   },
   "hip_flexor_stretch": {
@@ -80,7 +80,7 @@
   "bicycle_crunches": {
     "frames": 8,
     "frameSize": 448,
-    "durationMs": 160,
+    "durationMs": 200,
     "url": "/assets/exercises/bicycle_crunches.webp"
   },
   "dips": {
@@ -284,7 +284,7 @@
   "trx_mountain_climber": {
     "frames": 8,
     "frameSize": 448,
-    "durationMs": 180,
+    "durationMs": 150,
     "url": "/assets/exercises/trx_mountain_climber.webp"
   },
   "trx_pike": {

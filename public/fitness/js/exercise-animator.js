@@ -30,7 +30,8 @@ function loadSprite(animId) {
   entry.img.onerror = () => {
     entry.failed = true;
   };
-  entry.img.src = new URL(`../assets/exercises/${key}.webp`, import.meta.url).href;
+  // Relative URL resolution drops the module's ?v= query, so carry it over to bust cached filmstrips.
+  entry.img.src = new URL(`../assets/exercises/${key}.webp${new URL(import.meta.url).search}`, import.meta.url).href;
   spriteCache.set(key, entry);
   return entry;
 }

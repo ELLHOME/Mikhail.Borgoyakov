@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-16';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-16';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-16';
+} from './cv-analyzer.js?v=20261124-17';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-17';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-17';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,9 +26,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-16';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-16';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-16';
+} from './plan-generator.js?v=20261124-17';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-17';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-17';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -52,7 +52,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-16';
+} from './storage.js?v=20261124-17';
 
 const ANGLES = [
   {
