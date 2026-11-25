@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-17';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-17';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-17';
+} from './cv-analyzer.js?v=20261124-18';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-18';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-18';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,9 +26,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-17';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-17';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-17';
+} from './plan-generator.js?v=20261124-18';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-18';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-18';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -52,7 +52,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-17';
+} from './storage.js?v=20261124-18';
 
 const ANGLES = [
   {
@@ -192,6 +192,7 @@ const state = {
     mirrored: true,
     countdownTimer: null,
     capturedDataUrl: null,
+    guide: null,
   },
   swapContext: null,
   wp: {
@@ -759,23 +760,133 @@ function readProfileFromForm() {
 }
 
 /* --------------------------- Camera Capture Modal --------------------------- */
+const CAM_GUIDE_KEY = 'bodycoach_cam_guide_v1';
+const CAM_GUIDE_MIN_SPAN = 0.3;
+// Silhouette guides are drawn from y=10 (head top) to y=186 (feet) inside a 120x200 viewBox.
+const CAM_GUIDE_VIEWBOX = '0 10 120 176';
+
+function loadCameraGuide() {
+  try {
+    const g = JSON.parse(localStorage.getItem(CAM_GUIDE_KEY) || 'null');
+    if (g && g.head >= 0 && g.feet <= 1 && g.feet - g.head >= CAM_GUIDE_MIN_SPAN) return { head: g.head, feet: g.feet };
+  } catch {
+    // Fall back to defaults on malformed storage
+  }
+  return { head: 0.06, feet: 0.94 };
+}
+
+function renderCameraGuide(meta) {
+  const overlay = $('cameraGuideOverlay');
+  if (!meta) {
+    overlay.innerHTML = '';
+    return;
+  }
+  const svg = meta.svg
+    .replace('viewBox="0 0 120 200"', `viewBox="${CAM_GUIDE_VIEWBOX}" preserveAspectRatio="xMidYMid meet"`)
+    .replace(' width="84" height="140"', '');
+  overlay.innerHTML = `
+    <div class="cam-guide-figure" id="camGuideFigure">${svg}</div>
+    <div class="cam-guide-line" data-guide-line="head"><span>Макушка</span></div>
+    <div class="cam-guide-line" data-guide-line="feet"><span>Стопы</span></div>`;
+  applyCameraGuide();
+}
+
+function applyCameraGuide() {
+  const g = state.camera.guide;
+  const overlay = $('cameraGuideOverlay');
+  const fig = $('camGuideFigure');
+  if (!fig) return;
+  fig.style.top = `${g.head * 100}%`;
+  fig.style.height = `${(g.feet - g.head) * 100}%`;
+  overlay.querySelector('[data-guide-line="head"]').style.top = `${g.head * 100}%`;
+  overlay.querySelector('[data-guide-line="feet"]').style.top = `${g.feet * 100}%`;
+}
+
+function initCameraGuideDrag() {
+  const overlay = $('cameraGuideOverlay');
+  let drag = null;
+  overlay.addEventListener('pointerdown', (e) => {
+    const line = e.target.closest('[data-guide-line]');
+    if (!line) return;
+    e.preventDefault();
+    drag = { line, which: line.dataset.guideLine, id: e.pointerId };
+    line.classList.add('dragging');
+    try {
+      line.setPointerCapture(e.pointerId);
+    } catch {
+      // Capture can fail for synthetic or already-released pointers; dragging still works via overlay events
+    }
+  });
+  overlay.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const rect = overlay.getBoundingClientRect();
+    const y = clampNum((e.clientY - rect.top) / rect.height, 0.01, 0.99);
+    const g = state.camera.guide;
+    if (drag.which === 'head') g.head = Math.min(y, g.feet - CAM_GUIDE_MIN_SPAN);
+    else g.feet = Math.max(y, g.head + CAM_GUIDE_MIN_SPAN);
+    applyCameraGuide();
+  });
+  const end = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.line.classList.remove('dragging');
+    drag = null;
+    try {
+      localStorage.setItem(CAM_GUIDE_KEY, JSON.stringify(state.camera.guide));
+    } catch {
+      // Ignore storage quota errors
+    }
+  };
+  overlay.addEventListener('pointerup', end);
+  overlay.addEventListener('pointercancel', end);
+}
+
+function clampNum(v, min, max) {
+  return Math.min(max, Math.max(min, v));
+}
+
+function fitCameraStage() {
+  const modal = $('cameraModal');
+  if (modal.classList.contains('hidden')) return;
+  const vp = $('cameraViewport');
+  const stage = $('cameraStage');
+  const video = $('cameraVideo');
+  const img = $('cameraPreviewImg');
+  const showingImg = !img.classList.contains('hidden') && img.naturalWidth;
+  const srcW = showingImg ? img.naturalWidth : video.videoWidth;
+  const srcH = showingImg ? img.naturalHeight : video.videoHeight;
+  const ratio = srcW && srcH ? srcW / srcH : 3 / 4;
+  const availW = vp.clientWidth;
+  const availH = vp.clientHeight;
+  if (!availW || !availH) return;
+  let w = availW;
+  let h = w / ratio;
+  if (h > availH) {
+    h = availH;
+    w = h * ratio;
+  }
+  stage.style.width = `${Math.floor(w)}px`;
+  stage.style.height = `${Math.floor(h)}px`;
+}
 async function openCameraModal(angleKey) {
   state.camera.angleKey = angleKey;
   state.camera.capturedDataUrl = null;
+  if (!state.camera.guide) state.camera.guide = loadCameraGuide();
 
   if (angleKey === 'meal') {
     state.camera.facingMode = 'environment';
     state.camera.mirrored = false;
     $('cameraModalTitle').textContent = 'Съёмка блюда';
     $('cameraModalHint').textContent = 'Сфотографируйте тарелку сверху под углом ~45° при хорошем освещении';
-    $('cameraGuideOverlay').innerHTML = '';
+    $('cameraGuideTip').classList.add('hidden');
+    renderCameraGuide(null);
     const immediateRadio = document.querySelector('input[name="camTimer"][value="0"]');
     if (immediateRadio) immediateRadio.checked = true;
   } else {
     const meta = ANGLES.find((a) => a.key === angleKey) || ANGLES[0];
     $('cameraModalTitle').textContent = `Съёмка: ${meta.title}`;
     $('cameraModalHint').textContent = meta.hint;
-    $('cameraGuideOverlay').innerHTML = meta.svg.replace('width="84" height="140"', 'width="230" height="380"');
+    $('cameraGuideTip').classList.remove('hidden');
+    renderCameraGuide(meta);
   }
 
   $('cameraPreviewImg').classList.add('hidden');
@@ -785,6 +896,8 @@ async function openCameraModal(angleKey) {
   $('cameraCountdown').classList.add('hidden');
   $('cameraError').classList.add('hidden');
   $('cameraModal').classList.remove('hidden');
+  document.body.classList.add('no-scroll');
+  fitCameraStage();
 
   await startCameraStream();
 }
@@ -810,6 +923,7 @@ async function startCameraStream() {
     video.srcObject = stream;
     video.classList.toggle('mirrored', state.camera.mirrored);
     await video.play();
+    fitCameraStage();
   } catch (err) {
     errBox.textContent = `Не удалось открыть камеру (${err.name || 'нет доступа'}). Разрешите доступ или загрузите фото файлом.`;
     errBox.classList.remove('hidden');
@@ -881,6 +995,7 @@ function captureCameraFrame() {
   $('cameraVideo').classList.add('hidden');
   $('cameraLiveControls').classList.add('hidden');
   $('cameraReviewControls').classList.remove('hidden');
+  fitCameraStage();
 }
 
 /* --------------------------- Run CV + Optional Vision AI Analysis --------------------------- */
@@ -3197,7 +3312,10 @@ function openAiSettingsModal() {
 
 function closeModal(id) {
   $(id).classList.add('hidden');
-  if (id === 'cameraModal') stopCameraStream();
+  if (id === 'cameraModal') {
+    stopCameraStream();
+    if (!$('analysisCanvasStage').classList.contains('is-fullscreen')) document.body.classList.remove('no-scroll');
+  }
   if (id === 'exerciseModal' && state.exModalPlayer) {
     state.exModalPlayer.destroy();
     state.exModalPlayer = null;
@@ -3338,12 +3456,16 @@ function initEvents() {
     startCameraStream();
   });
   $('cameraSnapBtn').addEventListener('click', triggerCameraSnap);
+  $('cameraVideo').addEventListener('loadedmetadata', fitCameraStage);
+  window.addEventListener('resize', fitCameraStage);
+  initCameraGuideDrag();
   $('cameraRetakeBtn').addEventListener('click', () => {
     state.camera.capturedDataUrl = null;
     $('cameraPreviewImg').classList.add('hidden');
     $('cameraVideo').classList.remove('hidden');
     $('cameraReviewControls').classList.add('hidden');
     $('cameraLiveControls').classList.remove('hidden');
+    fitCameraStage();
   });
   $('cameraAcceptBtn').addEventListener('click', async () => {
     if (state.camera.angleKey === 'meal' && state.camera.capturedDataUrl) {
