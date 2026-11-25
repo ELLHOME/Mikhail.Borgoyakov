@@ -3166,11 +3166,14 @@ body { overflow-x: clip; }
 .wp-hr-chip.is-live .hr-heart,
 .hr-live.is-live .hr-heart { animation: hrBeat var(--hr-period, 1s) ease-out infinite; }
 .wp-hr-chip.is-linking .hr-heart { animation: hrWait 1.2s ease-in-out infinite; }
-:is(.wp-hr-chip, .hr-live)[data-zone="1"] { --hr-color: #8a9bb3; }
-:is(.wp-hr-chip, .hr-live)[data-zone="2"] { --hr-color: #38bdf8; }
-:is(.wp-hr-chip, .hr-live)[data-zone="3"] { --hr-color: #34d399; }
-:is(.wp-hr-chip, .hr-live)[data-zone="4"] { --hr-color: #fbbf24; }
-:is(.wp-hr-chip, .hr-live)[data-zone="5"] { --hr-color: #f87171; }
+.plan-hr-btn { --hr-color: var(--coral); }
+.plan-hr-btn .hr-heart { color: var(--hr-color); }
+.plan-hr-btn.is-live .hr-heart { animation: hrBeat var(--hr-period, 1s) ease-out infinite; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="1"] { --hr-color: #8a9bb3; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="2"] { --hr-color: #38bdf8; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="3"] { --hr-color: #34d399; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="4"] { --hr-color: #fbbf24; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="5"] { --hr-color: #f87171; }
 @keyframes hrBeat {
   0% { transform: scale(1); }
   14% { transform: scale(1.28); }
@@ -3226,7 +3229,10 @@ body { overflow-x: clip; }
 .hr-zone-legend i, .hr-summary-legend i { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .hr-zone-legend b { margin-left: auto; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
 .hr-status { margin: 12px 0 0; min-height: 1.2em; }
-.hr-unsupported { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--coral-dim); color: var(--text); font-size: 0.86rem; }
+.hr-unsupported { margin: 12px 0 0; padding: 12px; border-radius: 12px; background: var(--coral-dim); color: var(--text); font-size: 0.86rem; }
+.hr-unsupported p { margin: 0; }
+.hr-unsupported-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.hr-unsupported-actions .btn { flex: 1 1 auto; text-decoration: none; justify-content: center; }
 .hr-actions { display: flex; gap: 8px; margin-top: 12px; }
 .hr-actions .btn { flex: 1; }
 .hr-link-btn {
@@ -3264,6 +3270,6 @@ body { overflow-x: clip; }
   .summary-stats .metric-box { padding: 12px 8px; }
   .wp-hr-chip { padding: 4px 7px; gap: 4px; }
   .workout-meta-right:has(.wp-hr-chip:not(.hidden)) #wpSoundToggleBtn span { display: none; }
-  .hr-live { gap: 12px; padding: 14px; }
-  .hr-live-num b { font-size: 2.3rem; }
+  .hr-live { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 16px; }
+  .hr-live-num b { min-width: 0; }
 }

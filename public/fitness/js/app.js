@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-22';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-22';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-22';
+} from './cv-analyzer.js?v=20261124-23';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-23';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-23';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,8 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-22';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-22';
+} from './plan-generator.js?v=20261124-23';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-23';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +36,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-22';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-22';
+} from './heart-rate.js?v=20261124-23';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-23';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-22';
+} from './storage.js?v=20261124-23';
 
 const ANGLES = [
   {
@@ -1994,8 +1994,37 @@ function currentHrMax() {
   return hrMaxForAge(state.profile?.age);
 }
 
+// Browsers without Web Bluetooth still show the button, so the dialog can explain where it works.
+function hrBrowserHint() {
+  const ua = navigator.userAgent || '';
+  const ios = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ios) {
+    return {
+      text: 'На iPhone и iPad браузеры не умеют подключаться к Bluetooth-часам, это ограничение Apple. Пульс с часов работает на Android и на компьютере в Google Chrome.',
+      chrome: false,
+    };
+  }
+  let name = '';
+  if (/YaBrowser|YaApp|YaSearchBrowser/i.test(ua)) name = 'Яндекс Браузер';
+  else if (/SamsungBrowser/i.test(ua)) name = 'Samsung Internet';
+  else if (/Firefox/i.test(ua)) name = 'Firefox';
+  else if (/Telegram/i.test(ua) || 'TelegramWebviewProxy' in window) name = 'Браузер Telegram';
+  else if (/OPR\/|Opera/i.test(ua)) name = 'Opera';
+  else if (/; wv\)/.test(ua)) name = 'Встроенный браузер приложения';
+  return {
+    text: `${name || 'Этот браузер'} не умеет подключаться к Bluetooth-часам. Откройте сайт в Google Chrome, там пульс заработает.`,
+    chrome: /Android/i.test(ua),
+  };
+}
+
 function initHeartRate() {
-  $('wpHrBtn')?.classList.toggle('hidden', !isHeartRateSupported());
+  const hint = hrBrowserHint();
+  if ($('hrUnsupportedText')) $('hrUnsupportedText').textContent = hint.text;
+  const chromeLink = $('hrOpenChromeLink');
+  if (chromeLink && hint.chrome) {
+    chromeLink.href = `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(location.href)};end`;
+    chromeLink.classList.remove('hidden');
+  }
   hrMonitor = new HeartRateMonitor({ onChange: renderHrUi });
   hrMonitor.onSample((bpm, t) => {
     if (state.wp.active && state.wp.hrSession) state.wp.hrSession.add(bpm, t, currentHrMax(), state.profile);
@@ -2049,6 +2078,13 @@ function renderHrUi(st = hrMonitor?.getState()) {
     $('wpHrValue').textContent = st.bpm ? String(st.bpm) : linked ? '…' : 'Пульс';
     chip.title = st.bpm && z ? `Пульс ${st.bpm} • зона ${zone} (${z.name})` : 'Пульс с часов';
   }
+  const planBtn = $('planHrBtn');
+  if (planBtn) {
+    planBtn.classList.toggle('is-live', st.bpm > 0);
+    planBtn.dataset.zone = String(zone);
+    planBtn.style.setProperty('--hr-period', period);
+    $('planHrLabel').textContent = st.bpm ? `${st.bpm} уд/мин` : 'Пульс';
+  }
 
   if ($('hrModal')) {
     $('hrUnsupported').classList.toggle('hidden', st.supported);
@@ -2067,7 +2103,7 @@ function renderHrUi(st = hrMonitor?.getState()) {
       : st.status === 'connected' ? 'Ждём пульс…' : 'Часы не подключены';
     $('hrLiveSub').textContent = st.bpm
       ? `${Math.round((st.bpm / hrMax) * 100)}% от максимума ${hrMax} уд/мин`
-      : `Макс. пульс ≈ ${hrMax} уд/мин по возрасту ${Number(state.profile?.age) || 28} лет из профиля`;
+      : `Макс. пульс ≈ ${hrMax} уд/мин (возраст ${Number(state.profile?.age) || 28} из профиля)`;
     const marker = $('hrZoneMarker');
     marker.classList.toggle('hidden', !st.bpm);
     if (st.bpm) {
@@ -2091,6 +2127,23 @@ function openHrModal() {
   const st = hrMonitor?.getState();
   if ($('hrHelp')) $('hrHelp').open = Boolean(st?.supported && st.status !== 'connected');
   $('hrModal')?.classList.remove('hidden');
+  if (st?.supported && st.status === 'idle' && navigator.bluetooth.getAvailability) {
+    navigator.bluetooth.getAvailability().then((available) => {
+      if (!available && hrMonitor.getState().status === 'idle') {
+        $('hrStatus').textContent = 'Bluetooth выключен или недоступен. Включите Bluetooth на телефоне и откройте это окно снова.';
+      }
+    }).catch(() => {});
+  }
+}
+
+function copyAppLink() {
+  const url = location.href.split('#')[0];
+  const done = () => showToast('Ссылка скопирована. Вставьте её в адресную строку Chrome');
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => showToast(url));
+  } else {
+    showToast(url);
+  }
 }
 
 // After a lost connection the same watch can be reopened without the chooser; a device without pulse cannot.
@@ -4033,6 +4086,8 @@ function initEvents() {
   $('planMusicBtn')?.addEventListener('click', openMusicModal);
   $('wpMusicBtn')?.addEventListener('click', openMusicModal);
   $('wpHrBtn')?.addEventListener('click', openHrModal);
+  $('planHrBtn')?.addEventListener('click', openHrModal);
+  $('hrCopyLinkBtn')?.addEventListener('click', copyAppLink);
   $('hrConnectBtn')?.addEventListener('click', () => connectHeartRate(false));
   $('hrShowAllBtn')?.addEventListener('click', () => connectHeartRate(true));
   $('hrDisconnectBtn')?.addEventListener('click', () => hrMonitor?.disconnect());
