@@ -11,11 +11,13 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-15';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-15';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-15';
+} from './cv-analyzer.js?v=20261124-16';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-16';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-16';
 import {
+  buildCardioTarget,
   buildNutritionGuidance,
+  CARDIO_SECTION,
   EQUIPMENT_LABELS,
   generateWorkoutPlan,
   getAlternativeExercises,
@@ -24,9 +26,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-15';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-15';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-15';
+} from './plan-generator.js?v=20261124-16';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-16';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-16';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -50,7 +52,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-15';
+} from './storage.js?v=20261124-16';
 
 const ANGLES = [
   {
@@ -1357,6 +1359,61 @@ function renderPlanWeekBar(plan) {
   });
 }
 
+function startOfWeek(date = new Date()) {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+function cardioSessionsThisWeek() {
+  const from = startOfWeek().getTime();
+  return state.workouts.filter((w) => w.type === 'cardio' && new Date(w.completedAt).getTime() >= from).length;
+}
+
+function renderCardioCard(plan) {
+  const card = $('planCardioCard');
+  const target = plan.cardio || buildCardioTarget({ ...state.profile, equipment: plan.equipment, goal: plan.goal, level: plan.level });
+  const done = cardioSessionsThisWeek();
+  const pct = Math.min(100, Math.round((done / target.sessions) * 100));
+  const steps = plan.nutrition?.stepsTarget ? ` Плюс ${plan.nutrition.stepsTarget}.` : '';
+  card.classList.remove('hidden');
+  card.innerHTML = `
+    <div class="cardio-card-head">
+      <div>
+        <div class="cardio-card-title">Кардио на неделю</div>
+        <div class="muted small">${target.sessions} × ${target.minutes} мин • пульс ${target.hrLow}–${target.hrHigh} уд/мин (можно говорить, но не петь)</div>
+      </div>
+      <div class="cardio-card-count ${done >= target.sessions ? 'done' : ''}"><strong>${done}</strong> из ${target.sessions}</div>
+    </div>
+    <div class="cardio-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${target.sessions}" aria-valuenow="${done}"><span style="width:${pct}%"></span></div>
+    <p class="muted tiny cardio-card-note">${escapeHtml(target.note)} Делайте отдельно от силовой: в дни отдыха или после тренировки.${escapeHtml(steps)}</p>
+    <div class="cardio-log-row">
+      <select id="cardioTypeSelect" aria-label="Вид кардио">
+        ${target.options.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
+      </select>
+      <label class="cardio-minutes"><input type="number" id="cardioMinutesInput" min="5" max="240" step="5" inputmode="numeric" value="${target.minutes}" aria-label="Минуты"><span>мин</span></label>
+      <button type="button" class="btn btn-primary btn-sm" id="logCardioBtn">✓ Отметить кардио</button>
+    </div>
+  `;
+  $('logCardioBtn').addEventListener('click', () => {
+    const minutes = Math.round(Number($('cardioMinutesInput').value));
+    if (!Number.isFinite(minutes) || minutes < 5 || minutes > 240) {
+      showToast('Укажите длительность от 5 до 240 минут', true);
+      return;
+    }
+    const kind = $('cardioTypeSelect').value;
+    state.workouts = addWorkoutLog({
+      type: 'cardio',
+      dayTitle: `Кардио • ${kind}`,
+      equipmentLabel: '',
+      durationSec: minutes * 60,
+      cardioMinutes: minutes,
+    });
+    renderCardioCard(plan);
+    const left = target.sessions - cardioSessionsThisWeek();
+    showToast(left > 0 ? `Кардио ${minutes} мин записано. До цели недели: ${left}` : `Кардио ${minutes} мин записано. Цель недели выполнена!`);
+  });
+}
 function renderPlanTab() {
   destroyPlanCardPlayers();
   const plan = state.plan;
@@ -1402,6 +1459,7 @@ function renderPlanTab() {
   }
 
   renderPlanWeekBar(plan);
+  renderCardioCard(plan);
 
   // Day tabs
   $('planDayTabs').innerHTML = plan.days
@@ -1446,6 +1504,12 @@ function renderPlanTab() {
     heading.className = 'plan-section-heading';
     heading.textContent = sectionName;
     container.appendChild(heading);
+    if (sectionName === CARDIO_SECTION) {
+      const hint = document.createElement('p');
+      hint.className = 'muted small plan-section-hint';
+      hint.textContent = 'Интервалы: работайте в высоком темпе всё рабочее время, затем отдыхайте. Пульс высокий, но техника ровная.';
+      container.appendChild(hint);
+    }
 
     const grid = document.createElement('div');
     grid.className = 'exercise-cards-grid';
@@ -1467,7 +1531,7 @@ function renderPlanTab() {
           <div class="ex-rx-row">
             ${item.priority ? '<span class="rx-pill rx-pill-priority" title="Упражнение на слабое место, найденное по фото">★ Слабое место</span>' : ''}
             <span class="rx-pill rx-pill-accent">${item.sets} × ${escapeHtml(item.reps)}</span>
-            <span class="rx-pill">Отдых ${item.restSec} сек</span>
+            <span class="rx-pill">${ex.activeRest ? 'Спокойно' : 'Отдых'} ${item.restSec} сек</span>
             <span class="rx-pill">Темп ${escapeHtml(ex.tempo)}</span>
           </div>
           <div class="ex-reason">${escapeHtml(item.reason)}</div>
@@ -1929,6 +1993,7 @@ async function renderHistoryTab() {
       ? latest.metrics.postureScore - oldest.metrics.postureScore
       : null;
   const totalMinutes = Math.round(state.workouts.reduce((a, w) => a + (w.durationSec || 0), 0) / 60);
+  const cardioCount = state.workouts.filter((w) => w.type === 'cardio').length;
 
   $('historyKpis').innerHTML = `
     <div class="kpi-card">
@@ -1948,7 +2013,7 @@ async function renderHistoryTab() {
     <div class="kpi-card">
       <div class="kpi-label">Выполнено тренировок</div>
       <div class="kpi-val">${state.workouts.length}</div>
-      <div class="kpi-delta">Завершённые сессии</div>
+      <div class="kpi-delta">${cardioCount ? `Из них кардио: ${cardioCount}` : 'Завершённые сессии'}</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Время под нагрузкой</div>
@@ -2175,9 +2240,11 @@ function renderWorkoutLogsList() {
       <div class="history-row">
         <div>
           <strong>${escapeHtml(w.dayTitle)}</strong>
-          <div class="muted tiny">${formatDateRu(w.completedAt)} • ${escapeHtml(w.equipmentLabel || '')}</div>
+          <div class="muted tiny">${formatDateRu(w.completedAt)}${w.equipmentLabel ? ` • ${escapeHtml(w.equipmentLabel)}` : ''}</div>
         </div>
-        <div class="badge badge-good">${formatClock(w.durationSec)} • ${w.doneSets}/${w.totalSets} подх.</div>
+        <div class="badge badge-good">${
+          w.type === 'cardio' ? `${w.cardioMinutes} мин • кардио` : `${formatClock(w.durationSec)} • ${w.doneSets}/${w.totalSets} подх.`
+        }</div>
       </div>
     `
     )

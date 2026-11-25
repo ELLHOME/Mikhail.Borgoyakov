@@ -4,7 +4,7 @@
  * into a structured multi-day workout program with explicit per-exercise rationale.
  */
 
-import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-15';
+import { EXERCISES, EXERCISE_MAP } from './exercises-db.js?v=20261124-16';
 
 export const GOAL_LABELS = {
   recomp: 'Рельеф и жиросжигание',
@@ -38,7 +38,30 @@ export const LEVEL_LABELS = {
   advanced: 'Продвинутый',
 };
 
+function tuneCardio(ex, goal, level) {
+  let rounds = ex.defaultSets;
+  let work = ex.holdSeconds || 30;
+  let rest = ex.defaultRestSec;
+  if (goal === 'recomp') rounds += 1;
+  else if (goal === 'muscle' || goal === 'strength') {
+    rounds -= 1;
+    rest += 10;
+  }
+  if (level === 'beginner') {
+    rounds -= 1;
+    work = Math.max(20, work - 10);
+    rest += 10;
+  } else if (level === 'advanced') {
+    rounds += 1;
+    work = Math.min(75, work + 10);
+  }
+  rounds = Math.max(2, Math.min(6, rounds));
+  const reps = ex.defaultReps.includes('сторона') ? `${work} сек / сторона` : `${work} сек`;
+  return { sets: rounds, reps, restSec: rest, holdSeconds: work };
+}
+
 function tunePrescription(ex, goal, level) {
+  if (ex.block === 'cardio') return tuneCardio(ex, goal, level);
   let sets = ex.defaultSets;
   let reps = ex.defaultReps;
   let restSec = ex.defaultRestSec;
@@ -103,7 +126,8 @@ function buildReasonText(ex, metrics, aiRecSet) {
 const WEAK_SPOT_TAGS = ['forward_head', 'rounded_shoulders', 'anterior_pelvic_tilt', 'asymmetry', 'v_taper_boost'];
 const MAX_CYCLE_WEEKS = 4;
 const MIN_CYCLE_WEEKS = 2;
-export const PLAN_VERSION = 3;
+export const PLAN_VERSION = 4;
+export const CARDIO_SECTION = 'Кардио-финиш';
 
 // Bodyweight leg patterns that are normally loaded with dumbbells or a barbell.
 const LOADABLE_BODYWEIGHT = {
@@ -146,6 +170,7 @@ const GROUP_FALLBACKS = {
 };
 
 export function exerciseRole(ex) {
+  if (ex.block === 'cardio') return 'cardio';
   if (ex.block === 'main') return 'main';
   if (ex.block === 'corrective' || ex.category === 'posture') return 'corrective';
   return 'core';
@@ -157,14 +182,14 @@ export function exerciseGroup(ex) {
 }
 
 /**
- * Main work (and core work with TRX) must use the selected equipment; posture drills
- * and generic core work may be bodyweight in any mode.
+ * Main work (and core work with TRX) must use the selected equipment; posture drills,
+ * generic core work and bodyweight cardio may be done in any mode.
  */
 export function isExerciseAllowedInMode(ex, equipment) {
   if (!ex || !ex.equipment.includes(equipment)) return false;
   if (equipment === 'home_bodyweight') return true;
   const role = exerciseRole(ex);
-  if (role === 'corrective') return true;
+  if (role === 'corrective' || role === 'cardio') return true;
   const needsEquipment = !ex.equipment.includes('home_bodyweight');
   if (role === 'core') return equipment !== 'home_trx' || needsEquipment;
   return needsEquipment || (LOADABLE_BODYWEIGHT[equipment] || []).includes(ex.id);
@@ -276,14 +301,13 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   const aiRecSet = new Set(Array.isArray(aiAnalysis?.recommendedExerciseIds) ? aiAnalysis.recommendedExerciseIds : []);
 
   const modeExercises = getModeExercises(equipment);
-  const pools = { main: [], corrective: [], core: [] };
+  const pools = { main: [], corrective: [], core: [], cardio: [] };
   modeExercises.forEach((ex) => pools[exerciseRole(ex)].push(ex));
 
   const templates = buildDayTemplates(daysPerWeek, equipment);
   const mainCount = level === 'beginner' ? 3 : 4;
-  const coreCount = goal === 'recomp' ? 2 : 1;
-  const finishGroups = goal === 'recomp' ? ['cardio', 'core'] : ['core', 'cardio'];
-  const finishPreferred = finishGroups[0];
+  const coreCount = 1;
+  const cardioCount = goal === 'recomp' ? 2 : 1;
 
   const isWeakSpot = (ex) => weakSpotHits(ex, focusTags) > 0 || aiRecSet.has(ex.id);
 
@@ -313,7 +337,6 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
     reachableGroups.add(g);
     (GROUP_FALLBACKS[g] || []).forEach((fb) => reachableGroups.add(fb));
   }));
-  finishGroups.forEach((g) => reachableGroups.add(g));
   const coverageIds = new Set(
     modeExercises
       .filter((ex) => exerciseRole(ex) !== 'main' || reachableGroups.has(exerciseGroup(ex)))
@@ -324,10 +347,17 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   const bump = (map, id) => map.set(id, (map.get(id) || 0) + 1);
 
   // Machines, barbells and cables define a gym plan; shared dumbbell moves rotate in after them.
-  const signatureBonus = (ex) =>
-    equipment === 'gym' && exerciseRole(ex) === 'main' && ex.equipment.length === 1 ? 30 : 0;
+  // Cardio that needs the mode's own equipment (treadmill, dumbbells, straps) goes before generic jumping.
+  const signatureBonus = (ex) => {
+    const role = exerciseRole(ex);
+    if (equipment === 'gym' && role === 'main' && ex.equipment.length === 1) return 30;
+    if (role === 'cardio' && equipment !== 'home_bodyweight' && !ex.equipment.includes('home_bodyweight')) {
+      return equipment === 'gym' && ex.equipment.length === 1 ? 30 : 20;
+    }
+    return 0;
+  };
 
-  const scoreOf = (ex, weekUse, prevDayIds, finishBias = null, lastWeekSameDay = null) => {
+  const scoreOf = (ex, weekUse, prevDayIds, lastWeekSameDay = null) => {
     let s = signatureBonus(ex);
     if (!cycleUse.has(ex.id)) s += 60;
     if (anchors.has(ex.id) && !weekUse.has(ex.id)) s += 80;
@@ -335,7 +365,6 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
     if (aiRecSet.has(ex.id)) s += 20;
     if (ex.goalTags.includes(goal)) s += 4;
     if (!ex.level.includes(level)) s -= 15;
-    if (finishBias && exerciseGroup(ex) === finishBias) s += 8;
     if (equipment !== 'home_bodyweight' && !ex.equipment.includes('home_bodyweight')) s += 5;
     s -= (weekUse.get(ex.id) || 0) * 70;
     if (prevDayIds.has(ex.id)) s -= 25;
@@ -347,11 +376,11 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
   let lastWeekDays = [];
   let lastWeekSameDay = null;
 
-  const pickBest = (candidates, weekUse, prevDayIds, finishBias = null) => {
+  const pickBest = (candidates, weekUse, prevDayIds) => {
     let best = null;
     let bestScore = -Infinity;
     for (const ex of candidates) {
-      const sc = scoreOf(ex, weekUse, prevDayIds, finishBias, lastWeekSameDay);
+      const sc = scoreOf(ex, weekUse, prevDayIds, lastWeekSameDay);
       if (sc > bestScore) {
         best = ex;
         bestScore = sc;
@@ -360,7 +389,7 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
     return best;
   };
 
-  const groupPool = (group) => (group === 'core' || group === 'cardio' ? pools.core : pools.main);
+  const groupPool = (group) => (group === 'cardio' ? pools.cardio : group === 'core' ? pools.core : pools.main);
 
   const pickForGroup = (group, dayIds, weekUse, prevDayIds) => {
     for (const g of [group, ...(GROUP_FALLBACKS[group] || [])]) {
@@ -373,7 +402,7 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
 
   const toItem = (ex, section) => {
     const rx = tunePrescription(ex, goal, level);
-    const priority = isWeakSpot(ex) && exerciseRole(ex) !== 'core';
+    const priority = isWeakSpot(ex) && ['main', 'corrective'].includes(exerciseRole(ex));
     return {
       exerciseId: ex.id,
       section,
@@ -422,12 +451,16 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
         if (chosen) main.push(take(chosen));
       }
 
-      // Core and cardio share the finisher so every one of them rotates in; the goal only tilts the choice.
       const core = [];
       for (let i = 0; i < coreCount; i += 1) {
-        const candidates = pools.core.filter((ex) => !dayIds.has(ex.id));
-        const chosen = pickBest(candidates, weekUse, prevDayIds, i === 0 ? finishPreferred : finishGroups[1]);
+        const chosen = pickBest(pools.core.filter((ex) => !dayIds.has(ex.id)), weekUse, prevDayIds);
         if (chosen) core.push(take(chosen));
+      }
+
+      const cardio = [];
+      for (let i = 0; i < cardioCount; i += 1) {
+        const chosen = pickBest(pools.cardio.filter((ex) => !dayIds.has(ex.id)), weekUse, prevDayIds);
+        if (chosen) cardio.push(take(chosen));
       }
 
       prevDayIds = dayIds;
@@ -436,6 +469,7 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
         ...corrective.map((ex) => toItem(ex, 'Разминка и осанка')),
         ...main.map((ex) => toItem(ex, 'Основной блок')),
         ...core.map((ex) => toItem(ex, 'Кор и финиш')),
+        ...cardio.map((ex) => toItem(ex, CARDIO_SECTION)),
       ];
       return finalizeDay(pos + 1, title, focus, items);
     });
@@ -461,6 +495,8 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
     aiAnalysis.customPlanDays.length >= 2 &&
     aiPlanMatchesProfile(aiAnalysis, { equipment, daysPerWeek })
   ) {
+    const aiWeekUse = new Map();
+    aiAnalysis.customPlanDays.forEach((d) => (Array.isArray(d.items) ? d.items : []).forEach((it) => bump(aiWeekUse, it.exerciseId)));
     const validatedDays = aiAnalysis.customPlanDays
       .map((d) => {
         const seenIds = new Set();
@@ -476,12 +512,19 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
             const role = exerciseRole(ex);
             return {
               exerciseId: ex.id,
-              section: role === 'corrective' ? 'Разминка и осанка' : role === 'core' ? 'Кор и финиш' : 'Основной блок',
+              section:
+                role === 'corrective'
+                  ? 'Разминка и осанка'
+                  : role === 'core'
+                    ? 'Кор и финиш'
+                    : role === 'cardio'
+                      ? CARDIO_SECTION
+                      : 'Основной блок',
               sets: Math.max(2, Math.min(5, Number(it.sets) || ex.defaultSets)),
               reps: String(it.reps || ex.defaultReps),
               restSec: Math.max(20, Math.min(150, Number(it.restSec) || ex.defaultRestSec)),
               holdSeconds: ex.holdSeconds || 40,
-              priority: isWeakSpot(ex) && role !== 'core',
+              priority: isWeakSpot(ex) && ['main', 'corrective'].includes(role),
               reason: it.reason ? `AI Ассистент • ${it.reason}` : `AI Ассистент • ${ex.whyTemplate}`,
             };
           });
@@ -489,6 +532,17 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
       })
       .filter(Boolean)
       .map(({ d, items }, idx) => {
+        // AI days without cardio still get the goal's cardio finisher.
+        if (!items.some((it) => it.section === CARDIO_SECTION)) {
+          const ids = new Set(items.map((it) => it.exerciseId));
+          for (let i = 0; i < cardioCount; i += 1) {
+            const chosen = pickBest(pools.cardio.filter((ex) => !ids.has(ex.id)), aiWeekUse, new Set());
+            if (!chosen) break;
+            ids.add(chosen.id);
+            bump(aiWeekUse, chosen.id);
+            items.push(toItem(chosen, CARDIO_SECTION));
+          }
+        }
         items.forEach((it) => bump(cycleUse, it.exerciseId));
         lastWeekDays[idx] = new Set(items.map((it) => it.exerciseId));
         const rawTitle = String(d.title || 'Персональная тренировка AI').replace(/^\s*День\s*\d+\s*[•:.\-–—]?\s*/i, '');
@@ -524,9 +578,12 @@ export function generateWorkoutPlan(metrics, profile, aiAnalysis = null) {
     daysPerWeek: weeks[0].days.length,
     focusTags: [...focusTags],
     focusSummary,
-    priorityExerciseIds: modeExercises.filter((ex) => isWeakSpot(ex) && exerciseRole(ex) !== 'core').map((ex) => ex.id),
+    priorityExerciseIds: modeExercises
+      .filter((ex) => isWeakSpot(ex) && ['main', 'corrective'].includes(exerciseRole(ex)))
+      .map((ex) => ex.id),
     coverage: { total: coverageIds.size, covered: coveredCount },
     nutrition: buildNutritionGuidance(profile, metrics || {}, aiAnalysis),
+    cardio: buildCardioTarget(profile),
     weeks,
     currentWeek: 0,
     days: weeks[0].days,
@@ -566,7 +623,8 @@ export function getAlternativeExercises(currentExerciseId, equipment) {
   const currentPrimaryMuscle = current.muscles?.[0];
   const rank = (ex) =>
     (exerciseGroup(ex) === group ? 30 : 0) +
-    (currentPrimaryMuscle && ex.muscles.includes(currentPrimaryMuscle) ? 20 : 0);
+    (currentPrimaryMuscle && ex.muscles.includes(currentPrimaryMuscle) ? 20 : 0) +
+    (role === 'cardio' && equipment !== 'home_bodyweight' && !ex.equipment.includes('home_bodyweight') ? 15 : 0);
   const nearGroups = new Set([group, ...(GROUP_FALLBACKS[group] || [])]);
   return getModeExercises(equipment)
     .filter(
@@ -579,6 +637,36 @@ export function getAlternativeExercises(currentExerciseId, equipment) {
     .slice(0, 6);
 }
 
+/**
+ * Steady low-intensity cardio done apart from strength sessions; the volume follows the goal.
+ * Heart-rate zone 2 uses the Tanaka max-HR estimate (208 − 0.7 × age).
+ */
+export function buildCardioTarget(profile = {}) {
+  const goal = profile.goal || 'recomp';
+  const level = profile.level || 'beginner';
+  const equipment = profile.equipment || 'home_bodyweight';
+  const age = Number(profile.age) || 28;
+  const byGoal = {
+    recomp: { sessions: 3, minutes: 35, note: 'Главный помощник в жиросжигании вместе с дефицитом калорий.' },
+    posture: { sessions: 3, minutes: 30, note: 'Спокойная ходьба разгружает спину и улучшает выносливость.' },
+    muscle: { sessions: 2, minutes: 25, note: 'Лёгкое кардио для сердца и восстановления, не мешает росту мышц.' },
+    strength: { sessions: 2, minutes: 20, note: 'Короткое лёгкое кардио ускоряет восстановление между силовыми.' },
+  };
+  const base = byGoal[goal] || byGoal.recomp;
+  const minutes = level === 'beginner' ? Math.max(20, base.minutes - 10) : level === 'advanced' ? base.minutes + 10 : base.minutes;
+  const hrMax = Math.round(208 - 0.7 * age);
+  return {
+    sessions: base.sessions,
+    minutes,
+    hrLow: Math.round(hrMax * 0.6),
+    hrHigh: Math.round(hrMax * 0.7),
+    note: base.note,
+    options:
+      equipment === 'gym'
+        ? ['Дорожка в гору', 'Велотренажёр', 'Эллипс', 'Гребной тренажёр']
+        : ['Быстрая ходьба', 'Лёгкий бег', 'Велосипед', 'Плавание'],
+  };
+}
 export function buildNutritionGuidance(profile = {}, metrics = {}, aiAnalysis = null) {
   const safeMetrics = metrics || {};
   const w = Number(profile.weightKg) || 75;

@@ -2850,3 +2850,41 @@ body.no-scroll { overflow: hidden; }
 
 /* Any stray horizontal overflow makes mobile browsers zoom the whole page out. */
 body { overflow-x: clip; }
+
+/* Weekly cardio target */
+.cardio-week-card {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.cardio-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.cardio-card-title { font-family: var(--font-display); font-size: 1.02rem; }
+.cardio-card-count { flex-shrink: 0; font-size: 0.86rem; color: var(--text-muted); white-space: nowrap; }
+.cardio-card-count strong { font-size: 1.3rem; color: var(--text); font-weight: 500; }
+.cardio-card-count.done strong { color: var(--accent); }
+.cardio-progress { height: 7px; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 18%, transparent); overflow: hidden; }
+.cardio-progress span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width 0.3s ease; }
+.cardio-card-note { margin: 0; }
+.cardio-log-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cardio-log-row select,
+.cardio-minutes input {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+.cardio-log-row select { flex: 1 1 160px; min-width: 0; }
+.cardio-minutes { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; color: var(--text-muted); }
+.cardio-minutes input { width: 72px; }
+.plan-section-hint { margin: -4px 0 10px; }
+@media (max-width: 520px) {
+  .cardio-log-row .btn { flex: 1 1 100%; }
+}

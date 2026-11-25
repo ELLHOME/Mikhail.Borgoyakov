@@ -328,5 +328,71 @@
     "frameSize": 448,
     "durationMs": 180,
     "url": "/assets/exercises/machine_shoulder_press.webp"
+  },
+  "burpees": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/burpees.webp"
+  },
+  "high_knees": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/high_knees.webp"
+  },
+  "jump_squats": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/jump_squats.webp"
+  },
+  "skater_jumps": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/skater_jumps.webp"
+  },
+  "db_thruster": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/db_thruster.webp"
+  },
+  "db_swing": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/db_swing.webp"
+  },
+  "trx_jump_squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_jump_squat.webp"
+  },
+  "trx_sprinter_start": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_sprinter_start.webp"
+  },
+  "treadmill_intervals": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/treadmill_intervals.webp"
+  },
+  "bike_intervals": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/bike_intervals.webp"
+  },
+  "rowing_machine": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/rowing_machine.webp"
   }
 }
