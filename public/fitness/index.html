@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23111926'/%3E%3Ccircle cx='16' cy='7' r='3' fill='none' stroke='%232ee2ff' stroke-width='1.8'/%3E%3Cpath d='M8 14h16M16 11v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21.5l-1.8 6.5m9.2-6.5 1.8 6.5' fill='none' stroke='%232ee2ff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-21">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-22">
 </head>
 <body>
   <div class="app-shell">
@@ -918,6 +918,43 @@
     </div>
   </div>
 
+  <!-- MODAL: HEART RATE FROM SMART WATCH -->
+  <div class="modal-backdrop music-modal-backdrop hidden" id="hrModal" role="dialog" aria-modal="true" aria-labelledby="hrModalTitle">
+    <div class="modal modal-sm hr-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="hrModalTitle">Пульс с часов</h3>
+          <p class="muted small">Смарт-часы или нагрудный датчик по Bluetooth</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="hrModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="hr-live" id="hrLive">
+        <div class="hr-live-num"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><b id="hrLiveBpm">--</b><small>уд/мин</small></div>
+        <div class="hr-live-meta">
+          <strong id="hrLiveZone">Часы не подключены</strong>
+          <span class="muted small" id="hrLiveSub">Макс. пульс считается по возрасту из профиля</span>
+        </div>
+      </div>
+      <div class="hr-zone-bar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span class="hr-zone-marker hidden" id="hrZoneMarker"></span></div>
+      <div class="hr-zone-legend" id="hrZoneLegend"></div>
+      <p class="hr-status muted small" id="hrStatus"></p>
+      <p class="hr-unsupported hidden" id="hrUnsupported">Этот браузер не умеет подключаться к Bluetooth. Откройте приложение в Chrome на Android или на компьютере. На iPhone такой возможности в браузере нет.</p>
+      <div class="hr-actions">
+        <button type="button" class="btn btn-primary" id="hrConnectBtn">Подключить часы</button>
+        <button type="button" class="btn btn-outline hidden" id="hrDisconnectBtn">Отключить</button>
+      </div>
+      <button type="button" class="hr-link-btn" id="hrShowAllBtn">Часов нет в списке? Показать все Bluetooth-устройства</button>
+      <details class="hr-help" id="hrHelp">
+        <summary>Как включить трансляцию пульса на часах</summary>
+        <div class="hr-help-item"><strong>Xiaomi Smart Band 7 и новее, Redmi Watch</strong><span>Приложение Mi Fitness → ваше устройство → «Трансляция пульса» (Heart rate broadcast). На части моделей пункт есть и на самих часах в настройках.</span></div>
+        <div class="hr-help-item"><strong>Amazfit (Zepp OS)</strong><span>Приложение Zepp → Профиль → ваше устройство → «Обмен данными пульса» (Heart rate sharing). На часах можно включить в настройках тренировки.</span></div>
+        <div class="hr-help-item"><strong>Huawei и Honor (Watch GT 2 и новее, Band 6 и новее)</strong><span>На часах: Настройки → Настройки тренировки → «Трансляция пульса» (HR data broadcasts). Если пульс не идёт, запустите на часах любую тренировку.</span></div>
+        <div class="hr-help-item"><strong>Garmin, Polar, Coros, Suunto, нагрудные датчики</strong><span>Включите «Трансляцию ЧСС» в меню часов. Нагрудный датчик достаточно надеть.</span></div>
+        <p class="muted tiny">Затем нажмите «Подключить часы» и выберите их в списке. Нужны Chrome, включённый Bluetooth и разрешение «Устройства поблизости». Часы остаются подключены к своему приложению, это не мешает.</p>
+      </details>
+    </div>
+  </div>
+
   <!-- FULLSCREEN OVERLAY: INTERACTIVE WORKOUT PLAYER -->
   <div class="workout-overlay hidden" id="workoutOverlay" role="dialog" aria-modal="true">
     <div class="workout-topbar">
@@ -930,6 +967,7 @@
       </div>
       <div class="workout-meta-right">
         <span class="elapsed-badge" id="wpElapsedClock">00:00</span>
+        <button type="button" class="wp-hr-chip hidden" id="wpHrBtn" title="Пульс с часов"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><b id="wpHrValue">Пульс</b></button>
         <button type="button" class="wp-beat-chip hidden" id="wpBeatChip" title="Счёт музыки. Нажмите на «раз», чтобы подстроить"><b id="wpBeatNum">1</b><small id="wpBeatEight">1/4</small></button>
         <button type="button" class="btn btn-outline btn-sm music-pill-btn" id="wpMusicBtn" title="Музыка для тренировки">
           <svg class="btn-inline-svg music-note-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1004,6 +1042,7 @@
           <div class="timer-card-left">
             <span class="timer-label">Отдых между подходами</span>
             <span class="muted small">Восстановите дыхание перед следующим подходом</span>
+            <span class="rest-hr hidden" id="wpRestHr"></span>
           </div>
           <div class="timer-card-actions">
             <button class="btn btn-ghost btn-sm" id="wpRestPlusBtn">+15с</button>
@@ -1045,6 +1084,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-21"></script>
+  <script type="module" src="./js/app.js?v=20261124-22"></script>
 </body>
 </html>

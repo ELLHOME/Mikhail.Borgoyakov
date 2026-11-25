@@ -1560,6 +1560,7 @@ body.no-scroll { overflow: hidden; }
 .workout-summary {
   flex: 1;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 24px;
 }
@@ -1583,7 +1584,7 @@ body.no-scroll { overflow: hidden; }
   padding: 5px 14px;
   border-radius: 999px;
 }
-.summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 6px 0; }
+.summary-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 6px 0; }
 .summary-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 /* Toasts */
@@ -3138,4 +3139,131 @@ body { overflow-x: clip; }
 .plan-section-hint { margin: -4px 0 10px; }
 @media (max-width: 520px) {
   .cardio-log-row .btn { flex: 1 1 100%; }
+}
+
+/* Heart rate from smart watch */
+.hr-heart { width: 15px; height: 15px; fill: currentColor; flex-shrink: 0; }
+.wp-hr-chip {
+  --hr-color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.wp-hr-chip .hr-heart { color: var(--hr-color); }
+.wp-hr-chip b { font-family: var(--font-display); font-weight: 400; font-size: 0.98rem; min-width: 1.6em; text-align: center; }
+.wp-hr-chip:not(.is-live) b { font-family: inherit; font-size: 0.84rem; min-width: 0; }
+.wp-hr-chip.is-live { border-color: var(--hr-color); }
+.wp-hr-chip.is-live .hr-heart,
+.hr-live.is-live .hr-heart { animation: hrBeat var(--hr-period, 1s) ease-out infinite; }
+.wp-hr-chip.is-linking .hr-heart { animation: hrWait 1.2s ease-in-out infinite; }
+:is(.wp-hr-chip, .hr-live)[data-zone="1"] { --hr-color: #8a9bb3; }
+:is(.wp-hr-chip, .hr-live)[data-zone="2"] { --hr-color: #38bdf8; }
+:is(.wp-hr-chip, .hr-live)[data-zone="3"] { --hr-color: #34d399; }
+:is(.wp-hr-chip, .hr-live)[data-zone="4"] { --hr-color: #fbbf24; }
+:is(.wp-hr-chip, .hr-live)[data-zone="5"] { --hr-color: #f87171; }
+@keyframes hrBeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.28); }
+  30% { transform: scale(1); }
+}
+@keyframes hrWait {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.hr-modal { border-radius: 30px; padding: 22px 20px; background: var(--bg-card-grad); }
+.hr-live {
+  --hr-color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: var(--obsidian);
+  box-shadow: var(--obsidian-shadow);
+  color: #ecf3fb;
+}
+.hr-live-num { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.hr-live-num .hr-heart { width: 30px; height: 30px; color: var(--hr-color); }
+.hr-live-num b { font-family: var(--font-display); font-weight: 300; font-size: 2.7rem; line-height: 1; min-width: 2.1em; font-variant-numeric: tabular-nums; }
+.hr-live-num small { font-size: 0.72rem; color: #8a9bb3; align-self: flex-end; margin-bottom: 6px; }
+.hr-live-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hr-live-meta strong { font-weight: 500; color: var(--hr-color); }
+.hr-live:not(.is-live) .hr-live-meta strong { color: #ecf3fb; }
+.hr-live-meta .muted { color: #8a9bb3; }
+
+.hr-zone-bar { position: relative; display: flex; gap: 3px; height: 8px; margin: 16px 0 8px; }
+.hr-zone-bar i { flex: 1; border-radius: 999px; opacity: 0.75; }
+.hr-zone-bar i:nth-child(1) { background: #8a9bb3; }
+.hr-zone-bar i:nth-child(2) { background: #38bdf8; }
+.hr-zone-bar i:nth-child(3) { background: #34d399; }
+.hr-zone-bar i:nth-child(4) { background: #fbbf24; }
+.hr-zone-bar i:nth-child(5) { background: #f87171; }
+.hr-zone-marker {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 3px solid var(--text);
+  transition: left 0.6s ease;
+}
+.hr-zone-legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 12px; font-size: 0.78rem; color: var(--text-muted); }
+.hr-zone-legend span { display: flex; align-items: center; gap: 6px; }
+.hr-zone-legend i, .hr-summary-legend i { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.hr-zone-legend b { margin-left: auto; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+.hr-status { margin: 12px 0 0; min-height: 1.2em; }
+.hr-unsupported { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--coral-dim); color: var(--text); font-size: 0.86rem; }
+.hr-actions { display: flex; gap: 8px; margin-top: 12px; }
+.hr-actions .btn { flex: 1; }
+.hr-link-btn {
+  display: block;
+  margin: 10px auto 0;
+  padding: 4px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.hr-help { margin-top: 14px; border-top: 1px solid var(--border-strong); padding-top: 12px; }
+.hr-help summary { cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+.hr-help-item { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; font-size: 0.84rem; }
+.hr-help-item span { color: var(--text-muted); }
+.hr-help p { margin: 10px 0 0; }
+
+.rest-hr { display: block; margin-top: 4px; font-size: 0.84rem; font-weight: 500; color: var(--text); font-variant-numeric: tabular-nums; }
+.rest-hr.is-ok { color: #16a34a; }
+[data-theme="dark"] .rest-hr.is-ok { color: #34d399; }
+
+.hr-summary-zones { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+.hr-summary-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--bg-subtle); }
+.hr-summary-bar i { display: block; height: 100%; }
+.hr-summary-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 0.78rem; color: var(--text-muted); }
+.hr-summary-legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+@media (max-width: 420px) {
+  .workout-summary { padding: 16px; }
+  .summary-card { padding: 24px 14px; }
+  .summary-stats { gap: 8px; }
+  .summary-stats .metric-box { padding: 12px 8px; }
+  .wp-hr-chip { padding: 4px 7px; gap: 4px; }
+  .workout-meta-right:has(.wp-hr-chip:not(.hidden)) #wpSoundToggleBtn span { display: none; }
+  .hr-live { gap: 12px; padding: 14px; }
+  .hr-live-num b { font-size: 2.3rem; }
 }

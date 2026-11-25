@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-21';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-21';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-21';
+} from './cv-analyzer.js?v=20261124-22';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-22';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-22';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,9 +26,18 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-21';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-21';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-21';
+} from './plan-generator.js?v=20261124-22';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-22';
+import {
+  HeartRateMonitor,
+  HeartRateSession,
+  HR_ZONES,
+  hrMaxForAge,
+  isHeartRateSupported,
+  recoveryHr,
+  zoneForHr,
+} from './heart-rate.js?v=20261124-22';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-22';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -52,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-21';
+} from './storage.js?v=20261124-22';
 
 const ANGLES = [
   {
@@ -210,6 +219,9 @@ const state = {
     holdTimer: null,
     holdLeft: 0,
     holdRunning: false,
+    hrSession: null,
+    restHrWasHigh: false,
+    restHrNotified: false,
   },
 };
 
@@ -1973,6 +1985,167 @@ function renderCatalogGrid(category = 'all') {
   });
 }
 
+/* --------------------------- Heart Rate from Smart Watch --------------------------- */
+let hrMonitor = null;
+let hrRefreshTimer = 0;
+let hrLegendKey = '';
+
+function currentHrMax() {
+  return hrMaxForAge(state.profile?.age);
+}
+
+function initHeartRate() {
+  $('wpHrBtn')?.classList.toggle('hidden', !isHeartRateSupported());
+  hrMonitor = new HeartRateMonitor({ onChange: renderHrUi });
+  hrMonitor.onSample((bpm, t) => {
+    if (state.wp.active && state.wp.hrSession) state.wp.hrSession.add(bpm, t, currentHrMax(), state.profile);
+  });
+  renderHrUi(hrMonitor.getState());
+}
+
+function hrStatusText(st) {
+  if (!st.supported) return '';
+  if (st.status === 'connecting') return 'Подключаемся…';
+  if (st.status === 'reconnecting') return 'Связь потеряна, переподключаемся…';
+  if (st.status === 'connected') {
+    const parts = [st.deviceName || 'Часы подключены'];
+    if (st.battery != null) parts.push(`заряд ${st.battery}%`);
+    if (st.waiting) parts.push(st.contact === false ? 'часы не на руке' : 'ждём пульс');
+    return parts.join(' • ');
+  }
+  if (st.status === 'error') {
+    if (st.error === 'no-hr-service') return 'Это устройство не передаёт пульс. Включите на часах трансляцию пульса и подключите снова.';
+    return 'Не удалось подключиться. Проверьте, что трансляция пульса включена, а часы рядом с телефоном.';
+  }
+  return 'Включите на часах трансляцию пульса и нажмите «Подключить часы».';
+}
+
+function renderHrLegend(hrMax) {
+  const key = String(hrMax);
+  if (key === hrLegendKey || !$('hrZoneLegend')) return;
+  hrLegendKey = key;
+  $('hrZoneLegend').innerHTML = HR_ZONES.map((z, i) => {
+    // Ceil matches zoneForHr(), which puts a pulse in a zone once bpm / hrMax reaches its lower bound.
+    const lo = Math.ceil(hrMax * z.from);
+    const hi = i < HR_ZONES.length - 1 ? Math.ceil(hrMax * HR_ZONES[i + 1].from) - 1 : hrMax;
+    return `<span><i style="background:${z.color}"></i>${z.id} • ${escapeHtml(z.name)} <b>${lo}–${hi}</b></span>`;
+  }).join('');
+}
+
+function renderHrUi(st = hrMonitor?.getState()) {
+  if (!st) return;
+  const hrMax = currentHrMax();
+  const zone = zoneForHr(st.bpm, hrMax);
+  const z = zone ? HR_ZONES[zone - 1] : null;
+  const linked = ['connected', 'connecting', 'reconnecting'].includes(st.status);
+  const period = st.bpm ? `${(60 / st.bpm).toFixed(3)}s` : '1s';
+
+  const chip = $('wpHrBtn');
+  if (chip) {
+    chip.classList.toggle('is-live', st.bpm > 0);
+    chip.classList.toggle('is-linking', linked && !st.bpm);
+    chip.dataset.zone = String(zone);
+    chip.style.setProperty('--hr-period', period);
+    $('wpHrValue').textContent = st.bpm ? String(st.bpm) : linked ? '…' : 'Пульс';
+    chip.title = st.bpm && z ? `Пульс ${st.bpm} • зона ${zone} (${z.name})` : 'Пульс с часов';
+  }
+
+  if ($('hrModal')) {
+    $('hrUnsupported').classList.toggle('hidden', st.supported);
+    $('hrConnectBtn').classList.toggle('hidden', !st.supported || linked);
+    $('hrConnectBtn').textContent = canRetryHr(st) ? 'Переподключить' : 'Подключить часы';
+    $('hrDisconnectBtn').classList.toggle('hidden', !linked);
+    $('hrShowAllBtn').classList.toggle('hidden', !st.supported || linked);
+    $('hrStatus').textContent = hrStatusText(st);
+    const live = $('hrLive');
+    live.classList.toggle('is-live', st.bpm > 0);
+    live.dataset.zone = String(zone);
+    live.style.setProperty('--hr-period', period);
+    $('hrLiveBpm').textContent = st.bpm ? String(st.bpm) : '--';
+    $('hrLiveZone').textContent = st.bpm
+      ? z ? `Зона ${zone} • ${z.name}` : 'Ниже зон • лёгкая нагрузка'
+      : st.status === 'connected' ? 'Ждём пульс…' : 'Часы не подключены';
+    $('hrLiveSub').textContent = st.bpm
+      ? `${Math.round((st.bpm / hrMax) * 100)}% от максимума ${hrMax} уд/мин`
+      : `Макс. пульс ≈ ${hrMax} уд/мин по возрасту ${Number(state.profile?.age) || 28} лет из профиля`;
+    const marker = $('hrZoneMarker');
+    marker.classList.toggle('hidden', !st.bpm);
+    if (st.bpm) {
+      const frac = Math.min(1, Math.max(0, (st.bpm / hrMax - 0.5) / 0.5));
+      marker.style.left = `${(frac * 100).toFixed(1)}%`;
+    }
+    renderHrLegend(hrMax);
+  }
+
+  updateRestHr(st);
+
+  if (linked && !hrRefreshTimer) hrRefreshTimer = window.setInterval(() => renderHrUi(), 2000);
+  if (!linked && hrRefreshTimer) {
+    clearInterval(hrRefreshTimer);
+    hrRefreshTimer = 0;
+  }
+}
+
+function openHrModal() {
+  renderHrUi();
+  const st = hrMonitor?.getState();
+  if ($('hrHelp')) $('hrHelp').open = Boolean(st?.supported && st.status !== 'connected');
+  $('hrModal')?.classList.remove('hidden');
+}
+
+// After a lost connection the same watch can be reopened without the chooser; a device without pulse cannot.
+function canRetryHr(st) {
+  return st.status === 'error' && st.error !== 'no-hr-service' && Boolean(hrMonitor?.device);
+}
+
+function connectHeartRate(showAll = false) {
+  if (!hrMonitor) return;
+  if (!showAll && canRetryHr(hrMonitor.getState())) hrMonitor.retry();
+  else hrMonitor.connect({ showAll });
+}
+
+/** During rest, shows the live pulse against the recovery target and signals once when it is reached. */
+function updateRestHr(st = hrMonitor?.getState()) {
+  const el = $('wpRestHr');
+  if (!el) return;
+  if (!st?.bpm || !state.wp.restTimer) {
+    el.classList.add('hidden');
+    return;
+  }
+  const target = recoveryHr(currentHrMax());
+  const ok = st.bpm <= target;
+  if (!ok) state.wp.restHrWasHigh = true;
+  el.classList.remove('hidden');
+  el.classList.toggle('is-ok', ok);
+  el.textContent = ok ? `Пульс ${st.bpm}: восстановился, можно начинать` : `Пульс ${st.bpm} → ждём ${target}`;
+  if (ok && state.wp.restHrWasHigh && !state.wp.restHrNotified) {
+    state.wp.restHrNotified = true;
+    if (state.wp.soundEnabled) beep(990, 120);
+  }
+}
+
+function renderHrSummary(hr) {
+  const total = hr.zonesSec.reduce((a, s) => a + s, 0) || 1;
+  const segs = HR_ZONES.map((z, i) => {
+    const sec = hr.zonesSec[i + 1] || 0;
+    return sec ? `<i style="width:${((sec / total) * 100).toFixed(1)}%;background:${z.color}" title="Зона ${z.id}: ${formatClock(sec)}"></i>` : '';
+  }).join('');
+  const legend = HR_ZONES.map((z, i) => {
+    const sec = hr.zonesSec[i + 1] || 0;
+    return sec >= 30 ? `<span><i style="background:${z.color}"></i>${z.id}: ${Math.round(sec / 60)} мин</span>` : '';
+  }).join('');
+  const hard = (hr.zonesSec[3] || 0) + (hr.zonesSec[4] || 0) + (hr.zonesSec[5] || 0);
+  return `
+    <div class="metric-box"><span class="metric-label">Пульс</span><span class="metric-value">${hr.avg}</span><span class="metric-hint">средний, макс. ${hr.max}</span></div>
+    <div class="metric-box"><span class="metric-label">Калории</span><span class="metric-value">~${hr.kcal}</span><span class="metric-hint">по пульсу</span></div>
+    <div class="metric-box"><span class="metric-label">Зоны 3–5</span><span class="metric-value">${formatClock(hard)}</span><span class="metric-hint">активная работа</span></div>
+    <div class="hr-summary-zones">
+      <div class="hr-summary-bar">${segs}</div>
+      <div class="hr-summary-legend">${legend}</div>
+    </div>
+  `;
+}
+
 /* --------------------------- Fullscreen Interactive Workout Player --------------------------- */
 function startWorkoutSession(dayIdx) {
   if (!state.plan?.days?.[dayIdx]) return;
@@ -1981,6 +2154,7 @@ function startWorkoutSession(dayIdx) {
   state.wp.dayIndex = dayIdx;
   state.wp.exIdx = 0;
   state.wp.startedAt = Date.now();
+  state.wp.hrSession = new HeartRateSession();
   state.wp.setsState = day.items.map((item) =>
     Array.from({ length: item.sets }, () => ({
       done: false,
@@ -2107,6 +2281,8 @@ function startRestTimer(seconds) {
   stopRestTimer();
   state.wp.restTotal = seconds;
   state.wp.restLeft = seconds;
+  state.wp.restHrWasHigh = false;
+  state.wp.restHrNotified = false;
   const card = $('wpRestTimerCard');
   card.classList.remove('hidden');
   updateRestTimerUi();
@@ -2127,6 +2303,7 @@ function startRestTimer(seconds) {
       updateRestTimerUi();
     }
   }, 1000);
+  updateRestHr();
 }
 
 function updateRestTimerUi() {
@@ -2144,6 +2321,7 @@ function stopRestTimer() {
     state.wp.restTimer = null;
   }
   $('wpRestTimerCard').classList.add('hidden');
+  updateRestHr();
 }
 
 function toggleHoldTimer() {
@@ -2205,6 +2383,8 @@ function finishWorkoutSession() {
   const totalSets = state.wp.setsState.reduce((a, arr) => a + arr.length, 0);
   const doneSets = state.wp.setsState.reduce((a, arr) => a + arr.filter((s) => s.done).length, 0);
   const doneExercises = state.wp.setsState.filter((arr) => arr.some((s) => s.done)).length;
+  const hr = state.wp.hrSession?.summary(durationSec) || null;
+  state.wp.hrSession = null;
 
   const weekCount = state.plan.weeks?.length || 1;
   state.workouts = addWorkoutLog({
@@ -2215,6 +2395,7 @@ function finishWorkoutSession() {
     totalSets,
     doneExercises,
     totalExercises: day.items.length,
+    ...(hr ? { hr } : {}),
   });
 
   $('wpActiveBody').classList.add('hidden');
@@ -2224,6 +2405,7 @@ function finishWorkoutSession() {
     <div class="metric-box"><span class="metric-label">Время</span><span class="metric-value">${formatClock(durationSec)}</span></div>
     <div class="metric-box"><span class="metric-label">Подходы</span><span class="metric-value">${doneSets}/${totalSets}</span></div>
     <div class="metric-box"><span class="metric-label">Упражнения</span><span class="metric-value">${doneExercises}/${day.items.length}</span></div>
+    ${hr ? renderHrSummary(hr) : ''}
   `;
 }
 
@@ -2239,6 +2421,7 @@ function closeWorkoutOverlay() {
     state.wp.player = null;
   }
   state.wp.active = false;
+  state.wp.hrSession = null;
   $('workoutOverlay').classList.add('hidden');
   document.body.style.overflow = '';
 }
@@ -2526,7 +2709,7 @@ function renderWorkoutLogsList() {
       <div class="history-row">
         <div>
           <strong>${escapeHtml(w.dayTitle)}</strong>
-          <div class="muted tiny">${formatDateRu(w.completedAt)}${w.equipmentLabel ? ` • ${escapeHtml(w.equipmentLabel)}` : ''}</div>
+          <div class="muted tiny">${formatDateRu(w.completedAt)}${w.equipmentLabel ? ` • ${escapeHtml(w.equipmentLabel)}` : ''}${w.hr ? ` • пульс ср. ${w.hr.avg}, ~${w.hr.kcal} ккал` : ''}</div>
         </div>
         <div class="badge badge-good">${
           w.type === 'cardio' ? `${w.cardioMinutes} мин • кардио` : `${formatClock(w.durationSec)} • ${w.doneSets}/${w.totalSets} подх.`
@@ -3839,7 +4022,7 @@ function initEvents() {
   });
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      ['musicModal', 'cameraModal', 'exerciseModal', 'swapModal', 'catalogModal', 'aiSettingsModal'].forEach((id) => {
+      ['hrModal', 'musicModal', 'cameraModal', 'exerciseModal', 'swapModal', 'catalogModal', 'aiSettingsModal'].forEach((id) => {
         if (!$(id)?.classList.contains('hidden')) closeModal(id);
       });
     }
@@ -3849,6 +4032,10 @@ function initEvents() {
   $('openMusicBtn')?.addEventListener('click', openMusicModal);
   $('planMusicBtn')?.addEventListener('click', openMusicModal);
   $('wpMusicBtn')?.addEventListener('click', openMusicModal);
+  $('wpHrBtn')?.addEventListener('click', openHrModal);
+  $('hrConnectBtn')?.addEventListener('click', () => connectHeartRate(false));
+  $('hrShowAllBtn')?.addEventListener('click', () => connectHeartRate(true));
+  $('hrDisconnectBtn')?.addEventListener('click', () => hrMonitor?.disconnect());
   $('musicPlayToggleBtn')?.addEventListener('click', () => musicController?.togglePlay());
   $('musicBeatTapBtn')?.addEventListener('click', tapMusicDownbeat);
   $('wpBeatChip')?.addEventListener('click', tapMusicDownbeat);
@@ -4083,6 +4270,7 @@ function bootstrap() {
   musicController = new WorkoutMusicController(renderMusicPlayerUi);
   renderMusicStationsGrid();
   renderMusicPlayerUi(musicController.getState());
+  initHeartRate();
   applyTheme(loadTheme());
   applyCloudModeUi();
   syncInlineAiFromState();
