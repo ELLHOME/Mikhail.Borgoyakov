@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-23';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-23';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-23';
+} from './cv-analyzer.js?v=20261124-24';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-24';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-24';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,8 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-23';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-23';
+} from './plan-generator.js?v=20261124-24';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-24';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +36,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-23';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-23';
+} from './heart-rate.js?v=20261124-24';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-24';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-23';
+} from './storage.js?v=20261124-24';
 
 const ANGLES = [
   {
