@@ -3169,11 +3169,23 @@ body { overflow-x: clip; }
 .plan-hr-btn { --hr-color: var(--coral); }
 .plan-hr-btn .hr-heart { color: var(--hr-color); }
 .plan-hr-btn.is-live .hr-heart { animation: hrBeat var(--hr-period, 1s) ease-out infinite; }
-:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="1"] { --hr-color: #8a9bb3; }
-:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="2"] { --hr-color: #38bdf8; }
-:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="3"] { --hr-color: #34d399; }
-:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="4"] { --hr-color: #fbbf24; }
-:is(.wp-hr-chip, .hr-live, .plan-hr-btn)[data-zone="5"] { --hr-color: #f87171; }
+.top-hr-btn { --hr-color: var(--coral); gap: 5px; font-variant-numeric: tabular-nums; }
+.top-hr-btn .hr-heart { width: 17px; height: 17px; color: var(--hr-color); }
+.top-hr-btn b { display: none; font-family: var(--font-display); font-weight: 400; font-size: 0.98rem; min-width: 1.6em; text-align: center; }
+.top-hr-btn.is-live { width: auto; padding: 0 11px 0 10px; border-radius: 999px; border-color: var(--hr-color); }
+.top-hr-btn.is-live b { display: inline; }
+.top-hr-btn.is-live .hr-heart { animation: hrBeat var(--hr-period, 1s) ease-out infinite; }
+.top-hr-btn.is-linking .hr-heart { animation: hrWait 1.2s ease-in-out infinite; }
+@media (max-width: 420px) {
+  .top-hr-btn.is-live { padding: 0 9px 0 8px; gap: 4px; }
+  /* The live pulse pill needs the room the logo mark takes on narrow phones. */
+  .topbar-inner:has(.top-hr-btn.is-live) .brand-mark { display: none; }
+}
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn, .top-hr-btn)[data-zone="1"] { --hr-color: #8a9bb3; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn, .top-hr-btn)[data-zone="2"] { --hr-color: #38bdf8; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn, .top-hr-btn)[data-zone="3"] { --hr-color: #34d399; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn, .top-hr-btn)[data-zone="4"] { --hr-color: #fbbf24; }
+:is(.wp-hr-chip, .hr-live, .plan-hr-btn, .top-hr-btn)[data-zone="5"] { --hr-color: #f87171; }
 @keyframes hrBeat {
   0% { transform: scale(1); }
   14% { transform: scale(1.28); }

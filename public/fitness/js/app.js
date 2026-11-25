@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-24';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-24';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-24';
+} from './cv-analyzer.js?v=20261124-25';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-25';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-25';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,8 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-24';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-24';
+} from './plan-generator.js?v=20261124-25';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-25';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +36,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-24';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-24';
+} from './heart-rate.js?v=20261124-25';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-25';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-24';
+} from './storage.js?v=20261124-25';
 
 const ANGLES = [
   {
@@ -2078,6 +2078,18 @@ function renderHrUi(st = hrMonitor?.getState()) {
     $('wpHrValue').textContent = st.bpm ? String(st.bpm) : linked ? '…' : 'Пульс';
     chip.title = st.bpm && z ? `Пульс ${st.bpm} • зона ${zone} (${z.name})` : 'Пульс с часов';
   }
+  const topBtn = $('topHrBtn');
+  if (topBtn) {
+    topBtn.classList.toggle('is-live', st.bpm > 0);
+    topBtn.classList.toggle('is-linking', linked && !st.bpm);
+    topBtn.dataset.zone = String(zone);
+    topBtn.style.setProperty('--hr-period', period);
+    $('topHrValue').textContent = st.bpm ? String(st.bpm) : '';
+    topBtn.title = st.bpm
+      ? z ? `Пульс ${st.bpm} • зона ${zone} (${z.name})` : `Пульс ${st.bpm} • ниже зон`
+      : linked ? 'Часы подключены, ждём пульс' : 'Подключить часы для пульса';
+    topBtn.setAttribute('aria-label', topBtn.title);
+  }
   const planBtn = $('planHrBtn');
   if (planBtn) {
     planBtn.classList.toggle('is-live', st.bpm > 0);
@@ -4087,6 +4099,7 @@ function initEvents() {
   $('wpMusicBtn')?.addEventListener('click', openMusicModal);
   $('wpHrBtn')?.addEventListener('click', openHrModal);
   $('planHrBtn')?.addEventListener('click', openHrModal);
+  $('topHrBtn')?.addEventListener('click', openHrModal);
   $('hrCopyLinkBtn')?.addEventListener('click', copyAppLink);
   $('hrConnectBtn')?.addEventListener('click', () => connectHeartRate(false));
   $('hrShowAllBtn')?.addEventListener('click', () => connectHeartRate(true));
