@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-18';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-18';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-18';
+} from './cv-analyzer.js?v=20261124-19';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-19';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-19';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,9 +26,9 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-18';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-18';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-18';
+} from './plan-generator.js?v=20261124-19';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-19';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-19';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -52,7 +52,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-18';
+} from './storage.js?v=20261124-19';
 
 const ANGLES = [
   {
@@ -844,17 +844,39 @@ function clampNum(v, min, max) {
   return Math.min(max, Math.max(min, v));
 }
 
+// Body photos are always portrait; phone browsers often deliver a landscape 4:3 stream even in portrait.
+const BODY_FRAME_RATIO = 3 / 4;
+
+// Tall phone screens get a taller crop (down to 9:16) so the person appears as large as possible.
+function bodyFrameRatio() {
+  const vp = $('cameraViewport');
+  const r = vp.clientWidth && vp.clientHeight ? vp.clientWidth / vp.clientHeight : BODY_FRAME_RATIO;
+  return Math.min(BODY_FRAME_RATIO, Math.max(9 / 16, r));
+}
+
+function cameraCropRect() {
+  const video = $('cameraVideo');
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return null;
+  const target = bodyFrameRatio();
+  if (state.camera.angleKey !== 'meal' && vw / vh > target) {
+    const sw = Math.round(vh * target);
+    return { sx: Math.round((vw - sw) / 2), sy: 0, sw, sh: vh };
+  }
+  return { sx: 0, sy: 0, sw: vw, sh: vh };
+}
+
 function fitCameraStage() {
   const modal = $('cameraModal');
   if (modal.classList.contains('hidden')) return;
   const vp = $('cameraViewport');
   const stage = $('cameraStage');
-  const video = $('cameraVideo');
-  const img = $('cameraPreviewImg');
-  const showingImg = !img.classList.contains('hidden') && img.naturalWidth;
-  const srcW = showingImg ? img.naturalWidth : video.videoWidth;
-  const srcH = showingImg ? img.naturalHeight : video.videoHeight;
-  const ratio = srcW && srcH ? srcW / srcH : 3 / 4;
+  const showingImg = !$('cameraPreviewImg').classList.contains('hidden');
+  const crop = cameraCropRect();
+  let ratio = state.camera.angleKey === 'meal' ? 4 / 3 : bodyFrameRatio();
+  if (showingImg && state.camera.frameRatio) ratio = state.camera.frameRatio;
+  else if (crop) ratio = crop.sw / crop.sh;
   const availW = vp.clientWidth;
   const availH = vp.clientHeight;
   if (!availW || !availH) return;
@@ -915,8 +937,14 @@ async function startCameraStream() {
   }
 
   try {
+    const portrait = state.camera.angleKey !== 'meal' && window.innerHeight >= window.innerWidth;
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: state.camera.facingMode, width: { ideal: 1080 }, height: { ideal: 1440 } },
+      video: {
+        facingMode: state.camera.facingMode,
+        width: { ideal: portrait ? 1080 : 1440 },
+        height: { ideal: portrait ? 1440 : 1080 },
+        aspectRatio: { ideal: portrait ? BODY_FRAME_RATIO : 4 / 3 },
+      },
       audio: false,
     });
     state.camera.stream = stream;
@@ -976,8 +1004,9 @@ function triggerCameraSnap() {
 
 function captureCameraFrame() {
   const video = $('cameraVideo');
-  const w = video.videoWidth || 720;
-  const h = video.videoHeight || 960;
+  const crop = cameraCropRect() || { sx: 0, sy: 0, sw: 720, sh: 960 };
+  const w = crop.sw;
+  const h = crop.sh;
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
@@ -986,7 +1015,8 @@ function captureCameraFrame() {
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(video, 0, 0, w, h);
+  ctx.drawImage(video, crop.sx, crop.sy, w, h, 0, 0, w, h);
+  state.camera.frameRatio = w / h;
   const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
   state.camera.capturedDataUrl = dataUrl;
 
@@ -3457,6 +3487,7 @@ function initEvents() {
   });
   $('cameraSnapBtn').addEventListener('click', triggerCameraSnap);
   $('cameraVideo').addEventListener('loadedmetadata', fitCameraStage);
+  $('cameraVideo').addEventListener('resize', fitCameraStage);
   window.addEventListener('resize', fitCameraStage);
   initCameraGuideDrag();
   $('cameraRetakeBtn').addEventListener('click', () => {
