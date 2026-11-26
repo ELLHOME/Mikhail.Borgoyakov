@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23111926'/%3E%3Ccircle cx='16' cy='7' r='3' fill='none' stroke='%232ee2ff' stroke-width='1.8'/%3E%3Cpath d='M8 14h16M16 11v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21.5l-1.8 6.5m9.2-6.5 1.8 6.5' fill='none' stroke='%232ee2ff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-25">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-26">
 </head>
 <body>
   <div class="app-shell">
@@ -31,34 +31,25 @@
         </div>
 
         <nav class="nav-tabs" aria-label="Разделы приложения">
-          <button class="nav-tab active" data-tab="capture">
+          <button class="nav-tab active" data-tab="home">
             <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-              <circle cx="12" cy="13" r="3.5"/>
+              <path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6.2H9V21H4.5a1 1 0 0 1-1-1z"/>
             </svg>
-            <span class="tab-label-full">Фото и цели</span>
-            <span class="tab-label-short">Фото</span>
-          </button>
-          <button class="nav-tab" data-tab="analysis">
-            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="5" r="2.5"/>
-              <path d="M7 11h10M12 8.5v7.5m-3 5 3-5 3 5"/>
-            </svg>
-            <span class="tab-label-full">Анализ фигуры</span>
-            <span class="tab-label-short">Анализ</span>
+            <span class="tab-label-full">Главная</span>
+            <span class="tab-label-short">Главная</span>
           </button>
           <button class="nav-tab" data-tab="plan">
             <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
             </svg>
-            <span class="tab-label-full">План тренировок</span>
+            <span class="tab-label-full">План</span>
             <span class="tab-label-short">План</span>
           </button>
           <button class="nav-tab" data-tab="nutrition">
             <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M4 3v7a3 3 0 0 0 3 3v8M7 3v7M10 3v7a3 3 0 0 1-3 3M17 3c-2.2 2.5-2.5 7.5 0 10v8M17 3v18"/>
             </svg>
-            <span class="tab-label-full">Питание и КБЖУ</span>
+            <span class="tab-label-full">Питание</span>
             <span class="tab-label-short">Еда</span>
           </button>
           <button class="nav-tab" data-tab="history">
@@ -68,6 +59,14 @@
             </svg>
             <span class="tab-label-full">Прогресс</span>
             <span class="tab-label-short">Прогресс</span>
+          </button>
+          <button class="nav-tab" data-tab="profile">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>
+            </svg>
+            <span class="tab-label-full">Профиль</span>
+            <span class="tab-label-short">Профиль</span>
           </button>
         </nav>
 
@@ -99,146 +98,179 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- TAB 1: CAPTURE & PROFILE -->
-      <section class="tab-panel active" id="tab-capture">
-        <div class="hero-card">
-          <div class="hero-copy">
-            <div class="pill-badge">AI Ассистент + алгоритм анализа осанки</div>
-            <h1>Анализ фигуры по фото и составление персонального плана тренировок</h1>
-            <p class="muted">
-              Сделайте фото с 3–4 ракурсов на камеру с таймером или загрузите снимки.
-              Специальный алгоритм построит линии осанки и пропорций поверх фото, а AI Ассистент
-              проведёт глубокий анализ телосложения и соберёт программу с релевантными упражнениями.
-            </p>
-          </div>
-          <div class="demo-strip">
-            <span class="demo-label">Быстрый тест на студийных фото:</span>
-            <div class="demo-buttons" id="demoPresetButtons"></div>
-          </div>
+      <!-- HOME DASHBOARD -->
+      <section class="tab-panel active" id="tab-home">
+        <div class="home-greet">
+          <span class="home-date" id="homeDate"></span>
+          <h1 class="home-title" id="homeTitle">Привет!</h1>
         </div>
+        <div class="home-grid" id="homeGrid"></div>
+      </section>
 
-        <div class="capture-layout">
-          <!-- Photo Upload / Camera Grid -->
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <h2>Шаг 1. Фото с разных ракурсов</h2>
-                <p class="muted small">Для максимально точного анализа осанки и V-пропорций добавьте минимум «Спереди» и «Сбоку».</p>
-              </div>
-              <button class="btn btn-ghost btn-sm" id="clearPhotosBtn">Очистить фото</button>
-            </div>
-
-            <div class="angles-grid" id="anglesGrid"></div>
-
-            <div class="tips-bar">
-              <span><strong>Советы для точности:</strong> встаньте в полный рост на расстоянии 2–3 м, облегающая спортивная одежда, ровный фон, руки слегка отведены от корпуса.</span>
-            </div>
+      <!-- STEP-BY-STEP PROFILE & PHOTO WIZARD -->
+      <section class="tab-panel" id="tab-capture">
+        <div class="wizard" id="wizard">
+          <div class="wizard-top">
+            <button type="button" class="btn btn-icon btn-ghost" id="wizardCloseBtn" title="Закрыть" aria-label="Закрыть">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+            <div class="wizard-progress" aria-hidden="true"><span id="wizardProgressFill"></span></div>
+            <span class="wizard-count" id="wizardCount">1 / 9</span>
           </div>
 
-          <!-- User Profile & Equipment -->
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <h2>Шаг 2. Параметры, цель и инвентарь</h2>
-                <p class="muted small">План автоматически подстроится под ваши данные и доступное оборудование.</p>
+          <form id="profileForm" class="wizard-form" novalidate>
+            <div class="wizard-step active" data-step="about">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Анкета</span>
+                <h2>Расскажите о себе</h2>
+                <p class="muted">По этим данным рассчитаем нагрузку, калории и пульсовые зоны.</p>
+              </div>
+              <div class="segmented" id="sexChoices">
+                <label><input type="radio" name="sex" value="male" checked><span>Мужчина</span></label>
+                <label><input type="radio" name="sex" value="female"><span>Женщина</span></label>
+                <label><input type="radio" name="sex" value="unspecified"><span>Не указывать</span></label>
+              </div>
+              <div class="wizard-num-grid">
+                <label class="num-card"><span>Возраст</span><input type="number" name="age" id="profileAge" min="14" max="85" value="28" inputmode="numeric"><small>лет</small></label>
+                <label class="num-card"><span>Рост</span><input type="number" name="heightCm" id="profileHeight" min="120" max="230" value="178" inputmode="numeric"><small>см</small></label>
+                <label class="num-card"><span>Вес</span><input type="number" name="weightKg" id="profileWeight" min="35" max="220" step="0.5" value="78" inputmode="decimal"><small>кг</small></label>
               </div>
             </div>
 
-            <form id="profileForm" class="profile-form">
-              <div class="form-row-4">
-                <label class="field">
-                  <span>Пол</span>
-                  <select name="sex" id="profileSex">
-                    <option value="male">Мужской</option>
-                    <option value="female">Женский</option>
-                    <option value="unspecified">Не указывать</option>
-                  </select>
+            <div class="wizard-step" data-step="goal">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Цель</span>
+                <h2>Чего хотите добиться?</h2>
+                <p class="muted">Под цель подстроятся упражнения и питание.</p>
+              </div>
+              <div class="choice-grid wizard-choices" id="goalChoices">
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="recomp" checked>
+                  <span class="choice-title">Рельеф и жиросжигание</span>
+                  <span class="choice-desc">Тонус, подтяжка и расход калорий</span>
                 </label>
-                <label class="field">
-                  <span>Возраст</span>
-                  <input type="number" name="age" id="profileAge" min="14" max="85" value="28">
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="muscle">
+                  <span class="choice-title">Набор мышечной массы</span>
+                  <span class="choice-desc">Гипертрофия, плечи и V-силуэт</span>
                 </label>
-                <label class="field">
-                  <span>Рост (см)</span>
-                  <input type="number" name="heightCm" id="profileHeight" min="120" max="230" value="178">
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="posture">
+                  <span class="choice-title">Осанка и здоровый тонус</span>
+                  <span class="choice-desc">Спина, шея, таз и мобильность</span>
                 </label>
-                <label class="field">
-                  <span>Вес (кг)</span>
-                  <input type="number" name="weightKg" id="profileWeight" min="35" max="220" step="0.5" value="78">
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="strength">
+                  <span class="choice-title">Сила и атлетизм</span>
+                  <span class="choice-desc">Базовые движения и прогресс весов</span>
                 </label>
               </div>
+            </div>
 
+            <div class="wizard-step" data-step="place">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Инвентарь</span>
+                <h2>Где будете тренироваться?</h2>
+                <p class="muted">Подберём упражнения под то, что есть под рукой.</p>
+              </div>
+              <div class="choice-grid wizard-choices" id="equipmentChoices">
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="home_bodyweight" checked>
+                  <span class="choice-title">Дома (свой вес)</span>
+                  <span class="choice-desc">Коврик и стена</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="home_dumbbells">
+                  <span class="choice-title">Дома с гантелями</span>
+                  <span class="choice-desc">Пара гантелей / скамья</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="home_trx">
+                  <span class="choice-title">Петли TRX</span>
+                  <span class="choice-desc">Дома, на улице или в зале</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="gym">
+                  <span class="choice-title">Тренажёрный зал</span>
+                  <span class="choice-desc">Штанга, блоки, турник</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-step="level">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Нагрузка</span>
+                <h2>Уровень и частота</h2>
+                <p class="muted">Это можно поменять в любой момент в профиле.</p>
+              </div>
               <div class="field-group">
-                <span class="group-label">Главная цель</span>
-                <div class="choice-grid choice-grid-2" id="goalChoices">
-                  <label class="choice-card">
-                    <input type="radio" name="goal" value="recomp" checked>
-                    <span class="choice-title">Рельеф и жиросжигание</span>
-                    <span class="choice-desc">Тонус, подтяжка и расход калорий</span>
-                  </label>
-                  <label class="choice-card">
-                    <input type="radio" name="goal" value="muscle">
-                    <span class="choice-title">Набор мышечной массы</span>
-                    <span class="choice-desc">Гипертрофия, плечи и V-силуэт</span>
-                  </label>
-                  <label class="choice-card">
-                    <input type="radio" name="goal" value="posture">
-                    <span class="choice-title">Осанка и здоровый тонус</span>
-                    <span class="choice-desc">Спина, шея, таз и мобильность</span>
-                  </label>
-                  <label class="choice-card">
-                    <input type="radio" name="goal" value="strength">
-                    <span class="choice-title">Сила и атлетизм</span>
-                    <span class="choice-desc">Базовые движения и прогресс весов</span>
-                  </label>
+                <span class="group-label">Уровень подготовки</span>
+                <div class="segmented" id="levelChoices">
+                  <label><input type="radio" name="level" value="beginner" checked><span>Новичок</span></label>
+                  <label><input type="radio" name="level" value="intermediate"><span>Средний</span></label>
+                  <label><input type="radio" name="level" value="advanced"><span>Продвинутый</span></label>
                 </div>
               </div>
-
               <div class="field-group">
-                <span class="group-label">Место и инвентарь</span>
-                <div class="choice-grid choice-grid-4" id="equipmentChoices">
-                  <label class="choice-card">
-                    <input type="radio" name="equipment" value="home_bodyweight" checked>
-                    <span class="choice-title">Дома (свой вес)</span>
-                    <span class="choice-desc">Коврик и стена</span>
-                  </label>
-                  <label class="choice-card">
-                    <input type="radio" name="equipment" value="home_dumbbells">
-                    <span class="choice-title">Дома с гантелями</span>
-                    <span class="choice-desc">Пара гантелей / скамья</span>
-                  </label>
-                  <label class="choice-card">
-                    <input type="radio" name="equipment" value="home_trx">
-                    <span class="choice-title">Петли TRX</span>
-                    <span class="choice-desc">Дома, на улице или в зале</span>
-                  </label>
-                  <label class="choice-card">
-                    <input type="radio" name="equipment" value="gym">
-                    <span class="choice-title">Тренажёрный зал</span>
-                    <span class="choice-desc">Штанга, блоки, турник</span>
-                  </label>
+                <span class="group-label">Тренировок в неделю</span>
+                <div class="segmented" id="daysChoices">
+                  <label><input type="radio" name="daysPerWeek" value="3" checked><span>3 дня</span></label>
+                  <label><input type="radio" name="daysPerWeek" value="4"><span>4 дня</span></label>
+                  <label><input type="radio" name="daysPerWeek" value="5"><span>5 дней</span></label>
                 </div>
               </div>
+            </div>
 
-              <div class="form-row-2">
-                <div class="field-group">
-                  <span class="group-label">Уровень подготовки</span>
-                  <div class="segmented" id="levelChoices">
-                    <label><input type="radio" name="level" value="beginner" checked><span>Новичок</span></label>
-                    <label><input type="radio" name="level" value="intermediate"><span>Средний</span></label>
-                    <label><input type="radio" name="level" value="advanced"><span>Продвинутый</span></label>
-                  </div>
-                </div>
-                <div class="field-group">
-                  <span class="group-label">Тренировок в неделю</span>
-                  <div class="segmented" id="daysChoices">
-                    <label><input type="radio" name="daysPerWeek" value="3" checked><span>3 дня</span></label>
-                    <label><input type="radio" name="daysPerWeek" value="4"><span>4 дня</span></label>
-                    <label><input type="radio" name="daysPerWeek" value="5"><span>5 дней</span></label>
-                  </div>
-                </div>
+            <div class="wizard-step" data-step="front">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 1 из 4</span>
+                <h2>Фото спереди</h2>
+                <p class="muted">Встаньте прямо, руки слегка отведены от корпуса.</p>
               </div>
+              <div class="wizard-photo" data-wizard-angle="front"></div>
+              <p class="wizard-tip">2–3 метра до камеры, облегающая одежда, ровный фон.</p>
+              <details class="wizard-demo">
+                <summary>Нет фото под рукой? Посмотрите на демо-примере</summary>
+                <div class="demo-buttons" id="demoPresetButtons"></div>
+              </details>
+            </div>
 
+            <div class="wizard-step" data-step="side">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 2 из 4</span>
+                <h2>Фото сбоку</h2>
+                <p class="muted">Встаньте боком в обычной расслабленной стойке.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="side"></div>
+              <p class="wizard-tip">По этому фото оцениваем наклон головы, плеч и таза.</p>
+            </div>
+
+            <div class="wizard-step" data-step="back">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 3 из 4</span>
+                <h2>Фото со спины</h2>
+                <p class="muted">Встаньте спиной к камере, плечи расслаблены.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="back"></div>
+              <p class="wizard-tip">Помогает увидеть перекос лопаток и асимметрию.</p>
+            </div>
+
+            <div class="wizard-step" data-step="side2">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 4 из 4 • по желанию</span>
+                <h2>Второй бок</h2>
+                <p class="muted">Другой профиль уточняет симметрию. Можно пропустить.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="side2"></div>
+            </div>
+
+            <div class="wizard-step" data-step="finish">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Готово</span>
+                <h2 id="wizardFinishTitle">Всё готово к анализу</h2>
+                <p class="muted" id="wizardFinishText"></p>
+              </div>
+              <div class="wizard-thumbs" id="wizardThumbs"></div>
               <!-- Inline AI Assistant Card -->
               <div class="ai-inline-card" id="inlineAiCard">
                 <div class="ai-inline-head">
@@ -288,18 +320,25 @@
                 <button type="submit" class="btn btn-primary btn-lg btn-block" id="runAnalysisBtn">
                   <span>Проанализировать и составить план</span>
                 </button>
+                <button type="button" class="btn btn-primary btn-lg btn-block hidden" id="planWithoutPhotosBtn">Составить план по анкете</button>
                 <div class="analyze-status hidden" id="analyzeStatus">
                   <span class="spinner"></span>
                   <span id="analyzeStatusText">Анализируем ключевые точки и осанку...</span>
                 </div>
+                <button type="button" class="btn btn-ghost btn-sm wizard-clear-btn" id="clearPhotosBtn">Очистить фото</button>
               </div>
-            </form>
+            </div>
+          </form>
+
+          <div class="wizard-nav" id="wizardNav">
+            <button type="button" class="btn btn-outline btn-lg" id="wizardBackBtn">Назад</button>
+            <button type="button" class="btn btn-primary btn-lg" id="wizardNextBtn">Далее</button>
           </div>
         </div>
       </section>
-
       <!-- TAB 2: BODY & POSTURE ANALYSIS -->
       <section class="tab-panel" id="tab-analysis">
+        <button type="button" class="btn btn-ghost btn-sm back-link" id="analysisBackBtn">← Назад</button>
         <div class="empty-state" id="analysisEmptyState">
           <div class="empty-icon" aria-hidden="true">
             <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
@@ -660,6 +699,47 @@
               <div id="weeklyNutritionMini"></div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- PROFILE & SETTINGS -->
+      <section class="tab-panel" id="tab-profile">
+        <div class="profile-hero">
+          <div class="profile-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+          </div>
+          <div class="profile-hero-copy">
+            <h2>Мой профиль</h2>
+            <p class="muted small" id="profileSummaryLine"></p>
+          </div>
+          <button type="button" class="btn btn-icon" data-profile-edit="about" title="Изменить данные" aria-label="Изменить данные"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Тренировки</span>
+          <button type="button" class="settings-row" data-profile-edit="goal"><span class="settings-label">Цель</span><span class="settings-value" id="profileGoalVal"></span></button>
+          <button type="button" class="settings-row" data-profile-edit="place"><span class="settings-label">Место и инвентарь</span><span class="settings-value" id="profilePlaceVal"></span></button>
+          <button type="button" class="settings-row" data-profile-edit="level"><span class="settings-label">Уровень и частота</span><span class="settings-value" id="profileLevelVal"></span></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Анализ фигуры</span>
+          <button type="button" class="settings-row" id="profileNewAnalysisBtn"><span class="settings-label">Новый анализ по фото</span><span class="settings-value" id="profilePhotoVal"></span></button>
+          <button type="button" class="settings-row" id="profileLastAnalysisBtn"><span class="settings-label">Результат анализа</span><span class="settings-value" id="profileAnalysisVal"></span></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Устройства и настройки</span>
+          <button type="button" class="settings-row" id="profileHrBtn"><span class="settings-label">Часы и пульс</span><span class="settings-value" id="profileHrVal"></span></button>
+          <button type="button" class="settings-row" id="profileMusicBtn"><span class="settings-label">Музыка для тренировок</span><span class="settings-value" id="profileMusicVal"></span></button>
+          <button type="button" class="settings-row" id="profileAiBtn"><span class="settings-label">AI Ассистент</span><span class="settings-value" id="profileAiVal"></span></button>
+          <button type="button" class="settings-row" id="profileThemeBtn"><span class="settings-label">Оформление</span><span class="settings-value" id="profileThemeVal"></span></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Данные</span>
+          <button type="button" class="settings-row" id="profileExportBtn"><span class="settings-label">Сохранить резервную копию</span><span class="settings-value">JSON</span></button>
+          <button type="button" class="settings-row" id="profileImportBtn"><span class="settings-label">Восстановить из копии</span><span class="settings-value">JSON</span></button>
         </div>
       </section>
     </main>
@@ -1093,6 +1173,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-25"></script>
+  <script type="module" src="./js/app.js?v=20261124-26"></script>
 </body>
 </html>

@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-25';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-25';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-25';
+} from './cv-analyzer.js?v=20261124-26';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-26';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-26';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,8 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-25';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-25';
+} from './plan-generator.js?v=20261124-26';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-26';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +36,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-25';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-25';
+} from './heart-rate.js?v=20261124-26';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-26';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-25';
+} from './storage.js?v=20261124-26';
 
 const ANGLES = [
   {
@@ -159,7 +159,9 @@ const IS_CLOUD_MODE = APP_CONFIG.mode === 'cloud';
 const CLOUD_API_BASE = String(APP_CONFIG.apiBase || 'https://ellhome-bot-api.onrender.com').replace(/\/+$/, '');
 
 const state = {
-  tab: 'capture',
+  tab: 'home',
+  navTab: 'home',
+  wizard: { step: 0, edit: false, returnTab: 'home' },
   profile: loadProfile(),
   aiSettings: loadAiSettings(),
   envProviders: [],
@@ -475,18 +477,27 @@ function applyTheme(theme) {
   saveTheme(theme);
 }
 
+const NAV_TABS = ['home', 'plan', 'nutrition', 'history', 'profile'];
+
 function switchTab(tabName) {
   state.tab = tabName;
+  if (NAV_TABS.includes(tabName)) state.navTab = tabName;
+  // Wizard and analysis screens keep the section they were opened from highlighted.
+  const navActive = NAV_TABS.includes(tabName) ? tabName : state.navTab;
   document.querySelectorAll('.nav-tab').forEach((btn) => {
-    btn.classList.toggle('active', btn.dataset.tab === tabName);
+    btn.classList.toggle('active', btn.dataset.tab === navActive);
   });
   document.querySelectorAll('.tab-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `tab-${tabName}`);
   });
+  document.body.dataset.tab = tabName;
   window.scrollTo({ top: 0, behavior: 'instant' });
 
-  if (tabName === 'analysis' && state.metrics) {
-    requestAnimationFrame(() => drawCurrentAnalysisCanvas());
+  if (tabName === 'home') renderHomeTab();
+  if (tabName === 'profile') renderProfileTab();
+  if (tabName === 'analysis') {
+    renderAnalysisTab();
+    if (state.metrics) requestAnimationFrame(() => drawCurrentAnalysisCanvas());
   }
   if (tabName === 'plan' && state.plan) {
     renderPlanTab();
@@ -729,67 +740,68 @@ async function loadDemoPreset(presetId) {
     saveProfile(state.profile);
     syncProfileFormFromState();
     renderAnglesGrid();
+    if (state.tab === 'capture') {
+      state.wizard.step = WIZARD_STEPS.indexOf('finish');
+      renderWizard();
+    }
     await runFullAnalysis();
   } catch (err) {
     showToast(`Не удалось загрузить демо-фото: ${err.message}`, true);
   }
 }
 
-function renderAnglesGrid() {
-  const grid = $('anglesGrid');
-  grid.innerHTML = ANGLES.map((a) => {
-    const imgUrl = state.photos[a.key];
-    return `
-      <div class="angle-card ${imgUrl ? 'filled' : ''}" data-angle-card="${a.key}">
-        <div class="angle-card-head">
-          <span class="angle-title">${a.title}</span>
-          <span class="angle-tag">${imgUrl ? '✓ Готово' : a.badge}</span>
-        </div>
-        <div class="angle-preview">
-          ${
-            imgUrl
-              ? `<img src="${imgUrl}" alt="${a.title}">`
-              : `<div class="angle-silhouette">${a.svg}<span>${a.hint}</span></div>`
-          }
-        </div>
-        <div class="angle-actions">
-          <button type="button" class="btn btn-outline btn-sm" data-cam-angle="${a.key}">
-            <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>
-            <span>Камера</span>
-          </button>
-          <label class="btn btn-ghost btn-sm">
-            <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <span>Фото</span>
-            <input type="file" accept="image/*" data-file-angle="${a.key}" hidden>
-          </label>
-          ${
-            imgUrl
-              ? `<button type="button" class="btn btn-danger-ghost btn-sm" style="flex:0 0 34px" data-remove-angle="${a.key}" title="Удалить">✕</button>`
-              : ''
-          }
-        </div>
-      </div>
-    `;
-  }).join('');
+const WIZARD_STEPS = ['about', 'goal', 'place', 'level', 'front', 'side', 'back', 'side2', 'finish'];
+const PHOTO_STEPS = new Set(['front', 'side', 'back', 'side2']);
 
-  // Wire buttons & drag-and-drop
-  grid.querySelectorAll('[data-cam-angle]').forEach((btn) => {
+function angleCardHtml(a) {
+  const imgUrl = state.photos[a.key];
+  return `
+    <div class="angle-card wizard-angle-card ${imgUrl ? 'filled' : ''}" data-angle-card="${a.key}">
+      <div class="angle-preview">
+        ${
+          imgUrl
+            ? `<img src="${imgUrl}" alt="${a.title}"><span class="angle-done-badge">✓ Фото добавлено</span>`
+            : `<div class="angle-silhouette">${a.svg}<span>Сделайте снимок камерой или загрузите готовое фото</span></div>`
+        }
+      </div>
+      <div class="angle-actions">
+        <button type="button" class="btn ${imgUrl ? 'btn-outline' : 'btn-primary'}" data-cam-angle="${a.key}">
+          <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg>
+          <span>${imgUrl ? 'Переснять' : 'Камера'}</span>
+        </button>
+        <label class="btn btn-outline">
+          <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span>Загрузить</span>
+          <input type="file" accept="image/*" data-file-angle="${a.key}" hidden>
+        </label>
+        ${
+          imgUrl
+            ? `<button type="button" class="btn btn-danger-ghost angle-remove-btn" data-remove-angle="${a.key}" title="Удалить фото" aria-label="Удалить фото">✕</button>`
+            : ''
+        }
+      </div>
+    </div>
+  `;
+}
+
+function wireAngleSlot(slot) {
+  slot.querySelectorAll('[data-cam-angle]').forEach((btn) => {
     btn.addEventListener('click', () => openCameraModal(btn.dataset.camAngle));
   });
-  grid.querySelectorAll('[data-file-angle]').forEach((input) => {
+  slot.querySelectorAll('[data-file-angle]').forEach((input) => {
     input.addEventListener('change', (e) => {
       const file = e.target.files?.[0];
       if (file) handlePhotoFile(input.dataset.fileAngle, file);
       input.value = '';
     });
   });
-  grid.querySelectorAll('[data-remove-angle]').forEach((btn) => {
+  slot.querySelectorAll('[data-remove-angle]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.photos[btn.dataset.removeAngle] = null;
       renderAnglesGrid();
     });
   });
-  grid.querySelectorAll('[data-angle-card]').forEach((card) => {
+  slot.querySelectorAll('[data-angle-card]').forEach((card) => {
     const key = card.dataset.angleCard;
     card.addEventListener('dragover', (e) => {
       e.preventDefault();
@@ -807,6 +819,436 @@ function renderAnglesGrid() {
   });
 }
 
+function renderAnglesGrid() {
+  document.querySelectorAll('[data-wizard-angle]').forEach((slot) => {
+    const a = ANGLES.find((x) => x.key === slot.dataset.wizardAngle);
+    if (!a) return;
+    slot.innerHTML = angleCardHtml(a);
+    wireAngleSlot(slot);
+  });
+  renderWizardFinish();
+  updateWizardNav();
+}
+
+/* --------------------------- Step-by-step profile & photo wizard --------------------------- */
+function openWizard(stepKey = 'about', { edit = false } = {}) {
+  const from = state.tab === 'capture' ? state.wizard.returnTab : state.navTab;
+  state.wizard = {
+    step: Math.max(0, WIZARD_STEPS.indexOf(stepKey)),
+    edit,
+    returnTab: from || 'home',
+  };
+  syncProfileFormFromState();
+  switchTab('capture');
+  renderWizard();
+}
+
+function closeWizard() {
+  syncProfileFormFromState();
+  switchTab(state.wizard.returnTab || 'home');
+}
+
+function renderWizard() {
+  const key = WIZARD_STEPS[state.wizard.step];
+  document.querySelectorAll('#wizard .wizard-step').forEach((el) => {
+    el.classList.toggle('active', el.dataset.step === key);
+  });
+  $('wizard').classList.toggle('is-edit', state.wizard.edit);
+  const total = WIZARD_STEPS.length;
+  $('wizardProgressFill').style.width = `${Math.round(((state.wizard.step + 1) / total) * 100)}%`;
+  $('wizardCount').textContent = `${state.wizard.step + 1} / ${total}`;
+  if (key === 'finish') renderWizardFinish();
+  updateWizardNav();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
+function updateWizardNav() {
+  const back = $('wizardBackBtn');
+  const next = $('wizardNextBtn');
+  if (!back || !next) return;
+  const key = WIZARD_STEPS[state.wizard.step];
+  if (state.wizard.edit) {
+    back.textContent = 'Отмена';
+    back.classList.remove('is-invisible');
+    next.textContent = 'Сохранить';
+    next.classList.remove('hidden');
+    return;
+  }
+  back.textContent = 'Назад';
+  back.classList.toggle('is-invisible', state.wizard.step === 0);
+  next.classList.toggle('hidden', key === 'finish');
+  next.textContent = PHOTO_STEPS.has(key) && !state.photos[key] ? 'Пропустить' : 'Далее';
+}
+
+function validateAboutStep() {
+  const checks = [
+    ['profileAge', 14, 85, 'Возраст должен быть от 14 до 85 лет'],
+    ['profileHeight', 120, 230, 'Рост должен быть от 120 до 230 см'],
+    ['profileWeight', 35, 220, 'Вес должен быть от 35 до 220 кг'],
+  ];
+  for (const [id, min, max, msg] of checks) {
+    const v = Number($(id).value);
+    if (!Number.isFinite(v) || v < min || v > max) {
+      showToast(msg, true);
+      $(id).focus();
+      return false;
+    }
+  }
+  return true;
+}
+
+function wizardNext() {
+  const key = WIZARD_STEPS[state.wizard.step];
+  if (key === 'about' && !validateAboutStep()) return;
+  if (state.wizard.edit) {
+    saveWizardEdits();
+    return;
+  }
+  if (!PHOTO_STEPS.has(key) && key !== 'finish') readProfileFromForm();
+  state.wizard.step = Math.min(state.wizard.step + 1, WIZARD_STEPS.length - 1);
+  renderWizard();
+}
+
+function wizardBack() {
+  if (state.wizard.edit) {
+    closeWizard();
+    return;
+  }
+  if (state.wizard.step === 0) return;
+  state.wizard.step -= 1;
+  renderWizard();
+}
+
+function saveWizardEdits() {
+  const before = { ...state.profile };
+  const profile = readProfileFromForm();
+  const planChanged = ['goal', 'equipment', 'level', 'daysPerWeek'].some((k) => before[k] !== profile[k]);
+  if (planChanged && state.plan) {
+    const lostAi = rebuildPlanFromProfile();
+    showToast(lostAi ? 'Сохранено. План перестроен без AI: чтобы AI составил его заново, нажмите «Пересобрать через AI» в плане' : 'Сохранено. План обновлён под новые настройки');
+  } else {
+    showToast('Профиль сохранён');
+  }
+  switchTab(state.wizard.returnTab || 'profile');
+}
+
+function renderWizardFinish() {
+  const wrap = $('wizardThumbs');
+  if (!wrap) return;
+  const count = ANGLES.filter((a) => state.photos[a.key]).length;
+  wrap.innerHTML = ANGLES.map((a) => {
+    const img = state.photos[a.key];
+    return `<button type="button" class="wizard-thumb ${img ? 'filled' : ''}" data-wizard-goto="${a.key}">
+      <span class="wizard-thumb-img">${img ? `<img src="${img}" alt="">` : a.svg}</span>
+      <span class="wizard-thumb-label">${escapeHtml(a.title.replace(' (профиль)', '').replace('Второй бок', '2-й бок').replace('Со спины', 'Спина'))}</span>
+    </button>`;
+  }).join('');
+  wrap.querySelectorAll('[data-wizard-goto]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      state.wizard.step = WIZARD_STEPS.indexOf(btn.dataset.wizardGoto);
+      renderWizard();
+    });
+  });
+  $('wizardFinishTitle').textContent = count ? 'Всё готово к анализу' : 'Фото пока нет';
+  $('wizardFinishText').textContent = count
+    ? `${count} ${pluralRu(count, 'фото', 'фото', 'фото')} из 4. Анализ займёт до минуты, потом сразу покажем план.`
+    : 'Составим план только по анкете. Фото можно добавить позже: тогда упражнения подстроятся под осанку.';
+  $('runAnalysisBtn').classList.toggle('hidden', !count);
+  $('planWithoutPhotosBtn').classList.toggle('hidden', Boolean(count));
+  $('inlineAiCard').classList.toggle('hidden', !count);
+  $('clearPhotosBtn').classList.toggle('hidden', !count);
+}
+
+function buildPlanWithoutPhotos() {
+  readProfileFromForm();
+  rebuildPlanFromProfile();
+  switchTab('plan');
+  showToast('План составлен по анкете. Добавьте фото позже, чтобы учесть осанку');
+}
+
+/** Rebuilds the active plan for the current profile; returns true when an AI plan fell back to the built-in one. */
+function rebuildPlanFromProfile() {
+  // A legacy AI result has no planParams; it was built for the plan that is on screen now.
+  if (state.aiAnalysis && !state.aiAnalysis.planParams && state.plan?.generatedByAi) {
+    state.aiAnalysis.planParams = { equipment: state.plan.equipment, daysPerWeek: state.plan.daysPerWeek };
+  }
+  const wasAi = Boolean(state.plan?.generatedByAi);
+  state.plan = generateWorkoutPlan(planMetricsSource(), state.profile, state.aiAnalysis);
+  state.selectedPlanDay = 0;
+  saveActivePlan(state.plan);
+  renderPlanTab();
+  return wasAi && !state.plan.generatedByAi;
+}
+
+/* --------------------------- Home dashboard --------------------------- */
+const HEART_SVG = '<svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg>';
+
+function greetingText(d = new Date()) {
+  const h = d.getHours();
+  if (h < 5) return 'Доброй ночи';
+  if (h < 12) return 'Доброе утро';
+  if (h < 18) return 'Добрый день';
+  return 'Добрый вечер';
+}
+
+function strengthLogsThisWeek() {
+  const from = startOfWeek().getTime();
+  return state.workouts.filter((w) => w.type !== 'cardio' && new Date(w.completedAt).getTime() >= from);
+}
+
+/** Next plan day not yet done this week (logs store "Неделя N • title" or the bare title). */
+function nextPlanDayInfo() {
+  const days = state.plan?.days || [];
+  if (!days.length) return null;
+  const logs = strengthLogsThisWeek();
+  const titles = logs.map((w) => String(w.dayTitle || ''));
+  const isDone = (d) => titles.some((t) => t === d.title || t.endsWith(`• ${d.title}`));
+  let idx = days.findIndex((d) => !isDone(d));
+  const done = Math.min(days.length, logs.length);
+  if (done >= days.length) idx = -1;
+  return { idx, done, total: days.length };
+}
+
+function homeWorkoutCard() {
+  const info = nextPlanDayInfo();
+  if (!info) {
+    return `
+      <article class="home-card home-workout" data-home-action="wizard" role="button" tabindex="0">
+        <span class="home-eyebrow">Начнём</span>
+        <h2 class="home-workout-title">Персональный план за пару минут</h2>
+        <p class="home-workout-focus">Ответьте на 4 вопроса и сделайте фото. Подберём упражнения, калории и пульсовые зоны.</p>
+        <button type="button" class="btn home-start-btn" data-home-action="wizard">Начать</button>
+      </article>`;
+  }
+  if (info.idx < 0) {
+    return `
+      <article class="home-card home-workout" data-home-go="plan" role="button" tabindex="0">
+        <span class="home-eyebrow">Неделя выполнена</span>
+        <h2 class="home-workout-title">Все ${info.total} ${pluralRu(info.total, 'тренировка', 'тренировки', 'тренировок')} сделаны</h2>
+        <p class="home-workout-focus">Отдохните или добавьте кардио. Новая неделя начнётся в понедельник.</p>
+        <button type="button" class="btn home-start-btn" data-home-go="plan">Открыть план</button>
+      </article>`;
+  }
+  const day = state.plan.days[info.idx];
+  return `
+    <article class="home-card home-workout" data-home-go="plan" role="button" tabindex="0">
+      <span class="home-eyebrow">Следующая тренировка • ${info.idx + 1} из ${info.total}</span>
+      <h2 class="home-workout-title">${escapeHtml(day.title)}</h2>
+      <p class="home-workout-focus">${escapeHtml(day.focus || '')}</p>
+      <div class="home-workout-stats">
+        <span><b>${day.items.length}</b>${pluralRu(day.items.length, 'упражнение', 'упражнения', 'упражнений')}</span>
+        <span><b>~${day.estMinutes}</b>минут</span>
+        <span><b>~${day.estKcal}</b>ккал</span>
+      </div>
+      <button type="button" class="btn home-start-btn" data-home-action="start" data-day="${info.idx}"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="7,5 19,12 7,19"/></svg><span>Начать тренировку</span></button>
+    </article>`;
+}
+
+function homeNutritionCard() {
+  const target = getDailyNutritionTargets();
+  const dateKey = getLocalDateKey();
+  const meals = getMealsForDate(dateKey);
+  const sum = (k) => meals.reduce((a, m) => a + (Number(m.totals?.[k]) || 0), 0);
+  const kcal = Math.round(sum('kcal'));
+  const pct = target.targetKcal > 0 ? Math.round((kcal / target.targetKcal) * 100) : 0;
+  const circ = 2 * Math.PI * 34;
+  const offset = +(circ * (1 - Math.min(100, pct) / 100)).toFixed(2);
+  const over = kcal > target.targetKcal * 1.06;
+  const left = target.targetKcal - kcal;
+  const waterMl = Number(state.waterByDate[dateKey]) || 0;
+  const waterTarget = target.waterMl || Math.round((target.waterLiters || 2.4) * 1000);
+  const macro = (name, val, max) =>
+    `<span class="home-macro"><i style="--p:${max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0}%"></i>${name} <b>${Math.round(val)}</b>/${max} г</span>`;
+  return `
+    <article class="home-card home-nutri" data-home-go="nutrition" role="button" tabindex="0">
+      <div class="home-nutri-top">
+        <div class="home-ring ${over ? 'over' : ''}">
+          <svg viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="40" r="34" class="home-ring-track"/>
+            <circle cx="40" cy="40" r="34" class="home-ring-fill" stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset}"/>
+          </svg>
+          <span>${pct}<small>%</small></span>
+        </div>
+        <div class="home-nutri-copy">
+          <span class="home-eyebrow">Питание сегодня</span>
+          <div class="home-big">${kcal}<small>/ ${target.targetKcal} ккал</small></div>
+          <span class="home-sub ${left < 0 ? 'is-over' : ''}">${left >= 0 ? `Осталось ${left} ккал` : `Больше нормы на ${-left} ккал`}</span>
+        </div>
+      </div>
+      <div class="home-macros">
+        ${macro('Б', sum('protein'), target.proteinGrams)}
+        ${macro('Ж', sum('fat'), target.fatGrams)}
+        ${macro('У', sum('carbs'), target.carbsGrams)}
+      </div>
+      <div class="home-water">
+        <span class="home-water-label">Вода <b>${waterMl}</b> / ${waterTarget} мл</span>
+        <div class="home-bar"><i style="width:${waterTarget > 0 ? Math.min(100, Math.round((waterMl / waterTarget) * 100)) : 0}%"></i></div>
+        <button type="button" class="btn btn-outline btn-xs" data-home-action="water">+250 мл</button>
+      </div>
+    </article>`;
+}
+
+function homeWeekCard() {
+  if (!state.plan) {
+    return `
+      <article class="home-card home-small" data-home-action="wizard" role="button" tabindex="0">
+        <span class="home-eyebrow">Неделя</span>
+        <div class="home-big">—</div>
+        <span class="home-sub">План ещё не составлен</span>
+      </article>`;
+  }
+  const info = nextPlanDayInfo();
+  const cardio = state.plan.cardio || buildCardioTarget({ ...state.profile, equipment: state.plan.equipment, goal: state.plan.goal, level: state.plan.level });
+  const cDone = cardioSessionsThisWeek();
+  const bar = (label, done, total) => `
+    <div class="home-week-row">
+      <span>${label}<b>${done}/${total}</b></span>
+      <div class="home-bar ${done >= total ? 'done' : ''}"><i style="width:${total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0}%"></i></div>
+    </div>`;
+  return `
+    <article class="home-card home-small" data-home-go="plan" role="button" tabindex="0">
+      <span class="home-eyebrow">Эта неделя</span>
+      ${bar('Силовые', info.done, info.total)}
+      ${bar('Кардио', cDone, cardio.sessions)}
+    </article>`;
+}
+
+function homeHrCard() {
+  return `
+    <article class="home-card home-small home-hr" id="homeHrCard" data-home-action="hr" role="button" tabindex="0">
+      <span class="home-eyebrow">Пульс</span>
+      <div class="home-hr-main">${HEART_SVG}<span class="home-big" id="homeHrValue">—</span></div>
+      <span class="home-sub" id="homeHrSub">Подключить часы</span>
+    </article>`;
+}
+
+function latestBodyMetrics() {
+  return state.metrics || state.checkins?.[0]?.metrics || null;
+}
+
+function homeBodyCard() {
+  const m = latestBodyMetrics();
+  const score = m?.postureScore;
+  return `
+    <article class="home-card home-small" data-home-action="${state.metrics ? 'analysis' : 'photos'}" role="button" tabindex="0">
+      <span class="home-eyebrow">Фигура</span>
+      <div class="home-big">${score != null ? `${score}<small>/100</small>` : '—'}</div>
+      <span class="home-sub">${score != null ? `Осанка • ${state.profile.weightKg} кг` : 'Сделайте анализ по фото'}</span>
+      <button type="button" class="btn btn-outline btn-xs home-card-btn" data-home-action="photos">${score != null ? 'Новый анализ' : 'Сделать фото'}</button>
+    </article>`;
+}
+
+function homeLastWorkoutCard() {
+  const w = state.workouts?.[0];
+  if (!w) {
+    return `
+      <article class="home-card home-small" data-home-go="history" role="button" tabindex="0">
+        <span class="home-eyebrow">Последняя</span>
+        <div class="home-big">—</div>
+        <span class="home-sub">Тренировок пока нет</span>
+      </article>`;
+  }
+  const mins = Math.max(1, Math.round((w.durationSec || 0) / 60));
+  return `
+    <article class="home-card home-small" data-home-go="history" role="button" tabindex="0">
+      <span class="home-eyebrow">Последняя</span>
+      <div class="home-big">${mins}<small>мин</small></div>
+      <span class="home-sub home-clip">${escapeHtml(w.dayTitle || 'Тренировка')}</span>
+      <span class="home-sub">${formatDateRu(w.completedAt)}${w.hr?.avg ? ` • ♥ ${w.hr.avg}` : ''}</span>
+    </article>`;
+}
+
+function renderHomeTab() {
+  const grid = $('homeGrid');
+  if (!grid) return;
+  const now = new Date();
+  const date = now.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('homeDate').textContent = date.charAt(0).toUpperCase() + date.slice(1);
+  $('homeTitle').textContent = greetingText(now);
+  grid.innerHTML = [
+    homeWorkoutCard(),
+    homeNutritionCard(),
+    homeWeekCard(),
+    homeHrCard(),
+    homeBodyCard(),
+    homeLastWorkoutCard(),
+  ].join('');
+  renderHomeHr();
+}
+
+function runHomeAction(el) {
+  const action = el.dataset.homeAction;
+  if (!action) {
+    if (el.dataset.homeGo) switchTab(el.dataset.homeGo);
+    return;
+  }
+  if (action === 'start') {
+    const idx = Number(el.dataset.day) || 0;
+    state.selectedPlanDay = idx;
+    startWorkoutSession(idx);
+  } else if (action === 'wizard') {
+    openWizard('about');
+  } else if (action === 'photos') {
+    openWizard('front');
+  } else if (action === 'analysis') {
+    switchTab('analysis');
+  } else if (action === 'hr') {
+    openHrModal();
+  } else if (action === 'water') {
+    adjustDailyWater(250);
+    renderHomeTab();
+  }
+}
+
+function renderHomeHr(st = hrMonitor?.getState()) {
+  const card = $('homeHrCard');
+  if (!card || !st) return;
+  const zone = zoneForHr(st.bpm, currentHrMax());
+  const z = zone ? HR_ZONES[zone - 1] : null;
+  const linked = ['connected', 'connecting', 'reconnecting'].includes(st.status);
+  card.dataset.zone = String(zone);
+  card.classList.toggle('is-live', st.bpm > 0);
+  card.classList.toggle('is-linking', linked && !st.bpm);
+  card.style.setProperty('--hr-period', st.bpm ? `${(60 / st.bpm).toFixed(3)}s` : '1s');
+  $('homeHrValue').textContent = st.bpm ? String(st.bpm) : '—';
+  $('homeHrSub').textContent = st.bpm
+    ? z ? `Зона ${zone} • ${z.name}` : 'Ниже зон'
+    : linked ? 'Ждём пульс…' : 'Подключить часы';
+}
+
+/* --------------------------- Profile & settings --------------------------- */
+const SEX_LABELS = { male: 'Мужчина', female: 'Женщина', unspecified: '' };
+const LEVEL_LABELS = { beginner: 'Новичок', intermediate: 'Средний', advanced: 'Продвинутый' };
+
+function renderProfileTab() {
+  if (!$('tab-profile')) return;
+  const p = state.profile || {};
+  const age = Number(p.age) || 28;
+  $('profileSummaryLine').textContent = [
+    SEX_LABELS[p.sex],
+    `${age} ${pluralRu(age, 'год', 'года', 'лет')}`,
+    `${p.heightCm || 178} см`,
+    `${p.weightKg || 78} кг`,
+  ].filter(Boolean).join(' • ');
+  const days = Number(p.daysPerWeek) || 3;
+  $('profileGoalVal').textContent = GOAL_LABELS[p.goal] || '';
+  $('profilePlaceVal').textContent = EQUIPMENT_LABELS[p.equipment] || '';
+  $('profileLevelVal').textContent = `${LEVEL_LABELS[p.level] || ''} • ${days} ${pluralRu(days, 'день', 'дня', 'дней')}`;
+  const photos = ANGLES.filter((a) => state.photos[a.key]).length;
+  $('profilePhotoVal').textContent = photos ? `${photos} из 4 фото` : '';
+  const m = latestBodyMetrics();
+  $('profileAnalysisVal').textContent = m?.postureScore != null ? `Осанка ${m.postureScore}/100` : 'Ещё не было';
+  $('profileLastAnalysisBtn').disabled = !m;
+  const hr = hrMonitor?.getState();
+  $('profileHrVal').textContent = !hr?.supported
+    ? 'Нужен Chrome'
+    : hr.status === 'connected' ? hr.deviceName || 'Подключены' : 'Не подключены';
+  const music = musicController?.getState?.();
+  $('profileMusicVal').textContent = music?.playing ? music.shortTitle || music.title || 'Играет' : '';
+  $('profileAiVal').textContent = state.aiSettings.enabled && isAiReady() ? 'Включён' : 'Выключен';
+  $('profileThemeVal').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? 'Тёмное' : 'Светлое';
+}
+
 function handlePhotoFile(angleKey, file) {
   const reader = new FileReader();
   reader.onload = async () => {
@@ -820,7 +1262,6 @@ function handlePhotoFile(angleKey, file) {
 
 function syncProfileFormFromState() {
   const p = state.profile;
-  $('profileSex').value = p.sex || 'male';
   $('profileAge').value = p.age || 28;
   $('profileHeight').value = p.heightCm || 178;
   $('profileWeight').value = p.weightKg || 78;
@@ -829,6 +1270,7 @@ function syncProfileFormFromState() {
     const el = document.querySelector(`input[name="${name}"][value="${val}"]`);
     if (el) el.checked = true;
   };
+  setRadio('sex', p.sex || 'male');
   setRadio('goal', p.goal || 'recomp');
   setRadio('equipment', p.equipment || 'home_bodyweight');
   setRadio('level', p.level || 'beginner');
@@ -2126,6 +2568,8 @@ function renderHrUi(st = hrMonitor?.getState()) {
   }
 
   updateRestHr(st);
+  renderHomeHr(st);
+  if (state.tab === 'profile') renderProfileTab();
 
   if (linked && !hrRefreshTimer) hrRefreshTimer = window.setInterval(() => renderHrUi(), 2000);
   if (!linked && hrRefreshTimer) {
@@ -2489,6 +2933,7 @@ function closeWorkoutOverlay() {
   state.wp.hrSession = null;
   $('workoutOverlay').classList.add('hidden');
   document.body.style.overflow = '';
+  if (state.tab === 'home') renderHomeTab();
 }
 
 /* --------------------------- Tab 4: History & Progress --------------------------- */
@@ -3747,17 +4192,60 @@ function closeModal(id) {
 /* --------------------------- Event Wiring & Init --------------------------- */
 function initEvents() {
   // Header nav & theme
-  $('brandHome').addEventListener('click', () => switchTab('capture'));
+  $('brandHome').addEventListener('click', () => switchTab('home'));
   document.querySelectorAll('.nav-tab').forEach((btn) => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
   document.querySelectorAll('[data-goto-tab]').forEach((btn) => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.gotoTab));
+    btn.addEventListener('click', () => {
+      if (btn.dataset.gotoTab === 'capture') openWizard('about');
+      else switchTab(btn.dataset.gotoTab);
+    });
   });
   $('themeToggleBtn').addEventListener('click', () => {
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     applyTheme(next);
+    if (state.tab === 'profile') renderProfileTab();
   });
+
+  // Home dashboard cards
+  const homeGrid = $('homeGrid');
+  homeGrid.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-home-action], [data-home-go]');
+    if (el && homeGrid.contains(el)) runHomeAction(el);
+  });
+  homeGrid.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.home-card')) {
+      e.preventDefault();
+      runHomeAction(e.target);
+    }
+  });
+
+  // Wizard
+  $('wizardNextBtn').addEventListener('click', wizardNext);
+  $('wizardBackBtn').addEventListener('click', wizardBack);
+  $('wizardCloseBtn').addEventListener('click', closeWizard);
+  $('planWithoutPhotosBtn').addEventListener('click', buildPlanWithoutPhotos);
+  $('analysisBackBtn').addEventListener('click', () => switchTab(state.navTab || 'home'));
+
+  // Profile & settings
+  document.querySelectorAll('[data-profile-edit]').forEach((btn) => {
+    btn.addEventListener('click', () => openWizard(btn.dataset.profileEdit, { edit: true }));
+  });
+  $('profileNewAnalysisBtn').addEventListener('click', () => openWizard('front'));
+  $('profileLastAnalysisBtn').addEventListener('click', () => {
+    if (state.metrics) switchTab('analysis');
+    else {
+      switchTab('history');
+      showToast('Откройте сохранённый замер в списке, чтобы посмотреть анализ');
+    }
+  });
+  $('profileHrBtn').addEventListener('click', openHrModal);
+  $('profileMusicBtn').addEventListener('click', openMusicModal);
+  $('profileAiBtn').addEventListener('click', openAiSettingsModal);
+  $('profileThemeBtn').addEventListener('click', () => $('themeToggleBtn').click());
+  $('profileExportBtn').addEventListener('click', () => $('exportBackupBtn').click());
+  $('profileImportBtn').addEventListener('click', () => $('importBackupInput').click());
 
   // Tab 1 actions
   $('clearPhotosBtn').addEventListener('click', () => {
@@ -3767,6 +4255,11 @@ function initEvents() {
   });
   $('profileForm').addEventListener('submit', (e) => {
     e.preventDefault();
+    // Enter in a field submits the form; only the last step starts the analysis.
+    if (WIZARD_STEPS[state.wizard.step] !== 'finish' || state.wizard.edit) {
+      wizardNext();
+      return;
+    }
     runFullAnalysis();
   });
 
@@ -3824,21 +4317,13 @@ function initEvents() {
 
   // Tab 3 quick controls
   const regenerateQuick = () => {
-    // A legacy AI result has no planParams; it was built for the plan that is on screen now.
-    if (state.aiAnalysis && !state.aiAnalysis.planParams && state.plan?.generatedByAi) {
-      state.aiAnalysis.planParams = { equipment: state.plan.equipment, daysPerWeek: state.plan.daysPerWeek };
-    }
-    const wasAi = Boolean(state.plan?.generatedByAi);
     state.profile.equipment = $('quickEquipmentSelect').value;
     state.profile.daysPerWeek = Number($('quickDaysSelect').value);
     saveProfile(state.profile);
     syncProfileFormFromState();
-    state.plan = generateWorkoutPlan(planMetricsSource(), state.profile, state.aiAnalysis);
-    state.selectedPlanDay = 0;
-    saveActivePlan(state.plan);
-    renderPlanTab();
+    const lostAi = rebuildPlanFromProfile();
     showToast(
-      wasAi && !state.plan.generatedByAi
+      lostAi
         ? 'План перестроен под новый формат. Чтобы AI составил его заново, нажмите «Пересобрать через AI»'
         : 'План перестроен под выбранный формат'
     );
@@ -4350,6 +4835,7 @@ function bootstrap() {
   upgradeLegacyPlan();
   if (state.plan) renderPlanTab();
   renderNutritionTab();
+  switchTab('home');
   detectServerEnvProviders();
   preloadExerciseSprites(EXERCISES.slice(0, 6).map((e) => e.animId));
 }
