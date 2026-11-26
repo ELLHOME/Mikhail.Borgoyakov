@@ -16,6 +16,29 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const easeOutExpo = (t) => (t >= 1 ? 1 : 1 - 2 ** (-10 * t));
 const levelFor = (p) => MIN_LEVEL + (1 - MIN_LEVEL) * clamp(p, 0, 1);
 
+// Phone roll in radians, measured against gravity, so the liquid can stay level while the screen turns.
+let deviceRoll = null;
+let tiltAsked = false;
+const MAX_TILT = 0.7;
+function onOrientation(e) {
+  if (e.gamma == null) return;
+  const angle = screen.orientation?.angle ?? window.orientation ?? 0;
+  if (angle === 0) deviceRoll = (e.gamma * Math.PI) / 180;
+  else if (angle === 180 || angle === -180) deviceRoll = (-e.gamma * Math.PI) / 180;
+  else deviceRoll = 0;
+}
+function listenTilt() {
+  if (typeof DeviceOrientationEvent === 'undefined') return;
+  addEventListener('deviceorientation', onOrientation);
+}
+listenTilt();
+// iOS only delivers orientation after an explicit permission granted from a tap.
+function askTiltPermission() {
+  if (tiltAsked || typeof DeviceOrientationEvent?.requestPermission !== 'function') return;
+  tiltAsked = true;
+  DeviceOrientationEvent.requestPermission().catch(() => {});
+}
+
 export function mountHeroOrb(root, progress) {
   current?.stop();
   current = null;
@@ -42,6 +65,9 @@ export function mountHeroOrb(root, progress) {
   let lastT = t0;
   let prevLevel = fromLevel;
   let slosh = 0;
+  let tilt = 0;
+  let tiltVel = 0;
+  let pointerTilt = 0;
   const dust = [];
   const bubbles = [];
 
@@ -78,6 +104,12 @@ export function mountHeroOrb(root, progress) {
     lastT = now;
     slosh = Math.max(slosh * 0.985, Math.min(0.09, (Math.abs(level - prevLevel) / dt) * 0.05));
     prevLevel = level;
+    if (!reduce) {
+      const want = clamp(deviceRoll ?? pointerTilt, -MAX_TILT, MAX_TILT);
+      tiltVel += (55 * (want - tilt) - 7 * tiltVel) * dt;
+      tilt += tiltVel * dt;
+      slosh = Math.max(slosh, Math.min(0.07, Math.abs(tiltVel) * 0.03));
+    }
     shownLevel = level;
     const pct = Math.round(fromPct + (targetPct - fromPct) * k);
     if (num && pct !== shownPct) num.textContent = String(pct);
@@ -130,6 +162,9 @@ export function mountHeroOrb(root, progress) {
     const surf = cy + Ri - 2 * Ri * level;
     const A = R * (0.03 + slosh);
     const kx = 2.4 / R;
+    const slope = Math.tan(tilt);
+    const surfAt = (x) => surf - slope * (x - cx);
+    const floor = cy + Ri + 2;
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, Ri, 0, 6.2832);
@@ -138,8 +173,8 @@ export function mountHeroOrb(root, progress) {
       ctx.beginPath();
       ctx.moveTo(cx - Ri, cy + Ri);
       for (let x = cx - Ri; x <= cx + Ri + 1; x += 4) {
-        const y = surf + amp * Math.sin((x - cx) * kx * mul + t * speed + phase) + amp * 0.35 * Math.sin((x - cx) * kx * 2.3 - t * speed * 1.4);
-        ctx.lineTo(x, y);
+        const y = surfAt(x) + amp * Math.sin((x - cx) * kx * mul + t * speed + phase) + amp * 0.35 * Math.sin((x - cx) * kx * 2.3 - t * speed * 1.4);
+        ctx.lineTo(x, Math.min(floor, y));
       }
       ctx.lineTo(cx + Ri, cy + Ri);
       ctx.closePath();
@@ -148,7 +183,7 @@ export function mountHeroOrb(root, progress) {
     ctx.fillStyle = 'rgba(0, 120, 200, 0.55)';
     ctx.fill();
     wave(0, -1.7, A, 1.2);
-    const liq = ctx.createLinearGradient(0, surf - A, 0, cy + Ri);
+    const liq = ctx.createLinearGradient(0, Math.min(surfAt(cx - Ri), surfAt(cx + Ri)) - A, 0, cy + Ri);
     liq.addColorStop(0, 'rgba(120, 242, 255, 0.95)');
     liq.addColorStop(0.35, 'rgba(20, 190, 245, 0.85)');
     liq.addColorStop(1, 'rgba(0, 70, 160, 0.92)');
@@ -161,13 +196,13 @@ export function mountHeroOrb(root, progress) {
     deep.addColorStop(0, 'rgba(60, 220, 255, 0.35)');
     deep.addColorStop(1, 'rgba(60, 220, 255, 0)');
     ctx.fillStyle = deep;
-    ctx.fillRect(cx - Ri, surf - A * 2, Ri * 2, cy + Ri - surf + A * 2);
+    ctx.fillRect(cx - Ri, cy - Ri, Ri * 2, Ri * 2);
     while (bubbles.length < 16) bubbles.push(spawnBubble(R, true));
     for (const b of bubbles) {
       if (!reduce) b.y += b.v * dt;
-      const by = cy + Ri - b.y * (cy + Ri - surf);
       const bx = cx + b.u * Ri * 0.6 + Math.sin(t * 2 + b.ph) * R * 0.02;
-      if (by - b.r < surf + A) { Object.assign(b, spawnBubble(R, false)); continue; }
+      const by = cy + Ri - b.y * (cy + Ri - surfAt(bx));
+      if (by - b.r < surfAt(bx) + A) { Object.assign(b, spawnBubble(R, false)); continue; }
       ctx.strokeStyle = 'rgba(220, 250, 255, 0.55)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -182,7 +217,7 @@ export function mountHeroOrb(root, progress) {
     // bright meniscus along the surface
     ctx.beginPath();
     for (let x = cx - Ri; x <= cx + Ri + 1; x += 4) {
-      const y = surf + A * Math.sin((x - cx) * kx * 1.2 - t * 1.7) + A * 0.35 * Math.sin((x - cx) * kx * 2.3 + t * 2.38);
+      const y = Math.min(floor, surfAt(x) + A * Math.sin((x - cx) * kx * 1.2 - t * 1.7) + A * 0.35 * Math.sin((x - cx) * kx * 2.3 + t * 2.38));
       if (x === cx - Ri) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.strokeStyle = 'rgba(225, 252, 255, 0.9)';
@@ -259,6 +294,16 @@ export function mountHeroOrb(root, progress) {
     if (visible && !raf) { lastT = performance.now(); raf = requestAnimationFrame(frame); }
   });
   io.observe(root);
+  const onMove = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const r = root.getBoundingClientRect();
+    const o = orb.getBoundingClientRect();
+    pointerTilt = clamp((e.clientX - (o.left + o.width / 2)) / r.width, -0.5, 0.5) * 0.5;
+  };
+  const onLeave = () => { pointerTilt = 0; };
+  root.addEventListener('pointermove', onMove);
+  root.addEventListener('pointerleave', onLeave);
+  root.addEventListener('pointerdown', askTiltPermission);
 
   function frame(now) {
     raf = 0;
@@ -272,6 +317,9 @@ export function mountHeroOrb(root, progress) {
     raf = 0;
     ro.disconnect();
     io.disconnect();
+    root.removeEventListener('pointermove', onMove);
+    root.removeEventListener('pointerleave', onLeave);
+    root.removeEventListener('pointerdown', askTiltPermission);
     if (current?.stop === stop) current = null;
   };
   current = {

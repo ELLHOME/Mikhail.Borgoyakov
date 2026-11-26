@@ -3597,23 +3597,22 @@ body { overflow-x: clip; }
     min-height: 0;
     padding: 22px 16px 16px;
     border-radius: 26px;
+    --orb-size: clamp(108px, 33vw, 168px);
   }
   .hero-orb {
     grid-column: 1;
     grid-row: 1;
     align-self: center;
     justify-self: end;
-    width: clamp(128px, 42vw, 200px);
-    margin-right: -4px;
+    width: var(--orb-size);
   }
-  .hero-copy { grid-row: 1; min-height: 0; max-width: 56%; padding: 6px 0 4px; }
+  .hero-copy { grid-row: 1; min-height: 0; max-width: calc(100% - var(--orb-size) - 12px); padding: 6px 0 4px; }
   .hero-pct-num { font-size: clamp(4.2rem, 21vw, 5.4rem); }
   .hero-legend { grid-row: 2; margin-top: 12px; gap: 7px; }
   .hero-tile { grid-column: 1; grid-row: 3; margin-top: 12px; }
   .home-hero .home-workout { padding: 18px; }
 }
 @media (max-width: 380px) {
-  .hero-copy { max-width: 58%; }
   .home-hero .activity-legend li { padding: 9px 8px 10px; }
   .home-hero .act-label { font-size: 0.72rem; }
   .home-hero .act-val b { font-size: 1.05rem; }
