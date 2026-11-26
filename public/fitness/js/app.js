@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-28';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-28';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-28';
+} from './cv-analyzer.js?v=20261124-29';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-29';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-29';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,10 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-28';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-28';
+} from './plan-generator.js?v=20261124-29';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-29';
+import { mountHeroOrb } from './hero-orb.js?v=20261124-29';
+import './glass.js?v=20261124-29';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +38,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-28';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-28';
+} from './heart-rate.js?v=20261124-29';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-29';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +63,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-28';
+} from './storage.js?v=20261124-29';
 
 const ANGLES = [
   {
@@ -1069,49 +1071,56 @@ function dailyBurnGoal() {
   return Math.max(150, Math.round((avg || 300) / 10) * 10);
 }
 
-function activityRingsSvg(rings) {
-  const radii = [52, 39, 26];
-  return `
-    <svg viewBox="0 0 120 120" aria-hidden="true">
-      ${rings.map((r, i) => {
-        const rad = radii[i];
-        const circ = 2 * Math.PI * rad;
-        const pct = r.goal > 0 ? Math.min(1, r.value / r.goal) : 0;
-        const off = +(circ * (1 - pct)).toFixed(2);
-        return `<circle cx="60" cy="60" r="${rad}" class="act-track ${r.cls}"/>
-          <circle cx="60" cy="60" r="${rad}" class="act-fill ${r.cls}" stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${off}"/>`;
-      }).join('')}
-    </svg>`;
-}
-
-function homeActivityCard() {
+function todayActivityRings() {
   const today = getLocalDateKey();
   const act = activityForDate(today);
   const target = getDailyNutritionTargets();
   const waterMl = Number(state.waterByDate[today]) || 0;
   const waterGoal = target.waterMl || Math.round((target.waterLiters || 2.4) * 1000);
-  const rings = [
+  return [
     { cls: 'is-kcal', label: 'Сожжено', value: act.kcal, goal: dailyBurnGoal(), unit: 'ккал' },
     { cls: 'is-min', label: 'Активность', value: act.minutes, goal: ACTIVE_MINUTES_GOAL, unit: 'мин' },
     { cls: 'is-water', label: 'Вода', value: waterMl, goal: waterGoal, unit: 'мл' },
   ];
-  return `
-    <article class="home-card home-activity" data-home-go="history" role="button" tabindex="0">
-      <span class="home-eyebrow">Активность сегодня</span>
-      <div class="home-activity-body">
-        <div class="activity-rings">${activityRingsSvg(rings)}</div>
-        <ul class="activity-legend">
-          ${rings.map((r) => `
-            <li class="${r.cls} ${r.value >= r.goal ? 'is-done' : ''}">
-              <span class="act-label"><i></i>${r.label}</span>
-              <span class="act-val"><b>${r.value}</b>/${r.goal} ${r.unit}</span>
-              ${r.cls === 'is-water' ? '<button type="button" class="btn btn-outline btn-xs act-water-btn" data-home-action="water">+250 мл</button>' : ''}
-            </li>`).join('')}
-        </ul>
-      </div>
-    </article>`;
 }
 
+/** Share of today's three goals reached, each goal capped at 100%. */
+function dayProgress(rings) {
+  const parts = rings.map((r) => (r.goal > 0 ? Math.min(1, r.value / r.goal) : 0));
+  return parts.reduce((a, v) => a + v, 0) / parts.length;
+}
+
+function homeHeroCard() {
+  const rings = todayActivityRings();
+  const progress = dayProgress(rings);
+  const pct = Math.round(progress * 100);
+  const hint = pct >= 100
+    ? 'Все цели дня закрыты'
+    : pct === 0
+      ? 'Тренировка, активные минуты и вода наполняют сферу'
+      : `До цели осталось ${100 - pct}%`;
+  return `
+    <section class="home-hero" data-progress="${progress.toFixed(4)}" aria-label="Прогресс дня ${pct}%">
+      <div class="hero-stage" aria-hidden="true">
+        <canvas class="hero-fx"></canvas>
+      </div>
+      <div class="hero-orb" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <span class="hero-label">Прогресс дня</span>
+        <div class="hero-pct"><b class="hero-pct-num">${pct}</b><small>%</small></div>
+        <p class="hero-hint">${hint}</p>
+      </div>
+      <ul class="activity-legend hero-legend" data-home-go="history">
+        ${rings.map((r) => `
+          <li class="${r.cls} ${r.value >= r.goal ? 'is-done' : ''}">
+            <span class="act-label"><i></i>${r.label}</span>
+            <span class="act-val"><b>${r.value}</b>/${r.goal} ${r.unit}</span>
+            ${r.cls === 'is-water' ? '<button type="button" class="btn btn-xs act-water-btn" data-home-action="water">+250 мл</button>' : ''}
+          </li>`).join('')}
+      </ul>
+      <div class="hero-tile">${homeWorkoutCard()}</div>
+    </section>`;
+}
 function homeNutritionCard() {
   const target = getDailyNutritionTargets();
   const dateKey = getLocalDateKey();
@@ -1227,14 +1236,15 @@ function renderHomeTab() {
   $('homeDate').textContent = date.charAt(0).toUpperCase() + date.slice(1);
   $('homeTitle').textContent = greetingText(now);
   grid.innerHTML = [
-    homeWorkoutCard(),
-    homeActivityCard(),
+    homeHeroCard(),
     homeNutritionCard(),
     homeWeekCard(),
     homeHrCard(),
     homeBodyCard(),
     homeLastWorkoutCard(),
   ].join('');
+  const hero = grid.querySelector('.home-hero');
+  mountHeroOrb(hero, Number(hero?.dataset.progress) || 0);
   renderHomeHr();
 }
 
