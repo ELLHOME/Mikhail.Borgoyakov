@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-30';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-30';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-30';
+} from './cv-analyzer.js?v=20261124-31';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-31';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-31';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,10 +26,10 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-30';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-30';
-import { mountHeroOrb } from './hero-orb.js?v=20261124-30';
-import './glass.js?v=20261124-30';
+} from './plan-generator.js?v=20261124-31';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-31';
+import { mountHeroOrb } from './hero-orb.js?v=20261124-31';
+import './glass.js?v=20261124-31';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -38,8 +38,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-30';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-30';
+} from './heart-rate.js?v=20261124-31';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-31';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -63,7 +63,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-30';
+} from './storage.js?v=20261124-31';
 
 const ANGLES = [
   {
@@ -4380,7 +4380,7 @@ function initEvents() {
   $('downloadAnnotatedBtn').addEventListener('click', () => {
     const canvas = $('analysisCanvas');
     const link = document.createElement('a');
-    link.download = `teloskop-${state.selectedAnalysisAngle}.png`;
+    link.download = `siluetika-${state.selectedAnalysisAngle}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   });
@@ -4611,7 +4611,7 @@ function initEvents() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `teloskop-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `siluetika-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Резервная копия экспортирована');

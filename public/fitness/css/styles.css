@@ -136,7 +136,6 @@ strong, b { font-weight: 500; }
 .brand-mark {
   width: 56px;
   height: 56px;
-  /* 14% matches the corner radius of the reticle drawn into the mark image. */
   border-radius: 8px;
   background: #010914;
   box-shadow: var(--obsidian-shadow);
@@ -3614,7 +3613,7 @@ body { overflow-x: clip; }
 }
 @media (max-width: 380px) {
   .home-hero .activity-legend li { padding: 9px 8px 10px; }
-  .home-hero .act-label { font-size: 0.72rem; }
+  .home-hero .act-label { font-size: 0.68rem; letter-spacing: -0.01em; }
   .home-hero .act-val b { font-size: 1.05rem; }
 }
 /* ------------------- Step-by-step wizard ------------------- */
