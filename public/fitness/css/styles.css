@@ -134,15 +134,19 @@ strong, b { font-weight: 500; }
 }
 
 .brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  background: var(--obsidian);
+  width: 56px;
+  height: 56px;
+  /* 14% matches the corner radius of the reticle drawn into the mark image. */
+  border-radius: 8px;
+  background: #010914;
   box-shadow: var(--obsidian-shadow);
   color: var(--accent-bright);
   display: grid;
   place-items: center;
+  overflow: hidden;
 }
+.brand-mark img { width: 100%; height: 100%; display: block; }
+.brand-accent { color: var(--accent); }
 
 .brand-name {
   display: block;
@@ -3089,7 +3093,7 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 420px) {
   .topbar-inner { padding: 10px 12px; }
   .brand { gap: 8px; }
-  .brand-mark { width: 36px; height: 36px; border-radius: 12px; }
+  .brand-mark { width: 50px; height: 50px; border-radius: 7px; }
   .topbar-actions { gap: 6px; }
   .topbar-actions #openAiSettingsBtn { padding: 6px 9px; gap: 6px; }
   .ai-btn-label-full { display: none; }
@@ -3180,6 +3184,10 @@ body { overflow-x: clip; }
 @media (max-width: 420px) {
   .top-hr-btn.is-live { padding: 0 9px 0 8px; gap: 4px; }
   /* The live pulse pill needs the room the logo mark takes on narrow phones. */
+  .topbar-inner:has(.top-hr-btn.is-live) .brand-mark { display: none; }
+}
+@media (min-width: 421px) and (max-width: 470px) {
+  .brand-mark { width: 50px; height: 50px; border-radius: 7px; }
   .topbar-inner:has(.top-hr-btn.is-live) .brand-mark { display: none; }
 }
 :is(.wp-hr-chip, .hr-live, .plan-hr-btn, .top-hr-btn)[data-zone="1"] { --hr-color: #8a9bb3; }

@@ -956,8 +956,8 @@ export class WorkoutMusicController {
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: st.title,
-        artist: jmTrack ? jmTrack.a : 'BodyCoach • Музыка для тренировки',
-        album: jmTrack ? `BodyCoach • ${this.getCurrentStation().name}` : st.subtitle,
+        artist: jmTrack ? jmTrack.a : 'ТелоСкоп • Музыка для тренировки',
+        album: jmTrack ? `ТелоСкоп • ${this.getCurrentStation().name}` : st.subtitle,
         ...(jmTrack?.i ? { artwork: [{ src: jmTrack.i, sizes: '300x300', type: 'image/jpeg' }] } : {}),
       });
     } catch {

@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-27';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-27';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-27';
+} from './cv-analyzer.js?v=20261124-28';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-28';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-28';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,8 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-27';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-27';
+} from './plan-generator.js?v=20261124-28';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-28';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +36,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-27';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-27';
+} from './heart-rate.js?v=20261124-28';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-28';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-27';
+} from './storage.js?v=20261124-28';
 
 const ANGLES = [
   {
@@ -4370,7 +4370,7 @@ function initEvents() {
   $('downloadAnnotatedBtn').addEventListener('click', () => {
     const canvas = $('analysisCanvas');
     const link = document.createElement('a');
-    link.download = `bodycoach-${state.selectedAnalysisAngle}.png`;
+    link.download = `teloskop-${state.selectedAnalysisAngle}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   });
@@ -4601,7 +4601,7 @@ function initEvents() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bodycoach-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `teloskop-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('Резервная копия экспортирована');
