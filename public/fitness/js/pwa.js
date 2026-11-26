@@ -9,6 +9,10 @@ const standaloneQuery = window.matchMedia('(display-mode: standalone)');
 
 let deferredPrompt = null;
 let toast = () => {};
+// Chrome on Android offers its own prompt only after some engagement, and other Android
+// browsers never do, so there the card falls back to menu instructions unless the app is installed.
+let installedApp = false;
+let installCheckDone = !isAndroid || typeof navigator.getInstalledRelatedApps !== 'function';
 
 export function isStandalone() {
   return standaloneQuery.matches || navigator.standalone === true;
@@ -35,7 +39,7 @@ function render() {
   document.documentElement.classList.toggle('is-standalone', standalone);
   const row = $('profileInstallBtn');
   if (row) {
-    row.classList.toggle('hidden', standalone || !(deferredPrompt || canShowHint()));
+    row.classList.toggle('hidden', standalone || installedApp || !(deferredPrompt || canShowHint()));
     const val = $('profileInstallVal');
     if (!val) {
       /* no value slot */
@@ -44,8 +48,8 @@ function render() {
   }
   const card = $('installCard');
   if (card) {
-    // Android Chrome fires beforeinstallprompt only when not yet installed, so wait for it there.
-    const show = !standalone && !cardDismissed() && (deferredPrompt || isIOS);
+    const show = !standalone && !installedApp && !cardDismissed()
+      && (deferredPrompt || isIOS || (isAndroid && installCheckDone));
     card.classList.toggle('hidden', !show);
   }
 }
@@ -134,6 +138,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
+  installedApp = true;
   render();
   toast('Силуэтика установлена — открывайте её с иконки');
 });
@@ -150,6 +155,12 @@ export function initPwa(options = {}) {
   window.addEventListener('online', () => toast('Сеть снова есть'));
 
   render();
+  if (!installCheckDone) {
+    navigator.getInstalledRelatedApps()
+      .then((apps) => { installedApp = apps.some((app) => app.platform === 'webapp'); })
+      .catch(() => {})
+      .finally(() => { installCheckDone = true; render(); });
+  }
   if (document.readyState === 'complete') registerServiceWorker();
   else window.addEventListener('load', registerServiceWorker, { once: true });
 }
