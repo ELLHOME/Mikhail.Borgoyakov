@@ -139,6 +139,13 @@ body::before {
 }
 .home-card, .panel { border-color: transparent; }
 
+/* Light glass over the dark modal scrim reads as muddy grey, so light-theme dialogs get a denser frost. */
+html:not([data-theme="dark"]) .modal {
+  background:
+    linear-gradient(162deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 40%, rgba(255, 255, 255, 0.84) 100%),
+    rgba(234, 241, 250, 0.7);
+}
+
 /* The topbar holds the fixed mobile tab bar, so its glass lives on a pseudo-element:
    a backdrop-filter on the bar itself would become the tab bar's containing block. */
 .topbar, html .topbar {
