@@ -3968,3 +3968,54 @@ body { overflow-x: clip; }
   .kpi-tile { min-height: 116px; }
   .progress-card { padding: 16px; border-radius: 24px; }
 }
+
+/* ------------------- Installed app (PWA) ------------------- */
+.topbar { padding-top: env(safe-area-inset-top, 0px); }
+.app-shell {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+html.is-standalone body { overscroll-behavior-y: none; }
+
+.install-card {
+  display: flex; align-items: center; gap: 12px;
+  margin: 0 0 16px; padding: 12px 10px 12px 14px;
+  border-radius: var(--radius-lg); border: 1px solid var(--border);
+  background: var(--bg-card-grad); box-shadow: var(--neu-raised);
+  -webkit-backdrop-filter: var(--lg-blur, none); backdrop-filter: var(--lg-blur, none);
+}
+.install-card-icon { flex-shrink: 0; width: 44px; height: 44px; border-radius: 11px; }
+.install-card-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.35; }
+.install-card-copy strong { font-weight: 500; font-size: 0.97rem; }
+.install-card .btn-primary { flex-shrink: 0; }
+.install-card-close { flex-shrink: 0; width: 32px; height: 32px; }
+@media (max-width: 520px) {
+  .install-card { flex-wrap: wrap; padding: 12px; }
+  .install-card-copy { flex-basis: calc(100% - 100px); }
+  .install-card .btn-primary { order: 3; flex: 1 0 100%; }
+  .install-card-close { order: 2; }
+}
+
+.install-steps {
+  margin: 4px 0 18px; padding: 0; list-style: none; counter-reset: step;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.install-steps li {
+  counter-increment: step;
+  display: flex; align-items: flex-start; gap: 12px;
+  font-size: 0.96rem; line-height: 1.5;
+}
+.install-steps li::before {
+  content: counter(step);
+  flex-shrink: 0; width: 26px; height: 26px; margin-top: -1px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 0.82rem; font-weight: 500;
+  background: var(--accent-dim); color: var(--accent);
+}
+.install-key {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 24px; margin: 0 2px; vertical-align: -6px;
+  border-radius: 7px; border: 1px solid var(--border); background: var(--bg-subtle);
+  color: var(--accent);
+}
+.install-modal-done { width: 100%; }

@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-33';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-33';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-33';
+} from './cv-analyzer.js?v=20261124-34';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-34';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-34';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,10 +26,11 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-33';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-33';
-import { mountHeroOrb } from './hero-orb.js?v=20261124-33';
-import './glass.js?v=20261124-33';
+} from './plan-generator.js?v=20261124-34';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-34';
+import { mountHeroOrb } from './hero-orb.js?v=20261124-34';
+import './glass.js?v=20261124-34';
+import { initPwa } from './pwa.js?v=20261124-34';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -38,8 +39,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-33';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-33';
+} from './heart-rate.js?v=20261124-34';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-34';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -63,7 +64,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-33';
+} from './storage.js?v=20261124-34';
 
 const ANGLES = [
   {
@@ -472,6 +473,7 @@ function formatClock(sec) {
 /* --------------------------- Theme & Tabs --------------------------- */
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
+  $('themeColorMeta')?.setAttribute('content', theme === 'dark' ? '#060a12' : '#d3e1f0');
   $('themeIcon').innerHTML =
     theme === 'dark'
       ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></svg>'
@@ -4913,6 +4915,7 @@ function bootstrap() {
   renderAnglesGrid();
   syncProfileFormFromState();
   initEvents();
+  initPwa({ toast: showToast });
   upgradeLegacyPlan();
   if (state.plan) renderPlanTab();
   renderNutritionTab();
