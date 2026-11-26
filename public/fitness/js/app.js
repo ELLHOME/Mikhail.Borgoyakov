@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-26';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-26';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-26';
+} from './cv-analyzer.js?v=20261124-27';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-27';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-27';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,8 +26,8 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-26';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-26';
+} from './plan-generator.js?v=20261124-27';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-27';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -36,8 +36,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-26';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-26';
+} from './heart-rate.js?v=20261124-27';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-27';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -61,7 +61,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-26';
+} from './storage.js?v=20261124-27';
 
 const ANGLES = [
   {
@@ -1001,9 +1001,7 @@ function nextPlanDayInfo() {
   const days = state.plan?.days || [];
   if (!days.length) return null;
   const logs = strengthLogsThisWeek();
-  const titles = logs.map((w) => String(w.dayTitle || ''));
-  const isDone = (d) => titles.some((t) => t === d.title || t.endsWith(`• ${d.title}`));
-  let idx = days.findIndex((d) => !isDone(d));
+  let idx = days.findIndex((d) => !planDayDoneThisWeek(d));
   const done = Math.min(days.length, logs.length);
   if (done >= days.length) idx = -1;
   return { idx, done, total: days.length };
@@ -1044,6 +1042,76 @@ function homeWorkoutCard() {
     </article>`;
 }
 
+const MET_STRENGTH = 5;
+const MET_CARDIO = 6.5;
+const ACTIVE_MINUTES_GOAL = 30;
+
+/** Heart-rate calories when the watch recorded them, otherwise a MET estimate from body weight and duration. */
+function workoutKcal(w) {
+  if (w.hr?.kcal) return Math.round(w.hr.kcal);
+  const kg = Number(state.profile?.weightKg) || 75;
+  const met = w.type === 'cardio' ? MET_CARDIO : MET_STRENGTH;
+  return Math.round((met * kg * (Number(w.durationSec) || 0)) / 3600);
+}
+
+function activityForDate(dateKey = getLocalDateKey()) {
+  const logs = (state.workouts || []).filter((w) => w.completedAt && getLocalDateKey(new Date(w.completedAt)) === dateKey);
+  return {
+    logs,
+    kcal: logs.reduce((a, w) => a + workoutKcal(w), 0),
+    minutes: Math.round(logs.reduce((a, w) => a + (Number(w.durationSec) || 0), 0) / 60),
+  };
+}
+
+function dailyBurnGoal() {
+  const days = state.plan?.days || [];
+  const avg = days.length ? days.reduce((a, d) => a + (Number(d.estKcal) || 0), 0) / days.length : 0;
+  return Math.max(150, Math.round((avg || 300) / 10) * 10);
+}
+
+function activityRingsSvg(rings) {
+  const radii = [52, 39, 26];
+  return `
+    <svg viewBox="0 0 120 120" aria-hidden="true">
+      ${rings.map((r, i) => {
+        const rad = radii[i];
+        const circ = 2 * Math.PI * rad;
+        const pct = r.goal > 0 ? Math.min(1, r.value / r.goal) : 0;
+        const off = +(circ * (1 - pct)).toFixed(2);
+        return `<circle cx="60" cy="60" r="${rad}" class="act-track ${r.cls}"/>
+          <circle cx="60" cy="60" r="${rad}" class="act-fill ${r.cls}" stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${off}"/>`;
+      }).join('')}
+    </svg>`;
+}
+
+function homeActivityCard() {
+  const today = getLocalDateKey();
+  const act = activityForDate(today);
+  const target = getDailyNutritionTargets();
+  const waterMl = Number(state.waterByDate[today]) || 0;
+  const waterGoal = target.waterMl || Math.round((target.waterLiters || 2.4) * 1000);
+  const rings = [
+    { cls: 'is-kcal', label: 'Сожжено', value: act.kcal, goal: dailyBurnGoal(), unit: 'ккал' },
+    { cls: 'is-min', label: 'Активность', value: act.minutes, goal: ACTIVE_MINUTES_GOAL, unit: 'мин' },
+    { cls: 'is-water', label: 'Вода', value: waterMl, goal: waterGoal, unit: 'мл' },
+  ];
+  return `
+    <article class="home-card home-activity" data-home-go="history" role="button" tabindex="0">
+      <span class="home-eyebrow">Активность сегодня</span>
+      <div class="home-activity-body">
+        <div class="activity-rings">${activityRingsSvg(rings)}</div>
+        <ul class="activity-legend">
+          ${rings.map((r) => `
+            <li class="${r.cls} ${r.value >= r.goal ? 'is-done' : ''}">
+              <span class="act-label"><i></i>${r.label}</span>
+              <span class="act-val"><b>${r.value}</b>/${r.goal} ${r.unit}</span>
+              ${r.cls === 'is-water' ? '<button type="button" class="btn btn-outline btn-xs act-water-btn" data-home-action="water">+250 мл</button>' : ''}
+            </li>`).join('')}
+        </ul>
+      </div>
+    </article>`;
+}
+
 function homeNutritionCard() {
   const target = getDailyNutritionTargets();
   const dateKey = getLocalDateKey();
@@ -1055,8 +1123,6 @@ function homeNutritionCard() {
   const offset = +(circ * (1 - Math.min(100, pct) / 100)).toFixed(2);
   const over = kcal > target.targetKcal * 1.06;
   const left = target.targetKcal - kcal;
-  const waterMl = Number(state.waterByDate[dateKey]) || 0;
-  const waterTarget = target.waterMl || Math.round((target.waterLiters || 2.4) * 1000);
   const macro = (name, val, max) =>
     `<span class="home-macro"><i style="--p:${max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0}%"></i>${name} <b>${Math.round(val)}</b>/${max} г</span>`;
   return `
@@ -1079,11 +1145,6 @@ function homeNutritionCard() {
         ${macro('Б', sum('protein'), target.proteinGrams)}
         ${macro('Ж', sum('fat'), target.fatGrams)}
         ${macro('У', sum('carbs'), target.carbsGrams)}
-      </div>
-      <div class="home-water">
-        <span class="home-water-label">Вода <b>${waterMl}</b> / ${waterTarget} мл</span>
-        <div class="home-bar"><i style="width:${waterTarget > 0 ? Math.min(100, Math.round((waterMl / waterTarget) * 100)) : 0}%"></i></div>
-        <button type="button" class="btn btn-outline btn-xs" data-home-action="water">+250 мл</button>
       </div>
     </article>`;
 }
@@ -1167,6 +1228,7 @@ function renderHomeTab() {
   $('homeTitle').textContent = greetingText(now);
   grid.innerHTML = [
     homeWorkoutCard(),
+    homeActivityCard(),
     homeNutritionCard(),
     homeWeekCard(),
     homeHrCard(),
@@ -1195,7 +1257,7 @@ function runHomeAction(el) {
   } else if (action === 'hr') {
     openHrModal();
   } else if (action === 'water') {
-    adjustDailyWater(250);
+    adjustDailyWater(250, getLocalDateKey());
     renderHomeTab();
   }
 }
@@ -2072,13 +2134,13 @@ function renderPlanWeekBar(plan) {
   const exWord = pluralRu(total, 'упражнение', 'упражнения', 'упражнений');
   const cycleText =
     weeks.length > 1
-      ? `Цикл из ${weeks.length} ${pluralRu(weeks.length, 'недели', 'недель', 'недель')}: за него вы пройдёте все ${total} ${exWord} режима «${modeLabel}», затем цикл повторяется.`
-      : `Все ${total} ${exWord} режима «${modeLabel}» помещаются в одну неделю, повторяйте её.`;
+      ? `Цикл ${weeks.length} ${pluralRu(weeks.length, 'неделя', 'недели', 'недель')} • ${total} ${exWord}, потом по кругу`
+      : `Все ${total} ${exWord} за неделю, повторяйте её`;
   const priorityText = !plan.priorityExerciseIds?.length
     ? ''
     : weeks.length > 1
-      ? ' ★ — упражнения на слабые места по фото: они стоят в первой неделе и повторяются чаще, в основном блоке на 1 подход больше.'
-      : ' ★ — упражнения на слабые места по фото: в основном блоке на 1 подход больше.';
+      ? ' • ★ слабые места по фото чаще и на подход больше'
+      : ' • ★ слабые места по фото: на подход больше';
   $('planCycleNote').textContent = cycleText + priorityText;
 
   const tabs = $('planWeekTabs');
@@ -2121,12 +2183,15 @@ function renderCardioCard(plan) {
     <div class="cardio-card-head">
       <div>
         <div class="cardio-card-title">Кардио на неделю</div>
-        <div class="muted small">${target.sessions} × ${target.minutes} мин • пульс ${target.hrLow}–${target.hrHigh} уд/мин (можно говорить, но не петь)</div>
+        <div class="muted small">${target.sessions} × ${target.minutes} мин • пульс ${target.hrLow}–${target.hrHigh}</div>
       </div>
       <div class="cardio-card-count ${done >= target.sessions ? 'done' : ''}"><strong>${done}</strong> из ${target.sessions}</div>
     </div>
     <div class="cardio-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${target.sessions}" aria-valuenow="${done}"><span style="width:${pct}%"></span></div>
-    <p class="muted tiny cardio-card-note">${escapeHtml(target.note)} Делайте отдельно от силовой: в дни отдыха или после тренировки.${escapeHtml(steps)}</p>
+    <details class="cardio-more">
+      <summary>Как делать кардио</summary>
+      <p class="muted tiny cardio-card-note">${escapeHtml(target.note)} Темп такой, чтобы можно было говорить, но не петь. Делайте отдельно от силовой: в дни отдыха или после тренировки.${escapeHtml(steps)}</p>
+    </details>
     <div class="cardio-log-row">
       <select id="cardioTypeSelect" aria-label="Вид кардио">
         ${target.options.map((o) => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}
@@ -2154,6 +2219,25 @@ function renderCardioCard(plan) {
     showToast(left > 0 ? `Кардио ${minutes} мин записано. До цели недели: ${left}` : `Кардио ${minutes} мин записано. Цель недели выполнена!`);
   });
 }
+/** Logs store "Неделя N • title" or the bare title. */
+function planDayDoneThisWeek(day) {
+  return strengthLogsThisWeek().some((w) => {
+    const t = String(w.dayTitle || '');
+    return t === day.title || t.endsWith(`• ${day.title}`);
+  });
+}
+
+function splitDayTitle(title) {
+  const parts = String(title || '').split('•').map((p) => p.trim()).filter(Boolean);
+  return parts.length > 1 ? { num: parts[0], name: parts.slice(1).join(' • ') } : { num: '', name: parts[0] || '' };
+}
+
+const SPRITE_QUERY = new URL(import.meta.url).search;
+function exerciseThumbStyle(ex) {
+  const key = ex.animId || 'squat';
+  return `background-image:url('./assets/exercises/${key}.webp${SPRITE_QUERY}')`;
+}
+
 function renderPlanTab() {
   destroyPlanCardPlayers();
   const plan = state.plan;
@@ -2169,11 +2253,12 @@ function renderPlanTab() {
   if (state.selectedPlanDay >= plan.days.length) state.selectedPlanDay = 0;
 
   $('planGoalBadge').textContent = plan.generatedByAi
-    ? `✦ AI Ассистент • ${plan.goalLabel} • ${plan.levelLabel}`
+    ? `✦ AI • ${plan.goalLabel} • ${plan.levelLabel}`
     : `${plan.goalLabel} • ${plan.levelLabel}`;
-  $('planTitle').textContent = `Программа на ${plan.daysPerWeek} ${pluralRu(plan.daysPerWeek, 'день', 'дня', 'дней')} в неделю (${EQUIPMENT_LABELS[plan.equipment] || plan.equipmentLabel})`;
+  $('planTitle').textContent = `${plan.daysPerWeek} ${pluralRu(plan.daysPerWeek, 'день', 'дня', 'дней')} в неделю • ${EQUIPMENT_LABELS[plan.equipment] || plan.equipmentLabel}`;
   $('planFocusChips').innerHTML = (plan.focusSummary || [])
-    .map((f) => `<span class="focus-chip">✦ ${escapeHtml(f)}</span>`)
+    .slice(0, 3)
+    .map((f) => `<span class="focus-chip">${escapeHtml(f)}</span>`)
     .join('');
 
   $('quickEquipmentSelect').value = plan.equipment;
@@ -2183,30 +2268,18 @@ function renderPlanTab() {
     plan.generatedByAi || !state.aiSettings.enabled || !isAiReady() || !hasAnyPhoto() || !state.metrics
   );
 
-  // Nutrition strip
-  const n = plan.nutrition;
-  if (n) {
-    $('nutritionStrip').innerHTML = `
-      <div class="nutri-item"><span>Ориентир калорий</span><strong>~${n.targetKcal} ккал</strong><span>${escapeHtml(n.kcalNote)}</span></div>
-      <div class="nutri-item"><span>Б / Ж / У в день</span><strong>${n.proteinGrams} / ${n.fatGrams ?? '—'} / ${n.carbsGrams ?? '—'} г</strong><span>Для мышц и энергии</span></div>
-      <div class="nutri-item"><span>Вода</span><strong>${n.waterLiters} л/день</strong><span>Поддержка суставов и тонуса</span></div>
-      <div class="nutri-item" style="display:flex;flex-direction:column;justify-content:space-between;gap:6px">
-        <span>Учёт рациона по фото</span>
-        <button type="button" class="btn btn-outline btn-xs" id="gotoNutritionFromPlanBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3.2"/></svg><span>Дневник КБЖУ →</span></button>
-      </div>
-    `;
-    $('gotoNutritionFromPlanBtn')?.addEventListener('click', () => switchTab('nutrition'));
-  }
-
   renderPlanWeekBar(plan);
   renderCardioCard(plan);
 
-  // Day tabs
   $('planDayTabs').innerHTML = plan.days
-    .map(
-      (d, idx) =>
-        `<button type="button" class="day-tab ${idx === state.selectedPlanDay ? 'active' : ''}" data-plan-day="${idx}">День ${d.dayIndex}</button>`
-    )
+    .map((d, idx) => {
+      const t = splitDayTitle(d.title);
+      const done = planDayDoneThisWeek(d);
+      return `<button type="button" role="tab" aria-selected="${idx === state.selectedPlanDay}" class="plan-day-pill ${idx === state.selectedPlanDay ? 'active' : ''} ${done ? 'is-done' : ''}" data-plan-day="${idx}">
+        <span class="plan-day-num">${escapeHtml(t.num || `День ${d.dayIndex}`)}${done ? '<i aria-label="выполнено">✓</i>' : ''}</span>
+        <span class="plan-day-name">${escapeHtml(t.name)}</span>
+      </button>`;
+    })
     .join('');
   $('planDayTabs').querySelectorAll('[data-plan-day]').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -2214,101 +2287,73 @@ function renderPlanTab() {
       renderPlanTab();
     });
   });
+  $('planDayTabs').querySelector('.plan-day-pill.active')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 
   const day = plan.days[state.selectedPlanDay];
-  // Preload active day's studio exercise sprites immediately
-  preloadExerciseSprites(
-    day.items.map((it) => EXERCISE_MAP[it.exerciseId]?.animId).filter(Boolean)
-  );
-
+  const dt = splitDayTitle(day.title);
   $('daySummaryBar').innerHTML = `
-    <div>
-      <h3>${escapeHtml(day.title)}</h3>
-      <p class="muted small">${escapeHtml(day.focus)}</p>
-    </div>
-    <div class="day-stats">
-      <span>Упражнений: <strong>${day.items.length}</strong></span>
-      <span>Подходов: <strong>${day.totalSets}</strong></span>
-      <span>Время: <strong>~${day.estMinutes} мин</strong></span>
-      <span>Расход: <strong>~${day.estKcal} ккал</strong></span>
+    <span class="home-eyebrow">${escapeHtml(dt.num || `День ${day.dayIndex}`)}${planDayDoneThisWeek(day) ? ' • сделано на этой неделе' : ''}</span>
+    <h3 class="plan-day-title">${escapeHtml(dt.name)}</h3>
+    ${day.focus ? `<p class="home-workout-focus">${escapeHtml(day.focus)}</p>` : ''}
+    <div class="home-workout-stats">
+      <span><b>${day.items.length}</b>${pluralRu(day.items.length, 'упражнение', 'упражнения', 'упражнений')}</span>
+      <span><b>${day.totalSets}</b>${pluralRu(day.totalSets, 'подход', 'подхода', 'подходов')}</span>
+      <span><b>~${day.estMinutes}</b>минут</span>
+      <span><b>~${day.estKcal}</b>ккал</span>
     </div>
   `;
 
-  // Group items by section
   const container = $('planExercisesContainer');
-  container.innerHTML = '';
   const sections = [...new Set(day.items.map((it) => it.section))];
+  container.innerHTML = sections
+    .map((sectionName) => {
+      const rows = day.items
+        .map((item, itemIdx) => ({ item, itemIdx, ex: EXERCISE_MAP[item.exerciseId] }))
+        .filter(({ item, ex }) => item.section === sectionName && ex)
+        .map(({ item, itemIdx, ex }) => `
+          <div class="ex-row" data-open-ex="${ex.id}" data-item-idx="${itemIdx}" role="button" tabindex="0">
+            <span class="ex-thumb" style="${exerciseThumbStyle(ex)}" aria-hidden="true"></span>
+            <span class="ex-row-main">
+              <strong class="ex-row-name">${escapeHtml(ex.name)}</strong>
+              <span class="ex-row-rx"><b>${item.sets} × ${escapeHtml(item.reps)}</b> • ${ex.activeRest ? 'спокойно' : 'отдых'} ${item.restSec} с</span>
+              ${item.priority ? '<span class="ex-row-flag" title="Упражнение на слабое место, найденное по фото">★ Слабое место</span>' : ''}
+            </span>
+            <button type="button" class="ex-row-swap" data-swap-idx="${itemIdx}" title="Заменить упражнение" aria-label="Заменить «${escapeHtml(ex.name)}»">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></svg>
+            </button>
+          </div>`)
+        .join('');
+      return `
+        <section class="ex-group">
+          <h4 class="ex-group-title">${escapeHtml(sectionName)}</h4>
+          ${sectionName === CARDIO_SECTION ? '<p class="muted small ex-group-hint">Работайте в высоком темпе всё рабочее время, затем отдыхайте.</p>' : ''}
+          <div class="ex-list">${rows}</div>
+        </section>`;
+    })
+    .join('');
 
-  sections.forEach((sectionName) => {
-    const heading = document.createElement('div');
-    heading.className = 'plan-section-heading';
-    heading.textContent = sectionName;
-    container.appendChild(heading);
-    if (sectionName === CARDIO_SECTION) {
-      const hint = document.createElement('p');
-      hint.className = 'muted small plan-section-hint';
-      hint.textContent = 'Интервалы: работайте в высоком темпе всё рабочее время, затем отдыхайте. Пульс высокий, но техника ровная.';
-      container.appendChild(hint);
-    }
-
-    const grid = document.createElement('div');
-    grid.className = 'exercise-cards-grid';
-
-    day.items.forEach((item, itemIdx) => {
-      if (item.section !== sectionName) return;
-      const ex = EXERCISE_MAP[item.exerciseId];
-      if (!ex) return;
-
-      const card = document.createElement('article');
-      card.className = 'exercise-card';
-      card.innerHTML = `
-        <div class="ex-card-anim" data-open-ex="${ex.id}">
-          <canvas width="420" height="236"></canvas>
-          <span class="ex-card-overlay-pill">▶ Техника и мышцы</span>
-        </div>
-        <div class="ex-card-body">
-          <div class="ex-card-title">${escapeHtml(ex.name)}</div>
-          <div class="ex-rx-row">
-            ${item.priority ? '<span class="rx-pill rx-pill-priority" title="Упражнение на слабое место, найденное по фото">★ Слабое место</span>' : ''}
-            <span class="rx-pill rx-pill-accent">${item.sets} × ${escapeHtml(item.reps)}</span>
-            <span class="rx-pill">${ex.activeRest ? 'Спокойно' : 'Отдых'} ${item.restSec} сек</span>
-            <span class="rx-pill">Темп ${escapeHtml(ex.tempo)}</span>
-          </div>
-          <div class="ex-reason">${escapeHtml(item.reason)}</div>
-          <div class="muscle-tags">
-            ${ex.muscles.map((m) => `<span class="muscle-tag">${escapeHtml(MUSCLE_LABELS[m] || m)}</span>`).join('')}
-          </div>
-          <div class="ex-card-footer">
-            <button type="button" class="btn btn-outline btn-sm" data-open-ex="${ex.id}">Анимация и техника</button>
-            <button type="button" class="btn btn-ghost btn-sm" data-swap-idx="${itemIdx}">Заменить</button>
-          </div>
-        </div>
-      `;
-
-      const canvas = card.querySelector('canvas');
-      const player = new ExerciseAnimationPlayer(canvas, ex, {
-        showMuscles: true,
-        showPhaseBadge: true,
-        autoPauseOffscreen: true,
-      });
-      state.planCardPlayers.push(player);
-
-      card.querySelectorAll('[data-open-ex]').forEach((el) => {
-        el.addEventListener('click', () => openExerciseModal(ex.id));
-      });
-      card.querySelector('[data-swap-idx]').addEventListener('click', () => {
-        openSwapModal(state.selectedPlanDay, itemIdx, ex.id);
-      });
-
-      grid.appendChild(card);
+  container.querySelectorAll('.ex-row').forEach((row) => {
+    const item = day.items[Number(row.dataset.itemIdx)];
+    const open = () => openExerciseModal(row.dataset.openEx, item?.reason);
+    row.addEventListener('click', (e) => {
+      if (!e.target.closest('[data-swap-idx]')) open();
     });
-
-    container.appendChild(grid);
+    row.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target === row) {
+        e.preventDefault();
+        open();
+      }
+    });
+  });
+  container.querySelectorAll('[data-swap-idx]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.swapIdx);
+      openSwapModal(state.selectedPlanDay, idx, day.items[idx].exerciseId);
+    });
   });
 }
-
 /* --------------------------- Exercise Detail Modal --------------------------- */
-function openExerciseModal(exerciseId) {
+function openExerciseModal(exerciseId, reason = '') {
   const ex = EXERCISE_MAP[exerciseId];
   if (!ex) return;
 
@@ -2320,6 +2365,8 @@ function openExerciseModal(exerciseId) {
   $('exModalCategory').textContent = `${CATEGORY_LABELS[ex.category] || ex.category} • Темп ${ex.tempo}`;
   $('exerciseModalTitle').textContent = ex.name;
   $('exModalBreathing').innerHTML = `<strong>Дыхание:</strong> ${escapeHtml(ex.breathing)}`;
+  $('exModalReason').textContent = reason || '';
+  $('exModalReason').classList.toggle('hidden', !reason);
   $('exModalSteps').innerHTML = ex.steps.map((s) => `<li>${escapeHtml(s)}</li>`).join('');
   $('exModalMistakes').innerHTML = ex.mistakes.map((s) => `<li>${escapeHtml(s)}</li>`).join('');
   $('exModalMuscles').innerHTML = ex.muscles
@@ -2964,54 +3011,89 @@ async function renderHistoryTab() {
   state.checkins = loadCheckins();
   state.workouts = loadWorkoutLogs();
 
-  // KPI cards
-  const latest = state.checkins[0];
-  const oldest = state.checkins[state.checkins.length - 1];
-  const postureDelta =
-    latest && oldest && state.checkins.length > 1
-      ? latest.metrics.postureScore - oldest.metrics.postureScore
-      : null;
-  const totalMinutes = Math.round(state.workouts.reduce((a, w) => a + (w.durationSec || 0), 0) / 60);
-  const cardioCount = state.workouts.filter((w) => w.type === 'cardio').length;
+  const weekFrom = startOfWeek().getTime();
+  const week = state.workouts.filter((w) => new Date(w.completedAt).getTime() >= weekFrom);
+  const weekMinutes = Math.round(week.reduce((a, w) => a + (Number(w.durationSec) || 0), 0) / 60);
+  const weekKcal = week.reduce((a, w) => a + workoutKcal(w), 0);
+  const streak = workoutWeekStreak();
+  const tile = (label, value, unit, sub) => `
+    <div class="home-card kpi-tile">
+      <span class="home-eyebrow">${label}</span>
+      <div class="home-big">${value}${unit ? `<small>${unit}</small>` : ''}</div>
+      <span class="home-sub">${sub}</span>
+    </div>`;
+  $('historyKpis').innerHTML = [
+    tile('Тренировки', week.length, '', `за неделю • всего ${state.workouts.length}`),
+    tile('Время', weekMinutes, 'мин', 'за неделю'),
+    tile('Сожжено', weekKcal, 'ккал', 'за неделю'),
+    tile('Серия', streak, pluralRu(streak, 'неделя', 'недели', 'недель'), streak ? 'подряд с тренировками' : 'начните на этой неделе'),
+  ].join('');
 
-  $('historyKpis').innerHTML = `
-    <div class="kpi-card">
-      <div class="kpi-label">Сохранённых замеров</div>
-      <div class="kpi-val">${state.checkins.length}</div>
-      <div class="kpi-delta">Фото хранятся локально</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Индекс осанки</div>
-      <div class="kpi-val">${latest ? latest.metrics.postureScore : '—'}</div>
-      <div class="kpi-delta">${
-        postureDelta !== null
-          ? `${postureDelta >= 0 ? '+' : ''}${postureDelta} с первого замера`
-          : 'Сохраните замер для динамики'
-      }</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Выполнено тренировок</div>
-      <div class="kpi-val">${state.workouts.length}</div>
-      <div class="kpi-delta">${cardioCount ? `Из них кардио: ${cardioCount}` : 'Завершённые сессии'}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Время под нагрузкой</div>
-      <div class="kpi-val">${totalMinutes} мин</div>
-      <div class="kpi-delta">Суммарно в журнале</div>
-    </div>
-  `;
-
+  renderActivityWeek();
+  renderWorkoutLogsList();
   renderProgressChart();
   await renderCompareSection();
   await renderCheckinsList();
-  renderWorkoutLogsList();
 }
 
+/** Consecutive weeks with at least one workout; the current week does not break the streak until it ends. */
+function workoutWeekStreak() {
+  const weekStarts = new Set(state.workouts.map((w) => startOfWeek(new Date(w.completedAt)).getTime()));
+  const cursor = startOfWeek();
+  if (!weekStarts.has(cursor.getTime())) cursor.setDate(cursor.getDate() - 7);
+  let n = 0;
+  while (weekStarts.has(cursor.getTime())) {
+    n += 1;
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  return n;
+}
+
+function renderActivityWeek() {
+  const wrap = $('activityWeekChart');
+  if (!wrap) return;
+  const today = getLocalDateKey();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const dk = shiftDateKey(today, -i);
+    const act = activityForDate(dk);
+    const parts = dk.split('-').map(Number);
+    const dt = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+    days.push({
+      dk,
+      minutes: act.minutes,
+      kcal: act.kcal,
+      cardio: act.logs.some((w) => w.type === 'cardio'),
+      strength: act.logs.some((w) => w.type !== 'cardio'),
+      label: i === 0 ? 'Сег' : new Intl.DateTimeFormat('ru-RU', { weekday: 'short' }).format(dt),
+    });
+  }
+  const total = days.reduce((a, d) => a + d.minutes, 0);
+  $('activityWeekTotal').textContent = total ? `${total} мин` : '';
+  const maxBar = Math.max(ACTIVE_MINUTES_GOAL * 1.5, ...days.map((d) => d.minutes), 1);
+  wrap.innerHTML = `
+    <div class="weekly-bars activity-bars">
+      ${days.map((d) => {
+        const hPct = d.minutes > 0 ? Math.max(8, Math.round((d.minutes / maxBar) * 100)) : 0;
+        const kind = d.strength && d.cardio ? 'is-both' : d.cardio ? 'is-cardio' : 'is-strength';
+        return `
+          <div class="weekly-bar-col ${d.dk === today ? 'active' : ''}" title="${d.dk}: ${d.minutes} мин, ~${d.kcal} ккал">
+            <span class="weekly-bar-val">${d.minutes > 0 ? d.minutes : '—'}</span>
+            <div class="weekly-bar-wrap"><div class="weekly-bar-fill ${kind}" style="height:${hPct}%"></div></div>
+            <span class="weekly-bar-day">${escapeHtml(d.label)}</span>
+          </div>`;
+      }).join('')}
+    </div>
+    <div class="activity-legend-row"><span><i class="is-strength"></i>Силовая</span><span><i class="is-cardio"></i>Кардио</span><span class="muted">минуты в день</span></div>
+  `;
+}
 function renderProgressChart() {
   const wrap = $('progressChartWrap');
   const items = [...state.checkins].reverse();
   if (items.length < 2) {
-    wrap.innerHTML = `<p class="muted small" style="text-align:center;padding:30px">Сохраните минимум 2 замера на экране анализа фигуры, чтобы увидеть график динамики осанки и V-индекса.</p>`;
+    wrap.innerHTML = items.length
+      ? '<p class="muted small progress-empty">После второго замера здесь появится график осанки.</p>'
+      : '';
     return;
   }
 
@@ -3078,7 +3160,7 @@ async function getThumbsForCheckin(id) {
 async function renderCompareSection() {
   const wrap = $('compareContainer');
   if (state.checkins.length < 2) {
-    wrap.innerHTML = `<p class="muted small" style="padding:24px 0">Когда у вас будет 2 и более сохранённых замеров, здесь появится сравнение фотографий «До / После» и разница по углам осанки.</p>`;
+    wrap.innerHTML = '';
     return;
   }
 
@@ -3147,7 +3229,7 @@ async function renderCompareSection() {
 async function renderCheckinsList() {
   const list = $('checkinsList');
   if (!state.checkins.length) {
-    list.innerHTML = '<p class="muted small">Сохранённых замеров пока нет. Нажмите «Сохранить замер в историю» на экране анализа.</p>';
+    list.innerHTML = '<p class="muted small progress-empty">Замеров пока нет. Сделайте фото, а на экране анализа нажмите «Сохранить замер в историю».</p>';
     return;
   }
 
@@ -3207,29 +3289,42 @@ async function renderCheckinsList() {
   });
 }
 
+const STRENGTH_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>';
+const CARDIO_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2-5 4 10 2-5h6"/></svg>';
+const LOGS_PAGE = 8;
+
 function renderWorkoutLogsList() {
   const list = $('workoutLogsList');
-  if (!state.workouts.length) {
-    list.innerHTML = '<p class="muted small">Выполненных тренировок пока нет. Откройте план и нажмите «Начать тренировку».</p>';
+  const count = state.workouts.length;
+  $('workoutLogsCount').textContent = count ? `${count} всего` : '';
+  if (!count) {
+    list.innerHTML = '<p class="muted small progress-empty">Пока пусто. Завершите тренировку или отметьте кардио в плане.</p>';
     return;
   }
-  list.innerHTML = state.workouts
-    .map(
-      (w) => `
-      <div class="history-row">
-        <div>
-          <strong>${escapeHtml(w.dayTitle)}</strong>
-          <div class="muted tiny">${formatDateRu(w.completedAt)}${w.equipmentLabel ? ` • ${escapeHtml(w.equipmentLabel)}` : ''}${w.hr ? ` • пульс ср. ${w.hr.avg}, ~${w.hr.kcal} ккал` : ''}</div>
-        </div>
-        <div class="badge badge-good">${
-          w.type === 'cardio' ? `${w.cardioMinutes} мин • кардио` : `${formatClock(w.durationSec)} • ${w.doneSets}/${w.totalSets} подх.`
-        }</div>
-      </div>
-    `
-    )
-    .join('');
+  const shown = state.workouts.slice(0, state.logsShown || LOGS_PAGE);
+  list.innerHTML = shown
+    .map((w) => {
+      const cardio = w.type === 'cardio';
+      const mins = Math.max(1, Math.round((w.durationSec || 0) / 60));
+      const meta = [formatDateRu(w.completedAt)];
+      if (!cardio && w.totalSets) meta.push(`${w.doneSets}/${w.totalSets} подх.`);
+      if (w.hr?.avg) meta.push(`♥ ${w.hr.avg}`);
+      return `
+        <div class="log-row">
+          <span class="log-icon ${cardio ? 'is-cardio' : ''}">${cardio ? CARDIO_ICON : STRENGTH_ICON}</span>
+          <span class="log-main">
+            <strong>${escapeHtml(w.dayTitle || (cardio ? 'Кардио' : 'Тренировка'))}</strong>
+            <span class="muted tiny">${escapeHtml(meta.join(' • '))}</span>
+          </span>
+          <span class="log-stats"><span><b>${mins}</b> мин</span><span class="log-kcal">~${workoutKcal(w)} ккал</span></span>
+        </div>`;
+    })
+    .join('') + (count > shown.length ? `<button type="button" class="btn btn-ghost btn-sm log-more-btn" id="logsMoreBtn">Показать ещё</button>` : '');
+  $('logsMoreBtn')?.addEventListener('click', () => {
+    state.logsShown = (state.logsShown || LOGS_PAGE) + LOGS_PAGE;
+    renderWorkoutLogsList();
+  });
 }
-
 /* --------------------------- Tab 5: Nutrition & Food Photo AI --------------------------- */
 const MEAL_TYPE_LABELS = {
   breakfast: 'Завтрак',
@@ -3900,8 +3995,7 @@ async function saveCurrentMealDraft() {
   renderNutritionTab();
 }
 
-function adjustDailyWater(deltaMl) {
-  const dateKey = state.nutrition.selectedDate || getLocalDateKey();
+function adjustDailyWater(deltaMl, dateKey = state.nutrition.selectedDate || getLocalDateKey()) {
   const cur = Number(state.waterByDate[dateKey]) || 0;
   const next = Math.max(0, Math.min(8000, cur + deltaMl));
   if (next === 0) {
@@ -3934,78 +4028,49 @@ function renderNutritionMacroCards() {
   const pct = (val, max) => (max > 0 ? Math.min(100, Math.round((val / max) * 100)) : 0);
   const kcalPctRaw = target.targetKcal > 0 ? Math.round((eaten.kcal / target.targetKcal) * 100) : 0;
   const kcalPctRing = Math.min(100, Math.max(0, kcalPctRaw));
-  const ringCirc = 194.78; // 2 * pi * 31
-  const ringOffset = +(ringCirc * (1 - kcalPctRing / 100)).toFixed(2);
   const isOverKcal = eaten.kcal > target.targetKcal * 1.06;
 
   const kcalDiff = target.targetKcal - eaten.kcal;
   const kcalSub = kcalDiff >= 0
     ? `Осталось ${kcalDiff} ккал`
     : `Превышение +${Math.abs(kcalDiff)} ккал`;
+  const circ = 2 * Math.PI * 34;
+  const offset = +(circ * (1 - kcalPctRing / 100)).toFixed(2);
+  const macro = (name, val, max, over = false) =>
+    `<span class="home-macro ${over ? 'is-over' : ''}"><i style="--p:${pct(val, max)}%"></i>${name} <b>${val}</b>/${max} г</span>`;
 
   $('nutritionMacroCards').innerHTML = `
-    <div class="nutri-summary-layout">
-      <div class="nutri-kcal-hero">
-        <div class="nutri-ring-wrap">
-          <svg viewBox="0 0 84 84" aria-hidden="true">
-            <circle cx="42" cy="42" r="39" fill="none" stroke="rgba(56, 220, 255, 0.34)" stroke-width="1.2" stroke-dasharray="1.4 4.8"></circle>
-            <circle cx="42" cy="42" r="31" fill="none" stroke="rgba(255, 255, 255, 0.11)" stroke-width="5.2"></circle>
-            <circle cx="42" cy="42" r="31" fill="none"
-              class="nutri-glow-arc"
-              stroke="${isOverKcal ? '#ff7b72' : '#2ee2ff'}"
-              stroke-width="5.2" stroke-linecap="round"
-              stroke-dasharray="${ringCirc}" stroke-dashoffset="${ringOffset}"></circle>
+    <div class="nutri-sum">
+      <div class="home-nutri-top">
+        <div class="home-ring ${isOverKcal ? 'over' : ''}">
+          <svg viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="40" r="34" class="home-ring-track"/>
+            <circle cx="40" cy="40" r="34" class="home-ring-fill" stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${offset}"/>
           </svg>
-          <span class="nutri-ring-pct">${kcalPctRaw}<small>%</small></span>
+          <span>${kcalPctRaw}<small>%</small></span>
         </div>
-        <div class="nutri-kcal-copy">
-          <span class="nutri-kcal-eyebrow">Калории за день</span>
-          <div class="nutri-kcal-main">${eaten.kcal} <small>/ ${target.targetKcal}</small></div>
-          <div class="nutri-kcal-rem ${kcalDiff < 0 ? 'over' : ''}">${kcalSub}</div>
-        </div>
-      </div>
-
-      <div class="nutri-macros-3col">
-        <div class="macro-mini-card">
-          <span class="macro-mini-name">Белки</span>
-          <span class="macro-mini-val">${eaten.protein} <small>/ ${target.proteinGrams} г</small></span>
-          <div class="macro-bar-track">
-            <div class="macro-bar-fill protein" style="width:${pct(eaten.protein, target.proteinGrams)}%"></div>
-          </div>
-        </div>
-        <div class="macro-mini-card">
-          <span class="macro-mini-name">Жиры</span>
-          <span class="macro-mini-val">${eaten.fat} <small>/ ${target.fatGrams} г</small></span>
-          <div class="macro-bar-track">
-            <div class="macro-bar-fill fat ${eaten.fat > target.fatGrams * 1.15 ? 'over' : ''}" style="width:${pct(eaten.fat, target.fatGrams)}%"></div>
-          </div>
-        </div>
-        <div class="macro-mini-card">
-          <span class="macro-mini-name">Углеводы</span>
-          <span class="macro-mini-val">${eaten.carbs} <small>/ ${target.carbsGrams} г</small></span>
-          <div class="macro-bar-track">
-            <div class="macro-bar-fill carbs" style="width:${pct(eaten.carbs, target.carbsGrams)}%"></div>
-          </div>
+        <div class="home-nutri-copy">
+          <span class="home-eyebrow">Калории</span>
+          <div class="home-big">${eaten.kcal}<small>/ ${target.targetKcal} ккал</small></div>
+          <span class="home-sub ${kcalDiff < 0 ? 'is-over' : ''}">${kcalSub}</span>
         </div>
       </div>
-
-      <div class="nutri-water-card">
-        <div class="nutri-water-top">
-          <span class="nutri-water-label"><svg class="water-inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.7 6.4 9.5a7.5 7.5 0 1 0 11.2 0Z"/></svg>Вода</span>
-          <span class="nutri-water-val">${waterMl} <small>/ ${targetWaterMl} мл</small></span>
-        </div>
-        <div class="macro-bar-track">
-          <div class="macro-bar-fill water" style="width:${pct(waterMl, targetWaterMl)}%"></div>
-        </div>
+      <div class="home-macros">
+        ${macro('Б', eaten.protein, target.proteinGrams)}
+        ${macro('Ж', eaten.fat, target.fatGrams, eaten.fat > target.fatGrams * 1.15)}
+        ${macro('У', eaten.carbs, target.carbsGrams)}
+      </div>
+      <div class="nutri-water-row">
+        <span class="home-water-label"><svg class="water-inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.7 6.4 9.5a7.5 7.5 0 1 0 11.2 0Z"/></svg>Вода <b>${waterMl}</b> / ${targetWaterMl} мл</span>
+        <div class="home-bar nutri-water-bar"><i style="width:${pct(waterMl, targetWaterMl)}%"></i></div>
         <div class="water-btns">
-          <button type="button" class="btn btn-outline btn-xs" data-water-delta="250">+250 мл</button>
-          <button type="button" class="btn btn-outline btn-xs" data-water-delta="500">+500 мл</button>
           <button type="button" class="btn btn-ghost btn-xs water-minus-btn" data-water-delta="-250" title="Убрать 250 мл" aria-label="Убрать 250 мл">−</button>
+          <button type="button" class="btn btn-outline btn-xs" data-water-delta="250">+250</button>
+          <button type="button" class="btn btn-outline btn-xs" data-water-delta="500">+500</button>
         </div>
       </div>
     </div>
   `;
-
   $('nutritionMacroCards').querySelectorAll('[data-water-delta]').forEach((btn) => {
     btn.addEventListener('click', () => adjustDailyWater(Number(btn.dataset.waterDelta)));
   });
@@ -4017,9 +4082,7 @@ function renderDailyMealsList() {
   const totalKcal = Math.round(dayMeals.reduce((a, m) => a + (Number(m.totals?.kcal) || 0), 0));
 
   $('dailyMealsTitle').textContent = 'Съедено за день';
-  $('dailyMealsSummaryBadge').textContent = dayMeals.length
-    ? `${dayMeals.length} ${dayMeals.length === 1 ? 'приём' : dayMeals.length >= 2 && dayMeals.length <= 4 ? 'приёма' : 'приёмов'} • ${totalKcal} ккал`
-    : '0 ккал';
+  $('dailyMealsSummaryBadge').textContent = `${totalKcal} ккал`;
 
   const list = $('dailyMealsList');
   if (!dayMeals.length) {
@@ -4033,9 +4096,10 @@ function renderDailyMealsList() {
       const timeStr = m.createdAt
         ? new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(m.createdAt))
         : '';
-      const ingsSummary = (m.ingredients || [])
-        .map((i) => `${escapeHtml(i.name)} (${i.grams} г)`)
-        .join(' • ');
+      const ings = m.ingredients || [];
+      const ingsSummary = ings.length > 1 || (ings[0] && ings[0].name !== m.dishName)
+        ? ings.map((i) => `${escapeHtml(i.name)} (${i.grams} г)`).join(' • ')
+        : '';
       return `
         <div class="meal-log-card">
           <div class="meal-log-top">
@@ -4332,6 +4396,13 @@ function initEvents() {
   $('quickEquipmentSelect').addEventListener('change', regenerateQuick);
   $('quickDaysSelect').addEventListener('change', regenerateQuick);
   $('startWorkoutBtn').addEventListener('click', () => startWorkoutSession(state.selectedPlanDay));
+  $('historyNewAnalysisBtn').addEventListener('click', () => openWizard('front'));
+  $('planSettingsBtn').addEventListener('click', () => {
+    const panel = $('planSettingsPanel');
+    const open = panel.classList.toggle('hidden') === false;
+    $('planSettingsBtn').setAttribute('aria-expanded', String(open));
+    $('planSettingsBtn').classList.toggle('active', open);
+  });
 
   $('openCatalogBtn').textContent = `Все упражнения (${EXERCISES.length})`;
   const allChip = $('catalogFilters').querySelector('[data-cat="all"]');

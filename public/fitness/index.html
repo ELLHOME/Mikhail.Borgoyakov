@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23111926'/%3E%3Ccircle cx='16' cy='7' r='3' fill='none' stroke='%232ee2ff' stroke-width='1.8'/%3E%3Cpath d='M8 14h16M16 11v10m-5.5-7 1.8 7.5m9.2-7.5-1.8 7.5M12.3 21.5l-1.8 6.5m9.2-6.5 1.8 6.5' fill='none' stroke='%232ee2ff' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-26">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-27">
 </head>
 <body>
   <div class="app-shell">
@@ -449,36 +449,40 @@
             </svg>
           </div>
           <h2>План тренировок ещё не создан</h2>
-          <p class="muted">Сначала загрузите фото или выберите демо-пример, чтобы мы собрали персональную программу.</p>
+          <p class="muted">Ответьте на несколько вопросов, и программа будет готова за минуту.</p>
           <button class="btn btn-primary" data-goto-tab="capture">Создать план</button>
         </div>
 
         <div class="hidden" id="planContent">
-          <div class="panel plan-header-panel">
-            <div class="plan-header-top">
-              <div>
-                <div class="pill-badge" id="planGoalBadge">Персональный план</div>
-                <h2 id="planTitle">Ваша недельная программа</h2>
-                <div class="focus-chips" id="planFocusChips"></div>
-              </div>
-              <div class="plan-quick-controls">
-                <select id="quickEquipmentSelect" title="Быстро сменить инвентарь">
+          <div class="plan-hero">
+            <div class="plan-hero-top">
+              <span class="home-eyebrow" id="planGoalBadge">Персональный план</span>
+              <button type="button" class="btn btn-icon plan-settings-btn" id="planSettingsBtn" title="Настроить план" aria-label="Настроить план" aria-expanded="false" aria-controls="planSettingsPanel">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+              </button>
+            </div>
+            <h2 class="plan-hero-title" id="planTitle">Ваша недельная программа</h2>
+            <div class="focus-chips" id="planFocusChips"></div>
+            <div class="plan-settings hidden" id="planSettingsPanel">
+              <label class="plan-setting">
+                <span>Где тренируетесь</span>
+                <select id="quickEquipmentSelect">
                   <option value="home_bodyweight">Дома (свой вес)</option>
                   <option value="home_dumbbells">Дома с гантелями</option>
                   <option value="home_trx">Петли TRX</option>
                   <option value="gym">Тренажёрный зал</option>
                 </select>
-                <select id="quickDaysSelect" title="Дней в неделю">
-                  <option value="3">3 дня / нед</option>
-                  <option value="4">4 дня / нед</option>
-                  <option value="5">5 дней / нед</option>
+              </label>
+              <label class="plan-setting">
+                <span>Дней в неделю</span>
+                <select id="quickDaysSelect">
+                  <option value="3">3 дня</option>
+                  <option value="4">4 дня</option>
+                  <option value="5">5 дней</option>
                 </select>
-                <button class="btn btn-outline btn-sm" id="openCatalogBtn">Все упражнения</button>
-                <button class="btn btn-primary btn-sm hidden" id="aiRebuildPlanBtn" title="AI заново составит план под выбранный инвентарь и число дней">✦ Пересобрать через AI</button>
-              </div>
+              </label>
+              <button class="btn btn-primary btn-sm hidden" id="aiRebuildPlanBtn" title="AI заново составит план под выбранный инвентарь и число дней">✦ Пересобрать через AI</button>
             </div>
-
-            <div class="nutrition-strip" id="nutritionStrip"></div>
           </div>
 
           <div class="week-cycle-bar hidden" id="planWeekBar">
@@ -486,75 +490,66 @@
             <p class="muted small week-cycle-note" id="planCycleNote"></p>
           </div>
 
-          <div class="cardio-week-card hidden" id="planCardioCard"></div>
+          <div class="plan-days" id="planDayTabs" role="tablist" aria-label="Дни программы"></div>
 
-          <div class="day-switcher-row">
-            <div class="day-tabs" id="planDayTabs"></div>
-            <div class="day-cta-group">
-              <button type="button" class="btn btn-outline plan-hr-btn" id="planHrBtn" title="Пульс с часов"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><span id="planHrLabel">Пульс</span></button>
-              <button type="button" class="btn btn-outline" id="planMusicBtn" title="Музыка для тренировки">
+          <div class="plan-day-card">
+            <div id="daySummaryBar"></div>
+            <button class="btn home-start-btn plan-start-btn" id="startWorkoutBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="7,5 19,12 7,19"/></svg><span>Начать тренировку</span></button>
+            <div class="plan-day-tools">
+              <button type="button" class="btn plan-tool-btn plan-hr-btn" id="planHrBtn" title="Пульс с часов"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><span id="planHrLabel">Пульс</span></button>
+              <button type="button" class="btn plan-tool-btn" id="planMusicBtn" title="Музыка для тренировки">
                 <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
                 </svg>
                 <span id="planMusicLabel">Музыка</span>
               </button>
-              <button class="btn btn-primary btn-lg" id="startWorkoutBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="7,5 19,12 7,19"/></svg><span>Начать тренировку</span></button>
             </div>
           </div>
 
-          <div class="day-summary-bar" id="daySummaryBar"></div>
-
           <div id="planExercisesContainer"></div>
+
+          <div class="cardio-week-card hidden" id="planCardioCard"></div>
+
+          <button class="btn btn-outline plan-catalog-btn" id="openCatalogBtn">Все упражнения</button>
         </div>
       </section>
-
       <!-- TAB 4: PROGRESS & HISTORY -->
       <section class="tab-panel" id="tab-history">
         <div class="history-kpis" id="historyKpis"></div>
 
-        <div class="history-grid">
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <h2>Динамика осанки и V-пропорций</h2>
-                <p class="muted small">Сохраняйте контрольные замеры раз в 2–4 недели, чтобы видеть прогресс.</p>
-              </div>
-              <div class="backup-actions">
-                <button class="btn btn-ghost btn-sm" id="exportBackupBtn">Экспорт JSON</button>
-                <label class="btn btn-ghost btn-sm">
-                  Импорт JSON
-                  <input type="file" id="importBackupInput" accept="application/json" hidden>
-                </label>
-              </div>
+        <div class="progress-grid">
+          <div class="progress-card">
+            <div class="progress-card-head">
+              <h3>Активность за 7 дней</h3>
+              <span class="muted small" id="activityWeekTotal"></span>
             </div>
-            <div class="chart-wrap" id="progressChartWrap"></div>
+            <div id="activityWeekChart"></div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Сравнение «До / После»</h2>
-            </div>
-            <div id="compareContainer"></div>
-          </div>
-        </div>
-
-        <div class="history-grid">
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Сохранённые замеры фигуры</h2>
-            </div>
-            <div class="checkins-list" id="checkinsList"></div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Журнал выполненных тренировок</h2>
+          <div class="progress-card">
+            <div class="progress-card-head">
+              <h3>Тренировки</h3>
+              <span class="muted small" id="workoutLogsCount"></span>
             </div>
             <div class="workout-logs-list" id="workoutLogsList"></div>
           </div>
         </div>
-      </section>
 
+        <div class="progress-card progress-body-card">
+          <div class="progress-card-head">
+            <h3>Фигура</h3>
+            <button type="button" class="btn btn-outline btn-sm" id="historyNewAnalysisBtn">Новый замер</button>
+          </div>
+          <div class="chart-wrap" id="progressChartWrap"></div>
+          <div id="compareContainer"></div>
+          <div class="checkins-list" id="checkinsList"></div>
+        </div>
+
+        <div class="hidden" aria-hidden="true">
+          <button type="button" id="exportBackupBtn" tabindex="-1">Экспорт JSON</button>
+          <input type="file" id="importBackupInput" accept="application/json" tabindex="-1">
+        </div>
+      </section>
       <!-- TAB 5: NUTRITION & FOOD PHOTO AI -->
       <section class="tab-panel" id="tab-nutrition">
         <!-- Compact Daily Summary Hero -->
@@ -625,8 +620,8 @@
             </div>
 
             <label class="meal-note-box">
-              <span class="meal-note-label">Описание или уточнение (можно без фото):</span>
-              <textarea id="mealNoteInput" rows="2" placeholder="Например: гречка с курицей, 2 яйца или капучино 300 мл"></textarea>
+              <span class="meal-note-label">Или опишите словами</span>
+              <textarea id="mealNoteInput" rows="2" placeholder="Гречка с курицей, 2 яйца, капучино 300 мл"></textarea>
             </label>
 
             <button type="button" class="btn btn-primary meal-cta-btn" id="analyzeMealBtn">
@@ -815,6 +810,7 @@
           <div class="muscle-tags" id="exModalMuscles"></div>
         </div>
         <div class="ex-info-col">
+          <p class="ex-modal-reason hidden" id="exModalReason"></p>
           <div class="info-callout" id="exModalBreathing"></div>
           <div class="info-block">
             <h4>Техника выполнения</h4>
@@ -1173,6 +1169,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-26"></script>
+  <script type="module" src="./js/app.js?v=20261124-27"></script>
 </body>
 </html>
