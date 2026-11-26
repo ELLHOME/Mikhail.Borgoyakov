@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-35';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-35';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-35';
+} from './cv-analyzer.js?v=20261124-36';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-36';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-36';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,11 +26,11 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-35';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-35';
-import { mountHeroOrb } from './hero-orb.js?v=20261124-35';
-import './glass.js?v=20261124-35';
-import { initPwa } from './pwa.js?v=20261124-35';
+} from './plan-generator.js?v=20261124-36';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-36';
+import { mountHeroOrb } from './hero-orb.js?v=20261124-36';
+import './glass.js?v=20261124-36';
+import { initPwa } from './pwa.js?v=20261124-36';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -39,8 +39,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-35';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-35';
+} from './heart-rate.js?v=20261124-36';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-36';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -64,7 +64,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-35';
+} from './storage.js?v=20261124-36';
 
 const ANGLES = [
   {
@@ -3456,14 +3456,31 @@ async function setMealPhotoDataUrl(dataUrl) {
   state.nutrition.photo = compressed;
   $('mealPhotoPreviewImg').src = compressed;
   $('mealPhotoEmpty').classList.add('hidden');
-  $('mealPhotoPreviewWrap').classList.remove('hidden');
+  $('mealPhotoPreviewWrap').classList.remove('hidden', 'is-scanned');
 }
 
 function clearMealPhoto() {
   state.nutrition.photo = null;
   $('mealPhotoPreviewImg').removeAttribute('src');
   $('mealPhotoPreviewWrap').classList.add('hidden');
+  $('mealPhotoPreviewWrap').classList.remove('is-scanning', 'is-locked', 'is-scanned');
   $('mealPhotoEmpty').classList.remove('hidden');
+}
+
+async function loadSampleMealDataUrl() {
+  try {
+    const res = await fetch('./assets/demos/meal_demo.jpg');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return generateSampleMealDataUrl();
+  }
 }
 
 function generateSampleMealDataUrl() {
@@ -3683,22 +3700,158 @@ async function handleAnalyzeMealClick() {
   const btn = $('analyzeMealBtn');
   const statusEl = $('mealAnalyzeStatus');
   const statusTxt = $('mealAnalyzeStatusText');
+  const coldStart = IS_CLOUD_MODE && !state.cloudAi.ready;
   btn.disabled = true;
-  statusEl.classList.remove('hidden');
-  statusTxt.textContent = IS_CLOUD_MODE && !state.cloudAi.ready
-    ? 'Подключаемся к серверу AI-нутрициолога (первый запрос 20–45 сек)...'
-    : 'Распознаём блюдо, ингредиенты, вес порции и считаем КБЖУ...';
+
+  const scan = state.nutrition.photo ? startMealScan(coldStart) : null;
+  if (!scan) {
+    statusEl.classList.remove('hidden');
+    statusTxt.textContent = coldStart
+      ? 'Подключаемся к серверу AI-нутрициолога (первый запрос 20–45 сек)...'
+      : 'Распознаём блюдо, ингредиенты, вес порции и считаем КБЖУ...';
+  }
 
   try {
     const result = await callMealVisionApi();
+    const shownIn = scan ? await scan.finish() : 'inline';
     openMealDraft(result, null);
-    showToast(`Блюдо «${result.dishName}» разобрано — проверьте граммы и сохраните!`);
+    if (shownIn === 'screen') {
+      showMealScanResult();
+    } else {
+      const card = $('mealDraftCard');
+      card.classList.add('is-revealing');
+      setTimeout(() => card.classList.remove('is-revealing'), 1800);
+      showToast(`Блюдо «${result.dishName}» разобрано — проверьте граммы и сохраните!`);
+    }
   } catch (err) {
+    scan?.cancel();
     showToast(err.message, true);
   } finally {
     btn.disabled = false;
     statusEl.classList.add('hidden');
   }
+}
+
+const MEAL_SCAN_PHASES = ['Ищем продукты на тарелке', 'Оцениваем вес порции', 'Считаем калории и БЖУ'];
+
+let mealScanScreenOpen = false;
+
+function prefersReducedMotion() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function openMealScanScreen() {
+  const screen = $('mealScanScreen');
+  $('mealScanImg').src = state.nutrition.photo;
+  $('mealScanTitle').textContent = 'Сканирование';
+  screen.classList.remove('hidden', 'is-result', 'is-locked');
+  void screen.offsetWidth;
+  screen.classList.add('is-open', 'is-scanning');
+  document.body.style.overflow = 'hidden';
+  mealScanScreenOpen = true;
+  $('mealScanCloseBtn').focus({ preventScroll: true });
+}
+
+function closeMealScanScreen() {
+  if (!mealScanScreenOpen) return;
+  mealScanScreenOpen = false;
+  const screen = $('mealScanScreen');
+  screen.classList.remove('is-open');
+  document.body.style.overflow = '';
+  setTimeout(() => {
+    if (mealScanScreenOpen) return;
+    screen.classList.add('hidden');
+    screen.classList.remove('is-scanning', 'is-locked', 'is-result');
+  }, prefersReducedMotion() ? 0 : 320);
+}
+
+function showMealScanResult() {
+  const draft = state.nutrition.draft;
+  if (!draft || !mealScanScreenOpen) return;
+  const screen = $('mealScanScreen');
+  const totals = computeIngredientsTotals(draft.ingredients);
+  $('mssDish').textContent = draft.dishName;
+  $('mssPortion').textContent = draft.portionNote ? `Порция ${draft.portionNote}` : '';
+  $('mssKcal').textContent = String(totals.kcal);
+  $('mssMacros').innerHTML = [
+    ['Белки', totals.protein],
+    ['Жиры', totals.fat],
+    ['Углеводы', totals.carbs],
+  ].map(([label, v]) => `<div class="mss-macro"><span>${label}</span><b>${v} г</b></div>`).join('');
+  $('mssList').innerHTML = draft.ingredients
+    .map((ing, i) => `<li style="--i:${i}"><span>${escapeHtml(ing.name)}</span><span class="mss-g">${ing.grams} г</span><span class="mss-k">${ing.kcal} ккал</span></li>`)
+    .join('');
+
+  const photo = $('mealScanPhoto');
+  const first = photo.getBoundingClientRect();
+  screen.classList.remove('is-locked');
+  screen.classList.add('is-result');
+  $('mealScanTitle').textContent = 'Результат';
+  const last = photo.getBoundingClientRect();
+  if (!prefersReducedMotion() && last.width > 0) {
+    photo.animate(
+      [
+        { transform: `translate(${first.left - last.left}px, ${first.top - last.top}px) scale(${first.width / last.width})` },
+        { transform: 'none' },
+      ],
+      { duration: 760, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' }
+    );
+  }
+  $('mssSaveBtn').focus({ preventScroll: true });
+}
+
+function startMealScan(coldStart) {
+  const wrap = $('mealPhotoPreviewWrap');
+  const screen = $('mealScanScreen');
+  const labels = [$('mealScanLabelText'), $('mealScanHint')];
+  const setLabel = (t) => labels.forEach((el) => { el.textContent = t; });
+  let phase = 0;
+  let timer = 0;
+  const tick = () => {
+    setLabel(MEAL_SCAN_PHASES[phase % MEAL_SCAN_PHASES.length]);
+    phase += 1;
+    timer = setTimeout(tick, 2400);
+  };
+  if (coldStart) {
+    setLabel('Подключаем AI-нутрициолога, до 45 сек');
+    timer = setTimeout(tick, 6000);
+  } else {
+    tick();
+  }
+
+  wrap.classList.remove('is-scanned', 'is-locked');
+  void wrap.offsetWidth;
+  wrap.classList.add('is-scanning');
+  openMealScanScreen();
+
+  const stop = () => {
+    clearTimeout(timer);
+    wrap.classList.remove('is-scanning');
+    screen.classList.remove('is-scanning');
+  };
+
+  return {
+    async finish() {
+      stop();
+      setLabel('Готово');
+      wrap.classList.add('is-locked');
+      screen.classList.add('is-locked');
+      const reduce = prefersReducedMotion();
+      await new Promise((r) => setTimeout(r, reduce ? 150 : 480));
+      wrap.classList.remove('is-locked');
+      wrap.classList.add('is-scanned');
+      if (mealScanScreenOpen) return 'screen';
+      // The photo shrinks before the draft card scrolls in, otherwise the scroll target moves mid-scroll.
+      if (!reduce) await new Promise((r) => setTimeout(r, 620));
+      return 'inline';
+    },
+    cancel() {
+      stop();
+      wrap.classList.remove('is-locked');
+      screen.classList.remove('is-locked');
+      closeMealScanScreen();
+    },
+  };
 }
 
 function openMealDraft(mealData, editingId = null) {
@@ -3720,7 +3873,7 @@ function openMealDraft(mealData, editingId = null) {
   };
 
   renderMealDraftCard();
-  $('mealDraftCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('mealDraftCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function openManualMealDraft() {
@@ -3798,8 +3951,8 @@ function renderDraftIngredientsRows() {
 
   wrap.innerHTML = draft.ingredients
     .map(
-      (ing) => `
-      <div class="draft-ing-card" data-ing-id="${ing.id}">
+      (ing, idx) => `
+      <div class="draft-ing-card" data-ing-id="${ing.id}" style="--i:${idx}">
         <div class="draft-ing-top">
           <input type="text" class="draft-ing-name-input" value="${escapeHtml(ing.name)}" placeholder="Название продукта" data-ing-field="name" aria-label="Название продукта">
           <button type="button" class="btn btn-danger-ghost draft-remove-btn" data-remove-ing="${ing.id}" title="Удалить продукт" aria-label="Удалить продукт">✕</button>
@@ -4733,7 +4886,7 @@ function initEvents() {
   $('mealPhotoInput').addEventListener('change', handleMealFileSelect);
   $('clearMealPhotoBtn').addEventListener('click', clearMealPhoto);
   $('mealSampleBtn').addEventListener('click', async () => {
-    const sampleUrl = generateSampleMealDataUrl();
+    const sampleUrl = await loadSampleMealDataUrl();
     await setMealPhotoDataUrl(sampleUrl);
     if (!$('mealNoteInput').value.trim()) {
       $('mealNoteInput').value = 'Куриная грудка на гриле, отварная гречка и свежий салат с авокадо';
@@ -4788,6 +4941,18 @@ function initEvents() {
     renderDraftTotalsBar();
   });
   $('saveDraftMealBtn').addEventListener('click', saveCurrentMealDraft);
+  $('mealScanCloseBtn').addEventListener('click', closeMealScanScreen);
+  $('mssSaveBtn').addEventListener('click', async () => {
+    await saveCurrentMealDraft();
+    if (!state.nutrition.draft) closeMealScanScreen();
+  });
+  $('mssEditBtn').addEventListener('click', () => {
+    closeMealScanScreen();
+    $('mealDraftCard').scrollIntoView({ block: 'start' });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mealScanScreenOpen) closeMealScanScreen();
+  });
   $('discardDraftMealBtn').addEventListener('click', () => {
     state.nutrition.draft = null;
     renderMealDraftCard();

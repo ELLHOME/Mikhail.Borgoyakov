@@ -1,5 +1,5 @@
 /* Силуэтика service worker: offline app shell + runtime cache for same-origin assets. */
-const VERSION = '20261124-35';
+const VERSION = '20261124-36';
 const SHELL_CACHE = `siluetika-shell-${VERSION}`;
 const RUNTIME_CACHE = 'siluetika-runtime-v1';
 const FONT_CACHE = 'siluetika-fonts-v1';

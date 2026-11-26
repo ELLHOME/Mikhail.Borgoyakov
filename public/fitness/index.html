@@ -18,8 +18,8 @@
   <link rel="icon" type="image/svg+xml" href="./assets/brand/favicon.svg">
   <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/favicon-64.png">
   <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-35">
-  <link rel="stylesheet" href="./css/glass.css?v=20261124-35">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-36">
+  <link rel="stylesheet" href="./css/glass.css?v=20261124-36">
 </head>
 <body>
   <div class="app-shell">
@@ -632,6 +632,17 @@
             <!-- Photo Preview (shown when photo selected) -->
             <div class="meal-preview-wrap hidden" id="mealPhotoPreviewWrap">
               <img id="mealPhotoPreviewImg" alt="Фото блюда">
+              <div class="meal-scan-overlay" aria-hidden="true">
+                <span class="scan-corner is-tl"></span>
+                <span class="scan-corner is-tr"></span>
+                <span class="scan-corner is-bl"></span>
+                <span class="scan-corner is-br"></span>
+                <span class="scan-beam"></span>
+              </div>
+              <div class="meal-scan-label" role="status" aria-live="polite">
+                <span class="scan-label-dot" aria-hidden="true"></span>
+                <span id="mealScanLabelText">Сканируем блюдо</span>
+              </div>
               <button type="button" class="meal-clear-photo-btn" id="clearMealPhotoBtn">✕ Убрать фото</button>
             </div>
 
@@ -1193,6 +1204,48 @@
   </div>
 
   <!-- Toast Notification -->
+  <div class="meal-scan-screen hidden" id="mealScanScreen" role="dialog" aria-modal="true" aria-labelledby="mealScanTitle">
+    <div class="mss-column">
+      <div class="mss-top">
+        <button type="button" class="mss-back" id="mealScanCloseBtn" aria-label="Закрыть сканер">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2 id="mealScanTitle">Сканирование</h2>
+      </div>
+      <div class="mss-hint" role="status" aria-live="polite">
+        <span class="scan-label-dot" aria-hidden="true"></span>
+        <span id="mealScanHint">Ищем продукты на тарелке</span>
+      </div>
+      <div class="mss-stage">
+        <div class="mss-photo" id="mealScanPhoto">
+          <div class="mss-photo-clip">
+            <img id="mealScanImg" alt="Фото блюда">
+            <span class="scan-beam"></span>
+          </div>
+          <span class="scan-corner is-tl" aria-hidden="true"></span>
+          <span class="scan-corner is-tr" aria-hidden="true"></span>
+          <span class="scan-corner is-bl" aria-hidden="true"></span>
+          <span class="scan-corner is-br" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="mss-sheet" id="mealScanSheet">
+        <div class="mss-sheet-head">
+          <div class="mss-dish">
+            <h3 id="mssDish"></h3>
+            <p id="mssPortion"></p>
+          </div>
+          <div class="mss-kcal"><b id="mssKcal">0</b><span>ккал</span></div>
+        </div>
+        <div class="mss-macros" id="mssMacros"></div>
+        <ul class="mss-list" id="mssList"></ul>
+        <div class="mss-actions">
+          <button type="button" class="mss-save" id="mssSaveBtn">Сохранить в дневник</button>
+          <button type="button" class="mss-edit" id="mssEditBtn">Изменить граммы</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
   <script>
@@ -1201,6 +1254,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-35"></script>
+  <script type="module" src="./js/app.js?v=20261124-36"></script>
 </body>
 </html>
