@@ -1,5 +1,5 @@
 /* Силуэтика service worker: offline app shell + runtime cache for same-origin assets. */
-const VERSION = '20261124-40';
+const VERSION = '20261124-41';
 const SHELL_CACHE = `siluetika-shell-${VERSION}`;
 const RUNTIME_CACHE = 'siluetika-runtime-v1';
 const FONT_CACHE = 'siluetika-fonts-v1';
@@ -39,6 +39,14 @@ self.addEventListener('activate', (event) => {
     await Promise.all(keys
       .filter((key) => key.startsWith('siluetika-shell-') && key !== SHELL_CACHE)
       .map((key) => caches.delete(key)));
+    // Brand files keep their URLs across logo changes; a stale runtime copy would be handed
+    // to the installer and baked into the home-screen and launch-screen icon.
+    const runtime = await caches.open(RUNTIME_CACHE);
+    const stale = (await runtime.keys()).filter((r) => {
+      const path = new URL(r.url).pathname;
+      return path.includes('/assets/brand/') || path.endsWith('.webmanifest');
+    });
+    await Promise.all(stale.map((r) => runtime.delete(r)));
     await self.clients.claim();
   })());
 });
@@ -85,6 +93,11 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(cacheFirst(req, SHELL_CACHE));
     return;
   }
+  // The installer reads the manifest and icons through this worker: always offer the live copy.
+  if (url.pathname.endsWith('.webmanifest') || url.pathname.includes('/assets/brand/')) {
+    event.respondWith(networkFirst(req, RUNTIME_CACHE));
+    return;
+  }
   event.respondWith(staleWhileRevalidate(event, req, RUNTIME_CACHE));
 });
 
@@ -99,6 +112,17 @@ async function navigate(event, req) {
   if (!cached) return network;
   const timeout = new Promise((resolve) => setTimeout(() => resolve(cached), NAV_TIMEOUT_MS));
   return Promise.race([network, timeout]).catch(() => cached);
+}
+
+async function networkFirst(req, cacheName) {
+  const cache = await caches.open(cacheName);
+  try {
+    const res = await fetch(req, { cache: 'no-cache' });
+    if (res.ok) cache.put(req, res.clone());
+    return res;
+  } catch {
+    return (await caches.match(req)) || Response.error();
+  }
 }
 
 async function cacheFirst(req, cacheName) {
