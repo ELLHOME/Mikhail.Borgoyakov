@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-36';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-36';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-36';
+} from './cv-analyzer.js?v=20261124-37';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-37';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-37';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,11 +26,11 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-36';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-36';
-import { mountHeroOrb } from './hero-orb.js?v=20261124-36';
-import './glass.js?v=20261124-36';
-import { initPwa } from './pwa.js?v=20261124-36';
+} from './plan-generator.js?v=20261124-37';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-37';
+import { mountHeroOrb } from './hero-orb.js?v=20261124-37';
+import './glass.js?v=20261124-37';
+import { initPwa } from './pwa.js?v=20261124-37';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -39,8 +39,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-36';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-36';
+} from './heart-rate.js?v=20261124-37';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-37';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -64,7 +64,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-36';
+} from './storage.js?v=20261124-37';
 
 const ANGLES = [
   {
@@ -3747,6 +3747,8 @@ function openMealScanScreen() {
   screen.classList.remove('hidden', 'is-result', 'is-locked');
   void screen.offsetWidth;
   screen.classList.add('is-open', 'is-scanning');
+  if (toastTimeout) clearTimeout(toastTimeout);
+  $('toastContainer').innerHTML = '';
   document.body.style.overflow = 'hidden';
   mealScanScreenOpen = true;
   $('mealScanCloseBtn').focus({ preventScroll: true });
