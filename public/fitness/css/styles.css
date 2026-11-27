@@ -4387,3 +4387,68 @@ html.is-standalone body { overscroll-behavior-y: none; }
   }
   .mss-actions { margin-top: 4px; }
 }
+
+/* ---------------- Launch splash (installed app) ---------------- */
+.splash { display: none; }
+html.splash-on body { overflow: hidden; }
+html.splash-on .splash {
+  --sp-bg: #d3e1f0; --sp-ink: #0e1a2a; --sp-acc: #099fd4;
+  --sp-line: rgba(14, 26, 42, 0.2); --sp-pencil: rgba(14, 26, 42, 0.45); --sp-glow: rgba(9, 159, 212, 0.16);
+  --sp-g0: #23cef6; --sp-g1: #12b0e0; --sp-g2: #089cd1; --sp-g3: #0788ba; --sp-g4: #056997;
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; background: var(--sp-bg);
+  transition: opacity 0.45s ease, visibility 0s linear 0.45s;
+  -webkit-tap-highlight-color: transparent;
+}
+html[data-theme="dark"].splash-on .splash {
+  --sp-bg: #060a12; --sp-ink: #eef4fc; --sp-acc: #35dcff;
+  --sp-line: rgba(223, 231, 240, 0.24); --sp-pencil: rgba(232, 238, 246, 0.55); --sp-glow: rgba(11, 51, 80, 0.95);
+  --sp-g0: #baf8ff; --sp-g1: #67eaff; --sp-g2: #3addfc; --sp-g3: #28c7f2; --sp-g4: #0ea5e2;
+}
+.splash.out { opacity: 0; visibility: hidden; }
+.splash-logo { position: relative; width: min(74vw, 360px); height: auto; overflow: visible; }
+.splash-glow {
+  position: absolute; left: 50%; top: 50%; width: min(150vw, 760px); aspect-ratio: 1;
+  transform: translate(-50%, -58%); border-radius: 50%;
+  background: radial-gradient(closest-side, var(--sp-glow), transparent);
+  opacity: 0;
+}
+.splash .s0 { stop-color: var(--sp-g0); }
+.splash .s1 { stop-color: var(--sp-g1); }
+.splash .s2 { stop-color: var(--sp-g2); }
+.splash .s3 { stop-color: var(--sp-g3); }
+.splash .s4 { stop-color: var(--sp-g4); }
+.splash .gd > *, .splash .pc > * {
+  fill: none; stroke-dasharray: 1 1; stroke-dashoffset: 1;
+  vector-effect: non-scaling-stroke; stroke-linejoin: round;
+}
+.splash .gd > * { stroke: var(--sp-line); stroke-width: 1.1; }
+.splash .pc > * { stroke: var(--sp-pencil); stroke-width: 1.2; }
+.splash .dt {
+  fill: var(--sp-bg); stroke: var(--sp-acc); stroke-width: 1.5; vector-effect: non-scaling-stroke;
+  opacity: 0; transform-box: fill-box; transform-origin: center;
+}
+.splash .ink {
+  fill: none; stroke: url(#splashGrad); stroke-width: 40.5; stroke-linecap: round;
+  stroke-dasharray: 402 402; stroke-dashoffset: 402;
+}
+.splash .mk { fill: url(#splashGrad); opacity: 0; }
+.splash .lt { fill: var(--sp-ink); opacity: 0; }
+.splash .lt.acc { fill: var(--sp-acc); }
+
+.splash.run .gd > * { animation: sp-draw var(--t, 0.75s) cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) forwards; }
+.splash.run .pc > * { animation: sp-draw var(--t, 0.6s) cubic-bezier(0.65, 0, 0.35, 1) var(--d, 0s) forwards; }
+.splash.run .dt { animation: sp-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1) var(--d) forwards; }
+.splash.run .ink { animation: sp-ink 0.65s cubic-bezier(0.65, 0, 0.35, 1) var(--d) forwards, sp-hide 0.01s linear 2.3s forwards; }
+.splash.run .mk { animation: sp-show 0.01s linear 2.28s forwards; }
+.splash.run .lt { animation: sp-show 0.3s ease-out var(--d) forwards; }
+.splash.run :is(.gd, .pc, .dots) { animation: sp-hide 0.5s ease 2.35s forwards; }
+.splash.run .splash-glow { animation: sp-show 1s ease-out 2.3s forwards; }
+.splash.still :is(.mk, .lt, .splash-glow) { opacity: 1; }
+.splash.still :is(.gd, .pc, .dots, .inks) { display: none; }
+@keyframes sp-draw { to { stroke-dashoffset: 0; } }
+@keyframes sp-ink { to { stroke-dashoffset: 0; } }
+@keyframes sp-pop { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@keyframes sp-show { to { opacity: 1; } }
+@keyframes sp-hide { to { opacity: 0; } }
