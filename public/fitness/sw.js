@@ -1,5 +1,5 @@
 /* Силуэтика service worker: offline app shell + runtime cache for same-origin assets. */
-const VERSION = '20261124-39';
+const VERSION = '20261124-40';
 const SHELL_CACHE = `siluetika-shell-${VERSION}`;
 const RUNTIME_CACHE = 'siluetika-runtime-v1';
 const FONT_CACHE = 'siluetika-fonts-v1';
@@ -21,7 +21,6 @@ const SHELL_URLS = [
   './assets/brand/favicon-64.png',
   './assets/brand/icon-192.png',
   './assets/brand/logo-sound.m4a',
-  './assets/brand/icon-maskable-512.png',
 ];
 
 const ROOT_URL = new URL('./', self.registration.scope).href;

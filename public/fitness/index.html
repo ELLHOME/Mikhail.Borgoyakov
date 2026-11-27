@@ -18,8 +18,8 @@
   <link rel="icon" type="image/svg+xml" href="./assets/brand/favicon.svg">
   <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/favicon-64.png">
   <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png">
-  <link rel="stylesheet" href="./css/styles.css?v=20261124-39">
-  <link rel="stylesheet" href="./css/glass.css?v=20261124-39">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-40">
+  <link rel="stylesheet" href="./css/glass.css?v=20261124-40">
   <script>
     // Launch splash for the installed app: decided before first paint so the app never flashes underneath.
     (function () {
@@ -38,7 +38,6 @@
 <body>
   <div class="splash" id="splash" aria-hidden="true">
     <div class="splash-glow"></div>
-    <img class="splash-icon" src="./assets/brand/icon-maskable-512.png" alt="" width="128" height="128">
     <svg class="splash-logo" viewBox="200 300 1000 820" xmlns="http://www.w3.org/2000/svg">
       <defs><linearGradient id="splashGrad" gradientUnits="userSpaceOnUse" x1="0" y1="347" x2="0" y2="766"><stop class="s0" offset="0"/><stop class="s1" offset=".3"/><stop class="s2" offset=".5"/><stop class="s3" offset=".7"/><stop class="s4" offset="1"/></linearGradient></defs>
       <g class="gd"><path d="M-6000 347H7400" pathLength="1" style="--d:0.02s"/><path d="M-6000 556.75H7400" pathLength="1" style="--d:0.08s"/><path d="M-6000 766H7400" pathLength="1" style="--d:0.14s"/><path d="M-6000 875H7400" pathLength="1" style="--d:0.2s"/><path d="M-6000 925.6H7400" pathLength="1" style="--d:0.26s"/><path d="M-6000 1024.5H7400" pathLength="1" style="--d:0.32s"/><path d="M-6000 1071.8H7400" pathLength="1" style="--d:0.38s"/><path d="M700 -6000V7400" pathLength="1" style="--d:0.25s;--t:.85s"/><path d="M608.2 -6000V7400" pathLength="1" style="--d:0.32s;--t:.85s"/><path d="M791.8 -6000V7400" pathLength="1" style="--d:0.39s;--t:.85s"/><path d="M664.7 -6000V7400" pathLength="1" style="--d:0.46s;--t:.85s"/><path d="M735.3 -6000V7400" pathLength="1" style="--d:0.53s;--t:.85s"/><path d="M664.5 556.75A344.4 344.4 0 1 1 -24.3 556.75A344.4 344.4 0 1 1 664.5 556.75" pathLength="1" style="--d:0.5s;--t:.95s"/><path d="M735.5 556.75A344.4 344.4 0 1 1 1424.3 556.75A344.4 344.4 0 1 1 735.5 556.75" pathLength="1" style="--d:0.62s;--t:.95s"/></g>
@@ -67,13 +66,12 @@
         el.classList.add(still ? 'still' : 'run');
         setTimeout(close, still ? 900 : 3600);
       }
+      start();
       try {
         sound = new Audio('./assets/brand/logo-sound.m4a');
         var p = sound.play();
-        if (p && p.then) p.then(start, start); else start();
-      } catch (e) { start(); }
-      // Autoplay may be refused (iOS) or the file may load slowly: never hold the animation back.
-      setTimeout(start, 450);
+        if (p && p.catch) p.catch(function () { /* autoplay refused (iOS): drawing runs silent */ });
+      } catch (e) { /* no audio support */ }
       el.addEventListener('click', function () {
         start();
         close();
@@ -1318,6 +1316,6 @@
       apiBase: 'https://ellhome-bot-api.onrender.com'
     };
   </script>
-  <script type="module" src="./js/app.js?v=20261124-39"></script>
+  <script type="module" src="./js/app.js?v=20261124-40"></script>
 </body>
 </html>
