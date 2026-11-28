@@ -1,0 +1,398 @@
+{
+  "squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/squat.webp"
+  },
+  "plank": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 190,
+    "url": "/assets/exercises/plank.webp"
+  },
+  "pushups": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/pushups.webp"
+  },
+  "side_plank": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 190,
+    "url": "/assets/exercises/side_plank.webp"
+  },
+  "glute_bridge": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/glute_bridge.webp"
+  },
+  "lunges": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/lunges.webp"
+  },
+  "superman": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/superman.webp"
+  },
+  "bird_dog": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/bird_dog.webp"
+  },
+  "chin_tucks": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 190,
+    "url": "/assets/exercises/chin_tucks.webp"
+  },
+  "dead_bug": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/dead_bug.webp"
+  },
+  "jumping_jacks": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/jumping_jacks.webp"
+  },
+  "mountain_climbers": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/mountain_climbers.webp"
+  },
+  "hip_flexor_stretch": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/hip_flexor_stretch.webp"
+  },
+  "bicycle_crunches": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 200,
+    "url": "/assets/exercises/bicycle_crunches.webp"
+  },
+  "dips": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/dips.webp"
+  },
+  "wall_angels": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/wall_angels.webp"
+  },
+  "lateral_raise": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/lateral_raise.webp"
+  },
+  "goblet_squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/goblet_squat.webp"
+  },
+  "overhead_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/overhead_press.webp"
+  },
+  "rear_delt_fly": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/rear_delt_fly.webp"
+  },
+  "single_arm_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/single_arm_row.webp"
+  },
+  "bent_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/bent_row.webp"
+  },
+  "bench_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/bench_press.webp"
+  },
+  "pullup": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/pullup.webp"
+  },
+  "barbell_bench": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/barbell_bench.webp"
+  },
+  "bicep_curl": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/bicep_curl.webp"
+  },
+  "rdl": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/rdl.webp"
+  },
+  "barbell_squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/barbell_squat.webp"
+  },
+  "face_pull": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/face_pull.webp"
+  },
+  "cable_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 170,
+    "url": "/assets/exercises/cable_row.webp"
+  },
+  "hammer_curl": {
+    "file": "/assets/exercises/hammer_curl.webp",
+    "frames": 8,
+    "frameSize": 448
+  },
+  "tricep_extension": {
+    "file": "/assets/exercises/tricep_extension.webp",
+    "frames": 8,
+    "frameSize": 448
+  },
+  "cable_tricep_pushdown": {
+    "file": "/assets/exercises/cable_tricep_pushdown.webp",
+    "frames": 8,
+    "frameSize": 448
+  },
+  "barbell_bicep_curl": {
+    "file": "/assets/exercises/barbell_bicep_curl.webp",
+    "frames": 8,
+    "frameSize": 448
+  },
+  "diamond_pushups": {
+    "file": "/assets/exercises/diamond_pushups.webp",
+    "frames": 8,
+    "frameSize": 448
+  },
+  "chin_up_bicep": {
+    "file": "/assets/exercises/chin_up_bicep.webp",
+    "frames": 8,
+    "frameSize": 448
+  },
+  "trx_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_row.webp"
+  },
+  "trx_t_fly": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_t_fly.webp"
+  },
+  "trx_y_raise": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_y_raise.webp"
+  },
+  "trx_chest_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_chest_press.webp"
+  },
+  "trx_bicep_curl": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_bicep_curl.webp"
+  },
+  "trx_tricep_extension": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_tricep_extension.webp"
+  },
+  "trx_squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_squat.webp"
+  },
+  "trx_suspended_lunge": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_suspended_lunge.webp"
+  },
+  "trx_hamstring_curl": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_hamstring_curl.webp"
+  },
+  "trx_knee_tuck": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_knee_tuck.webp"
+  },
+  "trx_plank": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_plank.webp"
+  },
+  "trx_side_plank": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_side_plank.webp"
+  },
+  "trx_mountain_climber": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/trx_mountain_climber.webp"
+  },
+  "trx_pike": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_pike.webp"
+  },
+  "leg_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/leg_press.webp"
+  },
+  "leg_curl_machine": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/leg_curl_machine.webp"
+  },
+  "leg_extension": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/leg_extension.webp"
+  },
+  "cable_fly": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/cable_fly.webp"
+  },
+  "barbell_row": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/barbell_row.webp"
+  },
+  "machine_shoulder_press": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/machine_shoulder_press.webp"
+  },
+  "burpees": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/burpees.webp"
+  },
+  "high_knees": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/high_knees.webp"
+  },
+  "jump_squats": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/jump_squats.webp"
+  },
+  "skater_jumps": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/skater_jumps.webp"
+  },
+  "db_thruster": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/db_thruster.webp"
+  },
+  "db_swing": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/db_swing.webp"
+  },
+  "trx_jump_squat": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_jump_squat.webp"
+  },
+  "trx_sprinter_start": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/trx_sprinter_start.webp"
+  },
+  "treadmill_intervals": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/treadmill_intervals.webp"
+  },
+  "bike_intervals": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 150,
+    "url": "/assets/exercises/bike_intervals.webp"
+  },
+  "rowing_machine": {
+    "frames": 8,
+    "frameSize": 448,
+    "durationMs": 180,
+    "url": "/assets/exercises/rowing_machine.webp"
+  }
+}

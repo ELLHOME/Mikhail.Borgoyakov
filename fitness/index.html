@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Силуэтика — анализ фигуры по фото и план тренировок</title>
+  <meta name="theme-color" id="themeColorMeta" content="#d3e1f0">
+  <meta name="application-name" content="Силуэтика">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Силуэтика">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500;600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="./assets/brand/favicon.svg?v=logo2">
+  <link rel="icon" type="image/png" sizes="64x64" href="./assets/brand/favicon-64.png?v=logo2">
+  <link rel="apple-touch-icon" href="./assets/brand/apple-touch-icon.png?v=logo3">
+  <link rel="stylesheet" href="./css/styles.css?v=20261124-43">
+  <link rel="stylesheet" href="./css/glass.css?v=20261124-43">
+  <script>
+    // Launch splash for the installed app: decided before first paint so the app never flashes underneath.
+    (function () {
+      try {
+        var forced = new URLSearchParams(location.search).get('splash') === '1';
+        var standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        if (!forced && (!standalone || sessionStorage.getItem('siluetika:splash') === '1')) return;
+        sessionStorage.setItem('siluetika:splash', '1');
+        var root = document.documentElement;
+        root.setAttribute('data-theme', localStorage.getItem('bodycoach_theme_v2') || 'light');
+        root.classList.add('splash-on');
+      } catch (e) { /* storage blocked: no splash */ }
+    })();
+  </script>
+</head>
+<body>
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="splash-glow"></div>
+    <svg class="splash-logo" viewBox="200 300 1000 820" xmlns="http://www.w3.org/2000/svg">
+      <defs><linearGradient id="splashGrad" gradientUnits="userSpaceOnUse" x1="0" y1="347" x2="0" y2="766"><stop class="s0" offset="0"/><stop class="s1" offset=".3"/><stop class="s2" offset=".5"/><stop class="s3" offset=".7"/><stop class="s4" offset="1"/></linearGradient></defs>
+      <g class="gd"><path d="M-6000 347H7400" pathLength="1" style="--d:0.02s"/><path d="M-6000 556.75H7400" pathLength="1" style="--d:0.08s"/><path d="M-6000 766H7400" pathLength="1" style="--d:0.14s"/><path d="M-6000 875H7400" pathLength="1" style="--d:0.2s"/><path d="M-6000 925.6H7400" pathLength="1" style="--d:0.26s"/><path d="M-6000 1024.5H7400" pathLength="1" style="--d:0.32s"/><path d="M-6000 1071.8H7400" pathLength="1" style="--d:0.38s"/><path d="M700 -6000V7400" pathLength="1" style="--d:0.25s;--t:.85s"/><path d="M608.2 -6000V7400" pathLength="1" style="--d:0.32s;--t:.85s"/><path d="M791.8 -6000V7400" pathLength="1" style="--d:0.39s;--t:.85s"/><path d="M664.7 -6000V7400" pathLength="1" style="--d:0.46s;--t:.85s"/><path d="M735.3 -6000V7400" pathLength="1" style="--d:0.53s;--t:.85s"/><path d="M664.5 556.75A344.4 344.4 0 1 1 -24.3 556.75A344.4 344.4 0 1 1 664.5 556.75" pathLength="1" style="--d:0.5s;--t:.95s"/><path d="M735.5 556.75A344.4 344.4 0 1 1 1424.3 556.75A344.4 344.4 0 1 1 735.5 556.75" pathLength="1" style="--d:0.62s;--t:.95s"/></g>
+      <g class="pc"><path transform="matrix(1,0,0,-1,791.8189,766.0026)" d="M0 0C-6.693 0-13.243 3.315-17.103 9.381-36.796 40.327-51.885 73.153-61.951 106.947-71.917 140.401-76.969 174.821-76.969 209.253-76.969 243.684-71.917 278.104-61.951 311.559-51.885 345.353-36.796 378.179-17.103 409.124-11.099 418.56 1.418 421.341 10.853 415.337 20.288 409.332 23.07 396.816 17.065 387.381-53.914 275.843-53.914 142.663 17.065 31.124 23.07 21.689 20.288 9.173 10.853 3.168 7.482 1.024 3.719 0 0 0" pathLength="1" style="--d:0.9s;--t:.7s"/><path transform="matrix(1,0,0,-1,608.1807,766.0026)" d="M0 0C-3.72 0-7.482 1.024-10.852 3.168-20.288 9.173-23.069 21.689-17.065 31.124 53.914 142.663 53.914 275.843-17.065 387.381-23.069 396.816-20.288 409.332-10.852 415.337-1.417 421.341 11.1 418.559 17.103 409.124 36.796 378.179 51.885 345.353 61.952 311.559 71.917 278.104 76.969 243.684 76.969 209.253 76.969 174.821 71.917 140.401 61.952 106.947 51.885 73.153 36.796 40.327 17.103 9.381 13.244 3.316 6.693 0 0 0" pathLength="1" style="--d:0.98s;--t:.7s"/><path transform="matrix(1,0,0,-1,277.0991,983.0049)" d="M0 0C5.446-9.749 12.755-17.415 21.93-23.005 31.101-28.595 41.351-31.39 52.675-31.39 59.841-31.39 66.361-30.604 72.24-29.025 78.116-27.449 83.454-25.085 88.257-21.93 93.058-18.779 97.321-15.05 101.05-10.75V-26.66C94.741-32.25 87.861-36.442 80.41-39.237 72.956-42.032 63.71-43.43 52.675-43.43 42.21-43.43 32.499-41.528 23.542-37.732 14.583-33.937 6.806-28.595 .215-21.715-6.379-14.835-11.54-6.665-15.265 2.795-18.994 12.255-20.855 22.575-20.855 33.755-20.855 44.935-18.994 55.255-15.265 64.715-11.54 74.175-6.379 82.345 .215 89.225 6.806 96.104 14.583 101.443 23.542 105.242 32.499 109.038 42.21 110.939 52.675 110.939 63.71 110.939 72.956 109.542 80.41 106.747 87.861 103.952 94.741 99.76 101.05 94.17V78.475C97.321 82.774 93.021 86.464 88.15 89.548 83.275 92.628 77.9 94.956 72.025 96.535 66.146 98.11 59.696 98.899 52.675 98.899 41.351 98.899 31.101 96.139 21.93 90.622 12.755 85.103 5.446 77.471 0 67.725-5.449 57.976-8.17 46.655-8.17 33.755-8.17 20.996-5.449 9.745 0 0" pathLength="1" style="--d:1s;--t:.55s"/><path transform="matrix(1,0,0,-1,484.7886,1024.5)" d="M0 0H-11.18V90.515L0 106.425ZM-65.575 8.385-76.755-7.525V98.9H-65.575ZM-76.755-7.525-75.68 9.675 0 106.425-1.075 89.225Z" pathLength="1" style="--d:1.06s;--t:.55s"/><path transform="matrix(1,0,0,-1,595.5132,1024.5)" d="M0 0H-11.18V88.365H-67.725V34.4C-67.725 26.66-68.767 20.243-70.842 15.157-72.922 10.068-75.969 6.269-79.98 3.763-83.995 1.253-88.869 0-94.6 0V10.32C-90.3 10.32-86.611 12.255-83.527 16.125-80.447 19.995-78.905 26.086-78.905 34.4V98.9H0Z" pathLength="1" style="--d:1.12s;--t:.55s"/><path transform="matrix(1,0,0,-1,637.4385,1071.7998)" d="M0 0H-12.47L12.9 57.405-27.09 146.2H-13.76L22.145 61.92 16.985 62.35 52.03 146.2H64.5Z" pathLength="1" style="--d:1.18s;--t:.55s"/><path transform="matrix(1,0,0,-1,795.2451,969.8896)" d="M0 0-9.029-10.32H-64.93V0ZM-14.62 16.125C-18.06 22.286-22.756 27.123-28.702 30.637-34.651 34.147-41.354 35.904-48.805 35.904-54.109 35.904-59.054 35.115-63.64 33.54-68.229 31.961-72.169 29.955-75.465 27.52-78.764 25.081-81.199 22.501-82.775 19.779V33.755C-79.765 37.194-75.142 40.168-68.907 42.677-62.672 45.184-55.974 46.439-48.805 46.439-39.204 46.439-30.566 44.216-22.897 39.774-15.231 35.33-9.174 29.239-4.729 21.5-.289 13.76 1.936 4.871 1.936-5.16 1.936-15.051-.289-23.902-4.729-31.713-9.174-39.526-15.231-45.654-22.897-50.096-30.566-54.54-39.204-56.761-48.805-56.761-55.974-56.761-62.672-55.541-68.907-53.105-75.142-50.67-79.765-47.66-82.775-44.075V-30.101C-81.199-32.681-78.764-35.227-75.465-37.732-72.169-40.242-68.229-42.285-63.64-43.86-59.054-45.439-54.109-46.226-48.805-46.226-41.354-46.226-34.651-44.472-28.702-40.958-22.756-37.447-18.06-32.609-14.62-26.445-11.18-20.284-9.46-13.189-9.46-5.16-9.46 2.865-11.18 9.96-14.62 16.125" pathLength="1" style="--d:1.24s;--t:.55s"/><path transform="matrix(1,0,0,-1,0,1400)" d="M836.954 375.5H825.77297V471.39H836.954ZM860.389 463.865H802.339V474.4H860.389Z" pathLength="1" style="--d:1.3s;--t:.55s"/><path transform="matrix(1,0,0,-1,952.1943,1024.5)" d="M0 0H-11.18V90.515L0 106.425ZM-65.575 8.385-76.755-7.525V98.9H-65.575ZM-76.755-7.525-75.68 9.675 0 106.425-1.075 89.225Z" pathLength="1" style="--d:1.36s;--t:.55s"/><path transform="matrix(1,0,0,-1,1050.0186,925.5996)" d="M0 0-46.654-40.851 4.085-98.9H-10.104L-60.845-40.851-14.404 0ZM-56.76-98.9H-67.94V0H-56.76Z" pathLength="1" style="--d:1.42s;--t:.55s"/><path transform="matrix(1,0,0,-1,1073.4512,936.5654)" d="M0 0C3.726 3.011 8.563 5.946 14.513 8.815 20.458 11.681 27.661 13.115 36.12 13.115 43.285 13.115 49.413 11.859 54.502 9.353 59.589 6.844 63.495 3.296 66.22-1.29 68.941-5.879 70.305-11.395 70.305-17.845V-87.935H59.125V-17.845C59.125-11.109 57.009-5.912 52.782-2.257 48.553 1.397 43 3.226 36.12 3.226 31.39 3.226 27.09 2.614 23.22 1.397 19.35 .179 15.943-1.363 13.008-3.225 10.068-5.089 7.596-6.88 5.59-8.6ZM6.234-70.842C8.526-73.926 11.573-76.217 15.372-77.722 19.168-79.228 23.22-79.979 27.52-79.979 33.54-79.979 38.948-78.834 43.752-76.54 48.553-74.248 52.315-70.949 55.04-66.649 57.761-62.35 59.125-57.119 59.125-50.954L61.705-57.404C61.705-63.714 60.093-69.337 56.867-74.282 53.643-79.228 49.269-83.097 43.752-85.892 38.232-88.688 31.961-90.085 24.939-90.085 19.061-90.085 13.578-88.973 8.492-86.752 3.403-84.531-.719-81.162-3.87-76.647-7.024-72.132-8.601-66.364-8.601-59.34-8.601-52.318-6.81-46.406-3.226-41.603 .355-36.802 5.23-33.146 11.395-30.637 17.556-28.131 24.51-26.875 32.25-26.875 38.27-26.875 43.393-27.594 47.622-29.024 51.849-30.459 55.288-32.108 57.942-33.97 60.593-35.834 62.491-37.409 63.64-38.699V-45.579C59.625-42.569 55.147-40.171 50.202-38.377 45.258-36.587 39.415-35.689 32.68-35.689 26.945-35.689 21.822-36.587 17.308-38.377 12.792-40.171 9.245-42.784 6.665-46.225 4.085-49.665 2.795-53.894 2.795-58.909 2.795-63.784 3.94-67.762 6.234-70.842" pathLength="1" style="--d:1.48s;--t:.55s"/></g>
+      <g class="dots"><circle class="dt" cx="608.2" cy="367.75" r="7" style="--d:0.9s"/><circle class="dt" cx="608.2" cy="745.75" r="7" style="--d:0.94s"/><circle class="dt" cx="791.8" cy="367.75" r="7" style="--d:0.98s"/><circle class="dt" cx="791.8" cy="745.75" r="7" style="--d:1.02s"/><circle class="dt" cx="664.7" cy="556.75" r="7" style="--d:1.06s"/><circle class="dt" cx="735.3" cy="556.75" r="7" style="--d:1.1s"/></g>
+      <g class="inks"><path class="ink" d="M608.2 367.75A344.4 344.4 0 0 1 608.2 745.75" style="--d:1.6s"/><path class="ink" d="M791.8 367.75A344.4 344.4 0 0 0 791.8 745.75" style="--d:1.66s"/></g>
+      <g class="mk"><path transform="matrix(1,0,0,-1,791.8189,766.0026)" d="M0 0C-6.693 0-13.243 3.315-17.103 9.381-36.796 40.327-51.885 73.153-61.951 106.947-71.917 140.401-76.969 174.821-76.969 209.253-76.969 243.684-71.917 278.104-61.951 311.559-51.885 345.353-36.796 378.179-17.103 409.124-11.099 418.56 1.418 421.341 10.853 415.337 20.288 409.332 23.07 396.816 17.065 387.381-53.914 275.843-53.914 142.663 17.065 31.124 23.07 21.689 20.288 9.173 10.853 3.168 7.482 1.024 3.719 0 0 0"/><path transform="matrix(1,0,0,-1,608.1807,766.0026)" d="M0 0C-3.72 0-7.482 1.024-10.852 3.168-20.288 9.173-23.069 21.689-17.065 31.124 53.914 142.663 53.914 275.843-17.065 387.381-23.069 396.816-20.288 409.332-10.852 415.337-1.417 421.341 11.1 418.559 17.103 409.124 36.796 378.179 51.885 345.353 61.952 311.559 71.917 278.104 76.969 243.684 76.969 209.253 76.969 174.821 71.917 140.401 61.952 106.947 51.885 73.153 36.796 40.327 17.103 9.381 13.244 3.316 6.693 0 0 0"/></g>
+      <g class="word"><path class="lt" transform="matrix(1,0,0,-1,277.0991,983.0049)" d="M0 0C5.446-9.749 12.755-17.415 21.93-23.005 31.101-28.595 41.351-31.39 52.675-31.39 59.841-31.39 66.361-30.604 72.24-29.025 78.116-27.449 83.454-25.085 88.257-21.93 93.058-18.779 97.321-15.05 101.05-10.75V-26.66C94.741-32.25 87.861-36.442 80.41-39.237 72.956-42.032 63.71-43.43 52.675-43.43 42.21-43.43 32.499-41.528 23.542-37.732 14.583-33.937 6.806-28.595 .215-21.715-6.379-14.835-11.54-6.665-15.265 2.795-18.994 12.255-20.855 22.575-20.855 33.755-20.855 44.935-18.994 55.255-15.265 64.715-11.54 74.175-6.379 82.345 .215 89.225 6.806 96.104 14.583 101.443 23.542 105.242 32.499 109.038 42.21 110.939 52.675 110.939 63.71 110.939 72.956 109.542 80.41 106.747 87.861 103.952 94.741 99.76 101.05 94.17V78.475C97.321 82.774 93.021 86.464 88.15 89.548 83.275 92.628 77.9 94.956 72.025 96.535 66.146 98.11 59.696 98.899 52.675 98.899 41.351 98.899 31.101 96.139 21.93 90.622 12.755 85.103 5.446 77.471 0 67.725-5.449 57.976-8.17 46.655-8.17 33.755-8.17 20.996-5.449 9.745 0 0" style="--d:2.3s"/><path class="lt" transform="matrix(1,0,0,-1,484.7886,1024.5)" d="M0 0H-11.18V90.515L0 106.425ZM-65.575 8.385-76.755-7.525V98.9H-65.575ZM-76.755-7.525-75.68 9.675 0 106.425-1.075 89.225Z" style="--d:2.33s"/><path class="lt" transform="matrix(1,0,0,-1,595.5132,1024.5)" d="M0 0H-11.18V88.365H-67.725V34.4C-67.725 26.66-68.767 20.243-70.842 15.157-72.922 10.068-75.969 6.269-79.98 3.763-83.995 1.253-88.869 0-94.6 0V10.32C-90.3 10.32-86.611 12.255-83.527 16.125-80.447 19.995-78.905 26.086-78.905 34.4V98.9H0Z" style="--d:2.37s"/><path class="lt" transform="matrix(1,0,0,-1,637.4385,1071.7998)" d="M0 0H-12.47L12.9 57.405-27.09 146.2H-13.76L22.145 61.92 16.985 62.35 52.03 146.2H64.5Z" style="--d:2.4s"/><path class="lt" transform="matrix(1,0,0,-1,795.2451,969.8896)" d="M0 0-9.029-10.32H-64.93V0ZM-14.62 16.125C-18.06 22.286-22.756 27.123-28.702 30.637-34.651 34.147-41.354 35.904-48.805 35.904-54.109 35.904-59.054 35.115-63.64 33.54-68.229 31.961-72.169 29.955-75.465 27.52-78.764 25.081-81.199 22.501-82.775 19.779V33.755C-79.765 37.194-75.142 40.168-68.907 42.677-62.672 45.184-55.974 46.439-48.805 46.439-39.204 46.439-30.566 44.216-22.897 39.774-15.231 35.33-9.174 29.239-4.729 21.5-.289 13.76 1.936 4.871 1.936-5.16 1.936-15.051-.289-23.902-4.729-31.713-9.174-39.526-15.231-45.654-22.897-50.096-30.566-54.54-39.204-56.761-48.805-56.761-55.974-56.761-62.672-55.541-68.907-53.105-75.142-50.67-79.765-47.66-82.775-44.075V-30.101C-81.199-32.681-78.764-35.227-75.465-37.732-72.169-40.242-68.229-42.285-63.64-43.86-59.054-45.439-54.109-46.226-48.805-46.226-41.354-46.226-34.651-44.472-28.702-40.958-22.756-37.447-18.06-32.609-14.62-26.445-11.18-20.284-9.46-13.189-9.46-5.16-9.46 2.865-11.18 9.96-14.62 16.125" style="--d:2.44s"/><path class="lt" transform="matrix(1,0,0,-1,0,1400)" d="M836.954 375.5H825.77297V471.39H836.954ZM860.389 463.865H802.339V474.4H860.389Z" style="--d:2.47s"/><path class="lt acc" transform="matrix(1,0,0,-1,952.1943,1024.5)" d="M0 0H-11.18V90.515L0 106.425ZM-65.575 8.385-76.755-7.525V98.9H-65.575ZM-76.755-7.525-75.68 9.675 0 106.425-1.075 89.225Z" style="--d:2.51s"/><path class="lt acc" transform="matrix(1,0,0,-1,1050.0186,925.5996)" d="M0 0-46.654-40.851 4.085-98.9H-10.104L-60.845-40.851-14.404 0ZM-56.76-98.9H-67.94V0H-56.76Z" style="--d:2.54s"/><path class="lt acc" transform="matrix(1,0,0,-1,1073.4512,936.5654)" d="M0 0C3.726 3.011 8.563 5.946 14.513 8.815 20.458 11.681 27.661 13.115 36.12 13.115 43.285 13.115 49.413 11.859 54.502 9.353 59.589 6.844 63.495 3.296 66.22-1.29 68.941-5.879 70.305-11.395 70.305-17.845V-87.935H59.125V-17.845C59.125-11.109 57.009-5.912 52.782-2.257 48.553 1.397 43 3.226 36.12 3.226 31.39 3.226 27.09 2.614 23.22 1.397 19.35 .179 15.943-1.363 13.008-3.225 10.068-5.089 7.596-6.88 5.59-8.6ZM6.234-70.842C8.526-73.926 11.573-76.217 15.372-77.722 19.168-79.228 23.22-79.979 27.52-79.979 33.54-79.979 38.948-78.834 43.752-76.54 48.553-74.248 52.315-70.949 55.04-66.649 57.761-62.35 59.125-57.119 59.125-50.954L61.705-57.404C61.705-63.714 60.093-69.337 56.867-74.282 53.643-79.228 49.269-83.097 43.752-85.892 38.232-88.688 31.961-90.085 24.939-90.085 19.061-90.085 13.578-88.973 8.492-86.752 3.403-84.531-.719-81.162-3.87-76.647-7.024-72.132-8.601-66.364-8.601-59.34-8.601-52.318-6.81-46.406-3.226-41.603 .355-36.802 5.23-33.146 11.395-30.637 17.556-28.131 24.51-26.875 32.25-26.875 38.27-26.875 43.393-27.594 47.622-29.024 51.849-30.459 55.288-32.108 57.942-33.97 60.593-35.834 62.491-37.409 63.64-38.699V-45.579C59.625-42.569 55.147-40.171 50.202-38.377 45.258-36.587 39.415-35.689 32.68-35.689 26.945-35.689 21.822-36.587 17.308-38.377 12.792-40.171 9.245-42.784 6.665-46.225 4.085-49.665 2.795-53.894 2.795-58.909 2.795-63.784 3.94-67.762 6.234-70.842" style="--d:2.58s"/></g>
+    </svg>
+  </div>
+  <script>
+    (function () {
+      var root = document.documentElement, el = document.getElementById('splash');
+      if (!el || !root.classList.contains('splash-on')) { if (el) el.remove(); return; }
+      var still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var started = false, closed = false, sound = null;
+      function close() {
+        if (closed) return;
+        closed = true;
+        el.classList.add('out');
+        setTimeout(function () { root.classList.remove('splash-on'); el.remove(); }, 480);
+      }
+      function start() {
+        if (started) return;
+        started = true;
+        el.classList.add(still ? 'still' : 'run');
+        setTimeout(close, still ? 900 : 3600);
+      }
+      start();
+      try {
+        sound = new Audio('./assets/brand/logo-sound.m4a');
+        var p = sound.play();
+        if (p && p.catch) p.catch(function () { /* autoplay refused (iOS): drawing runs silent */ });
+      } catch (e) { /* no audio support */ }
+      el.addEventListener('click', function () {
+        start();
+        close();
+        if (!sound) return;
+        var v = sound.volume;
+        var fade = setInterval(function () {
+          v = Math.max(0, v - 0.15);
+          try { sound.volume = v; } catch (e) { /* iOS: read-only volume */ }
+          if (v <= 0) { clearInterval(fade); sound.pause(); }
+        }, 40);
+      });
+    })();
+  </script>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand" id="brandHome" role="button" tabindex="0">
+          <div class="brand-mark" aria-hidden="true">
+            <img src="./assets/brand/siluetika-mark.svg" alt="" width="56" height="56">
+          </div>
+          <div>
+            <span class="brand-name">Силуэт<span class="brand-accent">ика</span></span>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="Разделы приложения">
+          <button class="nav-tab active" data-tab="home">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3.5 10.5 12 3.5l8.5 7V20a1 1 0 0 1-1 1H15v-6.2H9V21H4.5a1 1 0 0 1-1-1z"/>
+            </svg>
+            <span class="tab-label-full">Главная</span>
+            <span class="tab-label-short">Главная</span>
+          </button>
+          <button class="nav-tab" data-tab="plan">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+            </svg>
+            <span class="tab-label-full">План</span>
+            <span class="tab-label-short">План</span>
+          </button>
+          <button class="nav-tab" data-tab="nutrition">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 3v7a3 3 0 0 0 3 3v8M7 3v7M10 3v7a3 3 0 0 1-3 3M17 3c-2.2 2.5-2.5 7.5 0 10v8M17 3v18"/>
+            </svg>
+            <span class="tab-label-full">Питание</span>
+            <span class="tab-label-short">Еда</span>
+          </button>
+          <button class="nav-tab" data-tab="history">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 3v18h18"/>
+              <path d="m7 15 4-4 3 3 5-6"/>
+            </svg>
+            <span class="tab-label-full">Прогресс</span>
+            <span class="tab-label-short">Прогресс</span>
+          </button>
+          <button class="nav-tab" data-tab="profile">
+            <svg class="nav-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4.5 21a7.5 7.5 0 0 1 15 0"/>
+            </svg>
+            <span class="tab-label-full">Профиль</span>
+            <span class="tab-label-short">Профиль</span>
+          </button>
+        </nav>
+
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm" id="openAiSettingsBtn" title="Настройки AI Ассистента (опционально)">
+            <span class="status-dot" id="aiStatusDot"></span>
+            <span class="ai-btn-label-full">AI Ассистент</span>
+            <span class="ai-btn-label-short">AI</span>
+          </button>
+          <button type="button" class="btn btn-icon top-hr-btn" id="topHrBtn" title="Пульс с часов" aria-label="Пульс с часов"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><b id="topHrValue"></b></button>
+          <button class="btn btn-icon music-trigger-btn" id="openMusicBtn" title="Музыка для тренировки" aria-label="Музыка для тренировки">
+            <svg class="music-note-svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6" cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+            <span class="eq-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+          </button>
+          <button class="btn btn-icon" id="themeToggleBtn" title="Переключить тему" aria-label="Переключить тему">
+            <span id="themeIcon" style="display:inline-flex;align-items:center;justify-content:center">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- HOME DASHBOARD -->
+      <section class="tab-panel active" id="tab-home">
+        <div class="home-greet">
+          <span class="home-date" id="homeDate"></span>
+          <h1 class="home-title" id="homeTitle">Привет!</h1>
+        </div>
+        <div class="install-card hidden" id="installCard">
+          <img class="install-card-icon" src="./assets/brand/icon-192.png" alt="" width="44" height="44">
+          <div class="install-card-copy">
+            <strong>Силуэтика на главном экране</strong>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="installCardBtn">Установить</button>
+          <button type="button" class="btn btn-icon btn-ghost install-card-close" id="installCardClose" aria-label="Скрыть">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="home-grid" id="homeGrid"></div>
+      </section>
+
+      <!-- STEP-BY-STEP PROFILE & PHOTO WIZARD -->
+      <section class="tab-panel" id="tab-capture">
+        <div class="wizard" id="wizard">
+          <div class="wizard-top">
+            <button type="button" class="btn btn-icon btn-ghost" id="wizardCloseBtn" title="Закрыть" aria-label="Закрыть">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+            </button>
+            <div class="wizard-progress" aria-hidden="true"><span id="wizardProgressFill"></span></div>
+            <span class="wizard-count" id="wizardCount">1 / 9</span>
+          </div>
+
+          <form id="profileForm" class="wizard-form" novalidate>
+            <div class="wizard-step active" data-step="about">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Анкета</span>
+                <h2>Расскажите о себе</h2>
+                <p class="muted">По этим данным рассчитаем нагрузку, калории и пульсовые зоны.</p>
+              </div>
+              <div class="segmented" id="sexChoices">
+                <label><input type="radio" name="sex" value="male" checked><span>Мужчина</span></label>
+                <label><input type="radio" name="sex" value="female"><span>Женщина</span></label>
+                <label><input type="radio" name="sex" value="unspecified"><span>Не указывать</span></label>
+              </div>
+              <div class="wizard-num-grid">
+                <label class="num-card"><span>Возраст</span><input type="number" name="age" id="profileAge" min="14" max="85" value="28" inputmode="numeric"><small>лет</small></label>
+                <label class="num-card"><span>Рост</span><input type="number" name="heightCm" id="profileHeight" min="120" max="230" value="178" inputmode="numeric"><small>см</small></label>
+                <label class="num-card"><span>Вес</span><input type="number" name="weightKg" id="profileWeight" min="35" max="220" step="0.5" value="78" inputmode="decimal"><small>кг</small></label>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-step="goal">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Цель</span>
+                <h2>Чего хотите добиться?</h2>
+                <p class="muted">Под цель подстроятся упражнения и питание.</p>
+              </div>
+              <div class="choice-grid wizard-choices" id="goalChoices">
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="recomp" checked>
+                  <span class="choice-title">Рельеф и жиросжигание</span>
+                  <span class="choice-desc">Тонус, подтяжка и расход калорий</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="muscle">
+                  <span class="choice-title">Набор мышечной массы</span>
+                  <span class="choice-desc">Гипертрофия, плечи и V-силуэт</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="posture">
+                  <span class="choice-title">Осанка и здоровый тонус</span>
+                  <span class="choice-desc">Спина, шея, таз и мобильность</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="goal" value="strength">
+                  <span class="choice-title">Сила и атлетизм</span>
+                  <span class="choice-desc">Базовые движения и прогресс весов</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-step="place">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Инвентарь</span>
+                <h2>Где будете тренироваться?</h2>
+                <p class="muted">Подберём упражнения под то, что есть под рукой.</p>
+              </div>
+              <div class="choice-grid wizard-choices" id="equipmentChoices">
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="home_bodyweight" checked>
+                  <span class="choice-title">Дома (свой вес)</span>
+                  <span class="choice-desc">Коврик и стена</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="home_dumbbells">
+                  <span class="choice-title">Дома с гантелями</span>
+                  <span class="choice-desc">Пара гантелей / скамья</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="home_trx">
+                  <span class="choice-title">Петли TRX</span>
+                  <span class="choice-desc">Дома, на улице или в зале</span>
+                </label>
+                <label class="choice-card">
+                  <input type="radio" name="equipment" value="gym">
+                  <span class="choice-title">Тренажёрный зал</span>
+                  <span class="choice-desc">Штанга, блоки, турник</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-step="level">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Нагрузка</span>
+                <h2>Уровень и частота</h2>
+                <p class="muted">Это можно поменять в любой момент в профиле.</p>
+              </div>
+              <div class="field-group">
+                <span class="group-label">Уровень подготовки</span>
+                <div class="segmented" id="levelChoices">
+                  <label><input type="radio" name="level" value="beginner" checked><span>Новичок</span></label>
+                  <label><input type="radio" name="level" value="intermediate"><span>Средний</span></label>
+                  <label><input type="radio" name="level" value="advanced"><span>Продвинутый</span></label>
+                </div>
+              </div>
+              <div class="field-group">
+                <span class="group-label">Тренировок в неделю</span>
+                <div class="segmented" id="daysChoices">
+                  <label><input type="radio" name="daysPerWeek" value="3" checked><span>3 дня</span></label>
+                  <label><input type="radio" name="daysPerWeek" value="4"><span>4 дня</span></label>
+                  <label><input type="radio" name="daysPerWeek" value="5"><span>5 дней</span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-step="front">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 1 из 4</span>
+                <h2>Фото спереди</h2>
+                <p class="muted">Встаньте прямо, руки слегка отведены от корпуса.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="front"></div>
+              <p class="wizard-tip">2–3 метра до камеры, облегающая одежда, ровный фон.</p>
+              <details class="wizard-demo">
+                <summary>Нет фото под рукой? Посмотрите на демо-примере</summary>
+                <div class="demo-buttons" id="demoPresetButtons"></div>
+              </details>
+            </div>
+
+            <div class="wizard-step" data-step="side">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 2 из 4</span>
+                <h2>Фото сбоку</h2>
+                <p class="muted">Встаньте боком в обычной расслабленной стойке.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="side"></div>
+              <p class="wizard-tip">По этому фото оцениваем наклон головы, плеч и таза.</p>
+            </div>
+
+            <div class="wizard-step" data-step="back">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 3 из 4</span>
+                <h2>Фото со спины</h2>
+                <p class="muted">Встаньте спиной к камере, плечи расслаблены.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="back"></div>
+              <p class="wizard-tip">Помогает увидеть перекос лопаток и асимметрию.</p>
+            </div>
+
+            <div class="wizard-step" data-step="side2">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Фото 4 из 4 • по желанию</span>
+                <h2>Второй бок</h2>
+                <p class="muted">Другой профиль уточняет симметрию. Можно пропустить.</p>
+              </div>
+              <div class="wizard-photo" data-wizard-angle="side2"></div>
+            </div>
+
+            <div class="wizard-step" data-step="finish">
+              <div class="wizard-head">
+                <span class="wizard-eyebrow">Готово</span>
+                <h2 id="wizardFinishTitle">Всё готово к анализу</h2>
+                <p class="muted" id="wizardFinishText"></p>
+              </div>
+              <div class="wizard-thumbs" id="wizardThumbs"></div>
+              <!-- Inline AI Assistant Card -->
+              <div class="ai-inline-card" id="inlineAiCard">
+                <div class="ai-inline-head">
+                  <div>
+                    <span class="ai-inline-title">✦ AI Ассистент (сервер ELLHOME)</span>
+                    <span class="muted tiny" id="inlineAiSub">Подключаемся к защищённому серверу AI Ассистента (ключ хранится на сервере)...</span>
+                  </div>
+                  <label class="switch-compact">
+                    <input type="checkbox" id="inlineAiToggle" checked>
+                    <span>Вкл</span>
+                  </label>
+                </div>
+
+                <div class="ai-inline-body hidden" id="inlineAiFields">
+                  <div class="form-row-2">
+                    <label class="field">
+                      <span>Провайдер ИИ</span>
+                      <select id="inlineAiProvider">
+                        <option value="openai">OpenAI (GPT-6 Luna / 6.2 Sol)</option>
+                        <option value="gemini">Google Gemini (4 Hydrogen / 3.8 Flash / 3.5 Lite)</option>
+                        <option value="openrouter">OpenRouter (Gemini / GPT / Claude)</option>
+                        <option value="custom">Custom / ProxyAPI / Ollama</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span>Модель ИИ</span>
+                      <input type="text" id="inlineAiModel" list="aiModelSuggestions" placeholder="gpt-6-luna">
+                    </label>
+                  </div>
+                  <datalist id="aiModelSuggestions"></datalist>
+                  <label class="field hidden" id="inlineAiBaseUrlWrap">
+                    <span>Base URL (OpenAI-совместимый эндпоинт)</span>
+                    <input type="url" id="inlineAiBaseUrl" placeholder="https://api.proxyapi.ru/openai/v1">
+                  </label>
+                  <div class="ai-key-row">
+                    <label class="field" style="flex:1">
+                      <span>API-ключ (необязательно — без ключа сработает специальный алгоритм)</span>
+                      <input type="password" id="inlineAiKey" placeholder="sk-... / AIza... / sk-or-..." autocomplete="off">
+                    </label>
+                    <button type="button" class="btn btn-outline btn-sm" id="inlineAiTestBtn">Проверить</button>
+                  </div>
+                  <div class="ai-test-feedback hidden" id="inlineAiFeedback"></div>
+                </div>
+              </div>
+
+              <div class="analyze-cta-wrap">
+                <button type="submit" class="btn btn-primary btn-lg btn-block" id="runAnalysisBtn">
+                  <span>Проанализировать и составить план</span>
+                </button>
+                <button type="button" class="btn btn-primary btn-lg btn-block hidden" id="planWithoutPhotosBtn">Составить план по анкете</button>
+                <div class="analyze-status hidden" id="analyzeStatus">
+                  <span class="spinner"></span>
+                  <span id="analyzeStatusText">Анализируем ключевые точки и осанку...</span>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm wizard-clear-btn" id="clearPhotosBtn">Очистить фото</button>
+              </div>
+            </div>
+          </form>
+
+          <div class="wizard-nav" id="wizardNav">
+            <button type="button" class="btn btn-outline btn-lg" id="wizardBackBtn">Назад</button>
+            <button type="button" class="btn btn-primary btn-lg" id="wizardNextBtn">Далее</button>
+          </div>
+        </div>
+      </section>
+      <!-- TAB 2: BODY & POSTURE ANALYSIS -->
+      <section class="tab-panel" id="tab-analysis">
+        <button type="button" class="btn btn-ghost btn-sm back-link" id="analysisBackBtn">← Назад</button>
+        <div class="empty-state" id="analysisEmptyState">
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 11V7.5A1.5 1.5 0 0 1 7.5 6H11M25 6h3.5A1.5 1.5 0 0 1 30 7.5V11M30 25v3.5a1.5 1.5 0 0 1-1.5 1.5H25M11 30H7.5A1.5 1.5 0 0 1 6 28.5V25" stroke-opacity="0.65"/>
+              <circle cx="18" cy="10.5" r="2.6"/>
+              <path d="M12.5 16h11M18 13.5v8.5m-4.2-6 1.4 6.2m7-6.2-1.4 6.2M15.2 22l-1.5 6.5m7.1-6.5 1.5 6.5"/>
+              <path d="M7.5 16h21" stroke-dasharray="2 2.5" stroke-opacity="0.75"/>
+            </svg>
+          </div>
+          <h2>Пока нет данных анализа</h2>
+          <p class="muted">Добавьте фотографии (или выберите демо-пример) на шаге 1 и нажмите «Проанализировать и составить план».</p>
+          <button class="btn btn-primary" data-goto-tab="capture">Перейти к фото</button>
+        </div>
+
+        <div class="analysis-layout hidden" id="analysisContent">
+          <!-- Left: Interactive Photo Overlay Canvas -->
+          <div class="panel analysis-stage-panel">
+            <div class="panel-header">
+              <div class="angle-tabs" id="analysisAngleTabs"></div>
+              <span class="badge badge-muted" id="cvMethodBadge">Алгоритм анализа</span>
+            </div>
+
+            <div class="overlay-toolbar">
+              <label class="toggle-chip"><input type="checkbox" id="layerPosture" checked><span>Линии осанки</span></label>
+              <label class="toggle-chip"><input type="checkbox" id="layerProportions" checked><span>Пропорции</span></label>
+              <label class="toggle-chip"><input type="checkbox" id="layerSkeleton" checked><span>Скелет</span></label>
+              <button class="btn btn-sm btn-outline" id="toggleEditPointsBtn">Поправить точки</button>
+              <button class="btn btn-sm btn-ghost" id="downloadAnnotatedBtn">Скачать PNG</button>
+            </div>
+
+            <div class="edit-hint hidden" id="editPointsHint">
+              Перетаскивайте цветные точки прямо на фото для точной калибровки плеч, талии, головы или таза — метрики пересчитываются в реальном времени.
+              <button class="btn btn-xs btn-primary" id="rebuildPlanFromEditsBtn">Обновить план по точкам</button>
+            </div>
+
+            <div class="canvas-stage" id="analysisCanvasStage">
+              <div class="fs-edit-bar" id="fsEditBar">
+                <span class="fs-edit-title">Перетаскивайте точки пальцем</span>
+                <div class="fs-edit-actions">
+                  <button type="button" class="btn btn-sm btn-outline" id="fsRebuildPlanBtn">Обновить план</button>
+                  <button type="button" class="btn btn-sm btn-primary" id="fsDoneEditBtn">Готово</button>
+                </div>
+              </div>
+              <canvas id="analysisCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Right: Metrics, Findings, AI Vision -->
+          <div class="analysis-report-col">
+            <div class="panel">
+              <div class="score-hero">
+                <div class="score-ring-wrap">
+                  <svg viewBox="0 0 110 110" class="score-ring">
+                    <circle cx="55" cy="55" r="52" class="ring-orbit"/>
+                    <circle cx="55" cy="55" r="44" class="ring-track"/>
+                    <circle cx="55" cy="55" r="44" class="ring-fill" id="postureScoreArc"/>
+                  </svg>
+                  <div class="score-ring-text">
+                    <span class="score-val" id="postureScoreVal">—</span>
+                    <span class="score-sub">Осанка</span>
+                  </div>
+                </div>
+                <div class="score-meta">
+                  <div class="pill-badge" id="bodyFrameBadge">Силуэт</div>
+                  <h2 id="analysisHeadline">Результат биомеханического анализа</h2>
+                  <p class="muted small" id="analysisSubline">Метрики рассчитаны по загруженным ракурсам.</p>
+                </div>
+              </div>
+
+              <div class="metrics-grid" id="metricsGrid"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-header">
+                <h3>Ключевые наблюдения и зоны внимания</h3>
+              </div>
+              <div class="findings-list" id="findingsList"></div>
+            </div>
+
+            <div class="panel" id="aiVisionPanel">
+              <div class="panel-header">
+                <div>
+                  <h3>Анализ от AI Ассистента (OpenAI / Gemini / OpenRouter)</h3>
+                  <p class="muted small">Глубокий анализ фигуры по фото и составление персональной программы тренировок</p>
+                </div>
+                <button class="btn btn-sm btn-outline" id="runAiVisionNowBtn">Запустить AI-анализ</button>
+              </div>
+              <div id="aiVisionBody"></div>
+            </div>
+
+            <div class="action-bar">
+              <button class="btn btn-outline" id="saveCheckinBtn">Сохранить замер в историю</button>
+              <button class="btn btn-primary btn-lg" id="gotoPlanBtn">Перейти к плану тренировок →</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: WORKOUT PLAN & ANIMATED EXERCISES -->
+      <section class="tab-panel" id="tab-plan">
+        <div class="empty-state" id="planEmptyState">
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6.5" y="12" width="3.5" height="12" rx="1.5"/>
+              <rect x="26" y="12" width="3.5" height="12" rx="1.5"/>
+              <path d="M4 15v6M32 15v6M10 18h16"/>
+              <path d="M13 26.5h10" stroke-dasharray="2 2.5" stroke-opacity="0.7"/>
+            </svg>
+          </div>
+          <h2>План тренировок ещё не создан</h2>
+          <p class="muted">Ответьте на несколько вопросов, и программа будет готова за минуту.</p>
+          <button class="btn btn-primary" data-goto-tab="capture">Создать план</button>
+        </div>
+
+        <div class="hidden" id="planContent">
+          <div class="plan-hero">
+            <div class="plan-hero-top">
+              <span class="home-eyebrow" id="planGoalBadge">Персональный план</span>
+              <button type="button" class="btn btn-icon plan-settings-btn" id="planSettingsBtn" title="Настроить план" aria-label="Настроить план" aria-expanded="false" aria-controls="planSettingsPanel">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+              </button>
+            </div>
+            <h2 class="plan-hero-title" id="planTitle">Ваша недельная программа</h2>
+            <div class="focus-chips" id="planFocusChips"></div>
+            <div class="plan-settings hidden" id="planSettingsPanel">
+              <label class="plan-setting">
+                <span>Где тренируетесь</span>
+                <select id="quickEquipmentSelect">
+                  <option value="home_bodyweight">Дома (свой вес)</option>
+                  <option value="home_dumbbells">Дома с гантелями</option>
+                  <option value="home_trx">Петли TRX</option>
+                  <option value="gym">Тренажёрный зал</option>
+                </select>
+              </label>
+              <label class="plan-setting">
+                <span>Дней в неделю</span>
+                <select id="quickDaysSelect">
+                  <option value="3">3 дня</option>
+                  <option value="4">4 дня</option>
+                  <option value="5">5 дней</option>
+                </select>
+              </label>
+              <button class="btn btn-primary btn-sm hidden" id="aiRebuildPlanBtn" title="AI заново составит план под выбранный инвентарь и число дней">✦ Пересобрать через AI</button>
+            </div>
+          </div>
+
+          <div class="week-cycle-bar hidden" id="planWeekBar">
+            <div class="week-tabs" id="planWeekTabs" role="tablist" aria-label="Недели цикла"></div>
+            <p class="muted small week-cycle-note" id="planCycleNote"></p>
+          </div>
+
+          <div class="plan-days" id="planDayTabs" role="tablist" aria-label="Дни программы"></div>
+
+          <div class="plan-day-card">
+            <div id="daySummaryBar"></div>
+            <button class="btn home-start-btn plan-start-btn" id="startWorkoutBtn"><svg class="btn-inline-svg" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><polygon points="7,5 19,12 7,19"/></svg><span>Начать тренировку</span></button>
+            <div class="plan-day-tools">
+              <button type="button" class="btn plan-tool-btn plan-hr-btn" id="planHrBtn" title="Пульс с часов"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><span id="planHrLabel">Пульс</span></button>
+              <button type="button" class="btn plan-tool-btn" id="planMusicBtn" title="Музыка для тренировки">
+                <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+                </svg>
+                <span id="planMusicLabel">Музыка</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="planExercisesContainer"></div>
+
+          <div class="cardio-week-card hidden" id="planCardioCard"></div>
+
+          <button class="btn btn-outline plan-catalog-btn" id="openCatalogBtn">Все упражнения</button>
+        </div>
+      </section>
+      <!-- TAB 4: PROGRESS & HISTORY -->
+      <section class="tab-panel" id="tab-history">
+        <div class="history-kpis" id="historyKpis"></div>
+
+        <div class="progress-grid">
+          <div class="progress-card">
+            <div class="progress-card-head">
+              <h3>Активность за 7 дней</h3>
+              <span class="muted small" id="activityWeekTotal"></span>
+            </div>
+            <div id="activityWeekChart"></div>
+          </div>
+
+          <div class="progress-card">
+            <div class="progress-card-head">
+              <h3>Тренировки</h3>
+              <span class="muted small" id="workoutLogsCount"></span>
+            </div>
+            <div class="workout-logs-list" id="workoutLogsList"></div>
+          </div>
+        </div>
+
+        <div class="progress-card progress-body-card">
+          <div class="progress-card-head">
+            <h3>Фигура</h3>
+            <button type="button" class="btn btn-outline btn-sm" id="historyNewAnalysisBtn">Новый замер</button>
+          </div>
+          <div class="chart-wrap" id="progressChartWrap"></div>
+          <div id="compareContainer"></div>
+          <div class="checkins-list" id="checkinsList"></div>
+        </div>
+
+        <div class="hidden" aria-hidden="true">
+          <button type="button" id="exportBackupBtn" tabindex="-1">Экспорт JSON</button>
+          <input type="file" id="importBackupInput" accept="application/json" tabindex="-1">
+        </div>
+      </section>
+      <!-- TAB 5: NUTRITION & FOOD PHOTO AI -->
+      <section class="tab-panel" id="tab-nutrition">
+        <!-- Compact Daily Summary Hero -->
+        <div class="panel nutrition-overview-panel">
+          <div class="nutri-top-row">
+            <div class="date-stepper">
+              <button type="button" class="date-step-btn" id="mealPrevDayBtn" title="Предыдущий день" aria-label="Предыдущий день">‹</button>
+              <label class="date-center-pill">
+                <span id="mealDateLabel">Сегодня</span>
+                <input type="date" id="mealDateInput" class="date-native-overlay" aria-label="Выбрать дату">
+              </label>
+              <button type="button" class="date-step-btn" id="mealNextDayBtn" title="Следующий день" aria-label="Следующий день">›</button>
+              <button type="button" class="btn btn-ghost btn-sm hidden" id="mealTodayBtn">Сегодня</button>
+            </div>
+            <span class="nutri-goal-chip" id="nutritionTargetSub">Норма по вашему профилю</span>
+          </div>
+
+          <div id="nutritionMacroCards"></div>
+        </div>
+
+        <div class="nutrition-main-grid">
+          <!-- Left: Simple & Big Add-Meal Card -->
+          <div class="panel meal-capture-panel" id="mealPhotoDropzone">
+            <div class="meal-panel-head">
+              <h2>Добавить еду</h2>
+              <span class="pill-badge pill-badge-compact" id="nutritionAiBadge">✦ ИИ по фото</span>
+            </div>
+
+            <div class="meal-type-pills" id="mealTypeChoices" role="radiogroup" aria-label="Приём пищи">
+              <label class="meal-type-pill"><input type="radio" name="mealType" value="breakfast"><span>Завтрак</span></label>
+              <label class="meal-type-pill"><input type="radio" name="mealType" value="lunch" checked><span>Обед</span></label>
+              <label class="meal-type-pill"><input type="radio" name="mealType" value="dinner"><span>Ужин</span></label>
+              <label class="meal-type-pill"><input type="radio" name="mealType" value="snack"><span>Перекус</span></label>
+            </div>
+
+            <!-- Big 2-Button Photo Picker (shown when no photo yet) -->
+            <div class="meal-big-picker" id="mealPhotoEmpty">
+              <button type="button" class="meal-action-tile primary-tile" id="mealCameraBtn">
+                <span class="tile-orb obsidian-orb" aria-hidden="true">
+                  <svg viewBox="0 0 28 28" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.5 5h-7L8 8H4.5A2.5 2.5 0 0 0 2 10.5v11A2.5 2.5 0 0 0 4.5 24h19a2.5 2.5 0 0 0 2.5-2.5v-11A2.5 2.5 0 0 0 23.5 8H20l-2.5-3z"/>
+                    <circle cx="14" cy="15.5" r="4.2"/>
+                  </svg>
+                </span>
+                <strong>Снять блюдо</strong>
+                <span>На камеру</span>
+              </button>
+              <input type="file" id="mealCameraNativeInput" accept="image/*" capture="environment" hidden>
+
+              <label class="meal-action-tile">
+                <span class="tile-orb" aria-hidden="true">
+                  <svg viewBox="0 0 28 28" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="22" height="20" rx="3.5"/>
+                    <circle cx="9.5" cy="10.5" r="2"/>
+                    <path d="m25 18-6-6L7 24"/>
+                  </svg>
+                </span>
+                <strong>Из галереи</strong>
+                <span>Готовое фото</span>
+                <input type="file" id="mealPhotoInput" accept="image/*" hidden>
+              </label>
+            </div>
+
+            <!-- Photo Preview (shown when photo selected) -->
+            <div class="meal-preview-wrap hidden" id="mealPhotoPreviewWrap">
+              <img id="mealPhotoPreviewImg" alt="Фото блюда">
+              <div class="meal-scan-overlay" aria-hidden="true">
+                <span class="scan-corner is-tl"></span>
+                <span class="scan-corner is-tr"></span>
+                <span class="scan-corner is-bl"></span>
+                <span class="scan-corner is-br"></span>
+                <span class="scan-beam"></span>
+              </div>
+              <div class="meal-scan-label" role="status" aria-live="polite">
+                <span class="scan-label-dot" aria-hidden="true"></span>
+                <span id="mealScanLabelText">Сканируем блюдо</span>
+              </div>
+              <button type="button" class="meal-clear-photo-btn" id="clearMealPhotoBtn">✕ Убрать фото</button>
+            </div>
+
+            <label class="meal-note-box">
+              <span class="meal-note-label">Или опишите словами</span>
+              <textarea id="mealNoteInput" rows="2" placeholder="Гречка с курицей, 2 яйца, капучино 300 мл"></textarea>
+            </label>
+
+            <button type="button" class="btn btn-primary meal-cta-btn" id="analyzeMealBtn">
+              ✦ Посчитать калории и БЖУ
+            </button>
+
+            <div class="meal-secondary-row">
+              <button type="button" class="btn btn-outline meal-sec-btn" id="manualMealBtn">
+                <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                </svg>
+                <span>Ввести вручную</span>
+              </button>
+              <button type="button" class="btn btn-ghost meal-sec-btn" id="mealSampleBtn">
+                <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="8"/>
+                  <circle cx="12" cy="12" r="4.2"/>
+                </svg>
+                <span>Демо-тарелка</span>
+              </button>
+            </div>
+
+            <div class="analyze-status hidden" id="mealAnalyzeStatus">
+              <span class="spinner"></span>
+              <span id="mealAnalyzeStatusText">Распознаём продукты и считаем КБЖУ...</span>
+            </div>
+
+            <!-- Interactive Draft / Editable Breakdown -->
+            <div class="meal-draft-card hidden" id="mealDraftCard">
+              <div class="draft-head">
+                <div class="draft-title-wrap">
+                  <span class="draft-step-hint" id="draftModeLabel">Проверьте вес продуктов (кнопки − / + меняют КБЖУ на лету):</span>
+                  <input type="text" id="draftDishName" class="draft-dish-input" placeholder="Название блюда">
+                </div>
+                <div class="draft-badges" id="draftBadges"></div>
+              </div>
+
+              <p class="muted small hidden" id="draftPortionNote"></p>
+
+              <div class="draft-ingredients-list" id="draftIngredientsList"></div>
+
+              <button type="button" class="btn btn-outline draft-add-btn" id="addDraftIngredientBtn">+ Добавить продукт</button>
+
+              <div class="draft-totals-bar" id="draftTotalsBar"></div>
+
+              <div class="draft-ai-feedback hidden" id="draftAiFeedback"></div>
+
+              <div class="draft-footer">
+                <button type="button" class="btn btn-primary meal-cta-btn" id="saveDraftMealBtn">✓ Сохранить в дневник</button>
+                <button type="button" class="btn btn-ghost draft-cancel-btn" id="discardDraftMealBtn">Отмена</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Daily Food Log & 7-Day Trend -->
+          <div class="nutrition-right-col">
+            <div class="panel">
+              <div class="meal-panel-head">
+                <h2 id="dailyMealsTitle">Съедено за день</h2>
+                <span class="badge badge-good" id="dailyMealsSummaryBadge">0 ккал</span>
+              </div>
+              <div class="daily-meals-list" id="dailyMealsList"></div>
+            </div>
+
+            <div class="panel">
+              <div class="meal-panel-head">
+                <h3>Калории за 7 дней</h3>
+              </div>
+              <div id="weeklyNutritionMini"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE & SETTINGS -->
+      <section class="tab-panel" id="tab-profile">
+        <div class="profile-hero">
+          <div class="profile-avatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+          </div>
+          <div class="profile-hero-copy">
+            <h2>Мой профиль</h2>
+            <p class="muted small" id="profileSummaryLine"></p>
+          </div>
+          <button type="button" class="btn btn-icon" data-profile-edit="about" title="Изменить данные" aria-label="Изменить данные"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Тренировки</span>
+          <button type="button" class="settings-row" data-profile-edit="goal"><span class="settings-label">Цель</span><span class="settings-value" id="profileGoalVal"></span></button>
+          <button type="button" class="settings-row" data-profile-edit="place"><span class="settings-label">Место и инвентарь</span><span class="settings-value" id="profilePlaceVal"></span></button>
+          <button type="button" class="settings-row" data-profile-edit="level"><span class="settings-label">Уровень и частота</span><span class="settings-value" id="profileLevelVal"></span></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Анализ фигуры</span>
+          <button type="button" class="settings-row" id="profileNewAnalysisBtn"><span class="settings-label">Новый анализ по фото</span><span class="settings-value" id="profilePhotoVal"></span></button>
+          <button type="button" class="settings-row" id="profileLastAnalysisBtn"><span class="settings-label">Результат анализа</span><span class="settings-value" id="profileAnalysisVal"></span></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Устройства и настройки</span>
+          <button type="button" class="settings-row" id="profileHrBtn"><span class="settings-label">Часы и пульс</span><span class="settings-value" id="profileHrVal"></span></button>
+          <button type="button" class="settings-row" id="profileMusicBtn"><span class="settings-label">Музыка для тренировок</span><span class="settings-value" id="profileMusicVal"></span></button>
+          <button type="button" class="settings-row" id="profileAiBtn"><span class="settings-label">AI Ассистент</span><span class="settings-value" id="profileAiVal"></span></button>
+          <button type="button" class="settings-row" id="profileThemeBtn"><span class="settings-label">Оформление</span><span class="settings-value" id="profileThemeVal"></span></button>
+          <button type="button" class="settings-row hidden" id="profileInstallBtn"><span class="settings-label">Установить приложение</span><span class="settings-value" id="profileInstallVal"></span></button>
+        </div>
+
+        <div class="settings-group">
+          <span class="settings-title">Данные</span>
+          <button type="button" class="settings-row" id="profileExportBtn"><span class="settings-label">Сохранить резервную копию</span><span class="settings-value">JSON</span></button>
+          <button type="button" class="settings-row" id="profileImportBtn"><span class="settings-label">Восстановить из копии</span><span class="settings-value">JSON</span></button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL: CAMERA CAPTURE -->
+  <div class="modal-backdrop hidden" id="cameraModal" role="dialog" aria-modal="true" aria-labelledby="cameraModalTitle">
+    <div class="modal modal-camera">
+      <div class="modal-header">
+        <div>
+          <h3 id="cameraModalTitle">Съёмка ракурса</h3>
+          <p class="muted small" id="cameraModalHint">Встаньте в контур силуэта в полный рост</p>
+          <p class="muted tiny camera-guide-tip" id="cameraGuideTip">Телефон на уровне пояса, 2–3 м от вас. Линии «Макушка» и «Стопы» двигаются пальцем.</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="cameraModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="camera-viewport" id="cameraViewport">
+        <div class="camera-stage" id="cameraStage">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <img id="cameraPreviewImg" class="hidden" alt="Предпросмотр фото">
+          <div class="camera-guide-overlay" id="cameraGuideOverlay"></div>
+          <div class="camera-tip-chip hidden" id="cameraTipChip">Подвиньте линии «Макушка» и «Стопы» под свой рост</div>
+          <div class="camera-countdown hidden" id="cameraCountdown">3</div>
+          <div class="camera-error hidden" id="cameraError"></div>
+        </div>
+      </div>
+      <div class="camera-controls">
+        <div class="camera-settings-row" id="cameraLiveControls">
+          <div class="segmented segmented-sm" id="timerChoices">
+            <label><input type="radio" name="camTimer" value="0"><span>Сразу</span></label>
+            <label><input type="radio" name="camTimer" value="3" checked><span>3 сек</span></label>
+            <label><input type="radio" name="camTimer" value="5"><span>5 сек</span></label>
+            <label><input type="radio" name="camTimer" value="10"><span>10 сек</span></label>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm cam-timer-cycle" id="cameraTimerCycleBtn">Таймер 3 с</button>
+          <button class="btn btn-ghost btn-sm" id="cameraMirrorBtn">Зеркало</button>
+          <button class="btn btn-ghost btn-sm" id="cameraFlipBtn" aria-label="Сменить камеру"><span class="cam-btn-label">Камера </span>⇄</button>
+          <button class="btn btn-primary" id="cameraSnapBtn">Сделать фото</button>
+        </div>
+        <div class="camera-review-row hidden" id="cameraReviewControls">
+          <button class="btn btn-outline" id="cameraRetakeBtn">Переснять</button>
+          <button class="btn btn-primary" id="cameraAcceptBtn">Использовать это фото</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXERCISE DETAIL & ANIMATION -->
+  <div class="modal-backdrop hidden" id="exerciseModal" role="dialog" aria-modal="true" aria-labelledby="exerciseModalTitle">
+    <div class="modal modal-exercise">
+      <div class="modal-header">
+        <div>
+          <div class="pill-badge" id="exModalCategory">Упражнение</div>
+          <h3 id="exerciseModalTitle">Название упражнения</h3>
+        </div>
+        <button class="btn btn-icon" data-close-modal="exerciseModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="ex-modal-grid">
+        <div class="ex-anim-col">
+          <div class="ex-canvas-wrap">
+            <canvas id="exModalCanvas" width="520" height="390"></canvas>
+            <span class="phase-pill" id="exModalPhase">Движение</span>
+          </div>
+          <div class="anim-controls">
+            <button class="btn btn-sm btn-outline" id="exModalPlayPauseBtn">Пауза</button>
+            <div class="segmented segmented-sm" id="exModalSpeed">
+              <label><input type="radio" name="exSpeed" value="0.5"><span>0.5×</span></label>
+              <label><input type="radio" name="exSpeed" value="1" checked><span>1×</span></label>
+              <label><input type="radio" name="exSpeed" value="1.5"><span>1.5×</span></label>
+            </div>
+            <label class="toggle-chip"><input type="checkbox" id="exModalMusclesToggle" checked><span>Подсветка мышц</span></label>
+          </div>
+          <div class="muscle-tags" id="exModalMuscles"></div>
+        </div>
+        <div class="ex-info-col">
+          <p class="ex-modal-reason hidden" id="exModalReason"></p>
+          <div class="info-callout" id="exModalBreathing"></div>
+          <div class="info-block">
+            <h4>Техника выполнения</h4>
+            <ol id="exModalSteps"></ol>
+          </div>
+          <div class="info-block">
+            <h4>Частые ошибки</h4>
+            <ul id="exModalMistakes" class="mistakes-list"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SWAP EXERCISE -->
+  <div class="modal-backdrop hidden" id="swapModal" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>Заменить упражнение</h3>
+        <button class="btn btn-icon" data-close-modal="swapModal" aria-label="Закрыть">✕</button>
+      </div>
+      <p class="muted small" id="swapModalSubtitle">Выберите подходящую альтернативу под ваш инвентарь:</p>
+      <div class="swap-list" id="swapOptionsList"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: EXERCISE CATALOG (ALL ANIMATED) -->
+  <div class="modal-backdrop hidden" id="catalogModal" role="dialog" aria-modal="true">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <div>
+          <h3>Библиотека анимированных упражнений</h3>
+          <p class="muted small">Нажмите на любое упражнение, чтобы изучить технику и работу мышц</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="catalogModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="catalog-filters" id="catalogFilters">
+        <button class="filter-chip active" data-cat="all">Все</button>
+        <button class="filter-chip" data-cat="posture">Осанка</button>
+        <button class="filter-chip" data-cat="back">Спина</button>
+        <button class="filter-chip" data-cat="legs">Ноги и ягодицы</button>
+        <button class="filter-chip" data-cat="chest">Грудь</button>
+        <button class="filter-chip" data-cat="shoulders">Плечи</button>
+        <button class="filter-chip" data-cat="arms">Руки</button>
+        <button class="filter-chip" data-cat="core">Кор и пресс</button>
+        <button class="filter-chip" data-cat="cardio">Кардио</button>
+        <button class="filter-chip" data-cat="trx">TRX</button>
+      </div>
+      <div class="catalog-grid" id="catalogGrid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: AI VISION SETTINGS -->
+  <div class="modal-backdrop hidden" id="aiSettingsModal" role="dialog" aria-modal="true">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <div>
+          <h3>Настройки AI Ассистента</h3>
+          <p class="muted small">Подключите OpenAI, Google Gemini, OpenRouter или совместимый прокси</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="aiSettingsModal" aria-label="Закрыть">✕</button>
+      </div>
+      <form id="aiSettingsForm" class="stack-form">
+        <label class="switch-row">
+          <span>Автоматически запускать AI Ассистента при анализе фото</span>
+          <input type="checkbox" id="aiEnabledCheck">
+        </label>
+        <label class="field">
+          <span>Провайдер</span>
+          <select id="aiProviderSelect">
+            <option value="openai">OpenAI (GPT-6 Luna / 6.2 Sol)</option>
+            <option value="gemini">Google Gemini (4 Hydrogen / 3.8 Flash / 3.5 Lite)</option>
+            <option value="openrouter">OpenRouter (Gemini / GPT / Claude)</option>
+            <option value="custom">Custom / ProxyAPI / Ollama</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Модель</span>
+          <input type="text" id="aiModelInput" list="aiModelSuggestions" placeholder="gpt-6-luna">
+        </label>
+        <label class="field" id="aiBaseUrlField">
+          <span>Custom Base URL (опционально, для OpenAI-совместимых прокси)</span>
+          <input type="url" id="aiBaseUrlInput" placeholder="https://api.openai.com/v1">
+        </label>
+        <label class="field">
+          <span>API-ключ</span>
+          <input type="password" id="aiApiKeyInput" placeholder="sk-... / AIza... / sk-or-..." autocomplete="off">
+        </label>
+        <div class="ai-test-feedback hidden" id="modalAiFeedback"></div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="aiRememberKeyCheck">
+          <span>Сохранить ключ в этом браузере (иначе только до закрытия вкладки)</span>
+        </label>
+        <p class="muted tiny">
+          Ключ не записывается на диск сервера и используется только для прокси-запроса к выбранному провайдеру.
+          Можно также задать OPENAI_API_KEY / GEMINI_API_KEY / OPENROUTER_API_KEY в переменных окружения.
+        </p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="modalAiTestBtn">Проверить ключ</button>
+          <button type="button" class="btn btn-ghost" data-close-modal="aiSettingsModal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: WORKOUT MUSIC PLAYER -->
+  <div class="modal-backdrop music-modal-backdrop hidden" id="musicModal" role="dialog" aria-modal="true" aria-labelledby="musicModalTitle">
+    <div class="modal modal-sm music-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="musicModalTitle">Музыка для тренировки</h3>
+          <p class="muted small">Треки под темп блока со счётом, онлайн-радио или свои треки</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="musicModal" aria-label="Закрыть">✕</button>
+      </div>
+
+      <!-- Obsidian 3D Now-Playing Deck -->
+      <div class="music-hero-deck" id="musicHeroDeck">
+        <div class="music-deck-main">
+          <button type="button" class="music-play-orb" id="musicPlayToggleBtn" aria-label="Пуск / Пауза">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true" id="musicPlayToggleIcon">
+              <polygon points="8,5 19,12 8,19"/>
+            </svg>
+          </button>
+          <div class="music-deck-meta">
+            <div class="music-deck-status-row">
+              <span class="eq-bars eq-bars-deck" id="musicDeckEq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+              <span class="music-status-label" id="musicStatusLabel">Готово к запуску</span>
+            </div>
+            <strong class="music-now-title" id="musicNowTitle">Workout EDM</strong>
+            <span class="music-now-sub" id="musicNowSub">Кардио и темп • 128+ BPM</span>
+            <a class="music-now-credit hidden" id="musicNowCredit" href="https://www.jamendo.com" target="_blank" rel="noopener noreferrer">Jamendo • лицензия CC</a>
+          </div>
+          <div class="music-step-btns">
+            <button type="button" class="music-step-btn" id="musicPrevBtn" title="Предыдущая" aria-label="Предыдущая">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+            </button>
+            <button type="button" class="music-step-btn" id="musicNextBtn" title="Следующая" aria-label="Следующая">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="music-beat-row hidden" id="musicBeatRow">
+          <div class="music-beat-count" id="musicBeatCount">1</div>
+          <div class="music-beat-main">
+            <div class="music-beat-dots" id="musicBeatDots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="music-beat-meta">
+              <span id="musicBeatEight">Восьмёрка 1 из 4</span>
+              <span id="musicBeatBpm">128 BPM</span>
+            </div>
+          </div>
+          <button type="button" class="music-beat-tap" id="musicBeatTapBtn" title="Нажмите в момент, когда слышите «раз»">Тап на «1»</button>
+        </div>
+
+        <div class="music-vol-row">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+          <input type="range" id="musicVolumeRange" min="0" max="100" value="65" aria-label="Громкость музыки">
+          <span class="music-vol-pct" id="musicVolumePct">65%</span>
+        </div>
+      </div>
+
+      <div class="music-section-head">Под блоки тренировки • со счётом</div>
+      <div class="music-stations-grid" id="musicBlocksGrid"></div>
+
+      <div class="music-section-head">Онлайн-радио и офлайн-ритм</div>
+      <div class="music-stations-grid" id="musicStationsGrid"></div>
+
+      <div class="music-local-box">
+        <label class="btn btn-outline btn-block music-local-btn">
+          <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span id="musicLocalBtnText">Выбрать свои треки с телефона (MP3 / M4A)</span>
+          <input type="file" id="musicLocalInput" accept="audio/*" multiple hidden>
+        </label>
+        <span class="muted tiny music-local-hint">Во время сигналов таймера отдыха музыка автоматически плавно приглушается.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: HEART RATE FROM SMART WATCH -->
+  <div class="modal-backdrop music-modal-backdrop hidden" id="hrModal" role="dialog" aria-modal="true" aria-labelledby="hrModalTitle">
+    <div class="modal modal-sm hr-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="hrModalTitle">Пульс с часов</h3>
+          <p class="muted small">Смарт-часы или нагрудный датчик по Bluetooth</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="hrModal" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="hr-live" id="hrLive">
+        <div class="hr-live-num"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><b id="hrLiveBpm">--</b><small>уд/мин</small></div>
+        <div class="hr-live-meta">
+          <strong id="hrLiveZone">Часы не подключены</strong>
+          <span class="muted small" id="hrLiveSub">Макс. пульс считается по возрасту из профиля</span>
+        </div>
+      </div>
+      <div class="hr-zone-bar" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><span class="hr-zone-marker hidden" id="hrZoneMarker"></span></div>
+      <div class="hr-zone-legend" id="hrZoneLegend"></div>
+      <p class="hr-status muted small" id="hrStatus"></p>
+      <div class="hr-unsupported hidden" id="hrUnsupported">
+        <p id="hrUnsupportedText">Этот браузер не умеет подключаться к Bluetooth-часам. Откройте сайт в Google Chrome.</p>
+        <div class="hr-unsupported-actions">
+          <a class="btn btn-primary btn-sm hidden" id="hrOpenChromeLink" href="#">Открыть в Chrome</a>
+          <button type="button" class="btn btn-outline btn-sm" id="hrCopyLinkBtn">Скопировать ссылку</button>
+        </div>
+      </div>
+      <div class="hr-actions">
+        <button type="button" class="btn btn-primary" id="hrConnectBtn">Подключить часы</button>
+        <button type="button" class="btn btn-outline hidden" id="hrDisconnectBtn">Отключить</button>
+      </div>
+      <button type="button" class="hr-link-btn" id="hrShowAllBtn">Часов нет в списке? Показать все Bluetooth-устройства</button>
+      <details class="hr-help" id="hrHelp">
+        <summary>Как включить трансляцию пульса на часах</summary>
+        <div class="hr-help-item"><strong>Xiaomi Smart Band 7 и новее, Redmi Watch, Xiaomi Watch S</strong><span>Приложение Mi Fitness → ваше устройство → «Трансляция пульса» (Heart rate broadcast). На части моделей пункт есть и на самих часах в настройках.</span></div>
+        <div class="hr-help-item"><strong>Часы на Wear OS: Xiaomi Watch 2, Galaxy Watch 4 и новее, Pixel Watch, TicWatch, OnePlus Watch</strong><span>Встроенной трансляции пульса у них нет. Установите на часы из Play Маркета приложение <a href="https://play.google.com/store/apps/details?id=lukas.the.coder.heartforbluetooth" target="_blank" rel="noopener">Heart for Bluetooth</a>, запустите его и включите передачу. Во время тренировки держите приложение открытым на часах.</span></div>
+        <div class="hr-help-item"><strong>Amazfit (Zepp OS)</strong><span>Приложение Zepp → Профиль → ваше устройство → «Обмен данными пульса» (Heart rate sharing). На часах можно включить в настройках тренировки.</span></div>
+        <div class="hr-help-item"><strong>Huawei и Honor (Watch GT 2 и новее, Band 6 и новее)</strong><span>На часах: Настройки → Настройки тренировки → «Трансляция пульса» (HR data broadcasts). Если пульс не идёт, запустите на часах любую тренировку.</span></div>
+        <div class="hr-help-item"><strong>Garmin, Polar, Coros, Suunto, нагрудные датчики</strong><span>Включите «Трансляцию ЧСС» в меню часов. Нагрудный датчик достаточно надеть.</span></div>
+        <p class="muted tiny">Затем нажмите «Подключить часы» и выберите их в списке. Нужны Chrome, включённый Bluetooth и разрешение «Устройства поблизости». Часы остаются подключены к своему приложению, это не мешает.</p>
+      </details>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN OVERLAY: INTERACTIVE WORKOUT PLAYER -->
+  <div class="workout-overlay hidden" id="workoutOverlay" role="dialog" aria-modal="true">
+    <div class="workout-topbar">
+      <div class="workout-title-wrap">
+        <button class="btn btn-ghost btn-sm" id="exitWorkoutBtn">← Выйти</button>
+        <div>
+          <strong id="wpDayTitle">Тренировка</strong>
+          <span class="muted small" id="wpProgressLabel">0 / 0 подходов</span>
+        </div>
+      </div>
+      <div class="workout-meta-right">
+        <span class="elapsed-badge" id="wpElapsedClock">00:00</span>
+        <button type="button" class="wp-hr-chip" id="wpHrBtn" title="Пульс с часов"><svg class="hr-heart" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 2.9 4.5 6.6 4.1c2.1-.2 3.9.9 5.4 2.8 1.5-1.9 3.3-3 5.4-2.8 3.7.4 5.7 4.3 4.2 7.7C19.5 16.4 12 21 12 21z"/></svg><b id="wpHrValue">Пульс</b></button>
+        <button type="button" class="wp-beat-chip hidden" id="wpBeatChip" title="Счёт музыки. Нажмите на «раз», чтобы подстроить"><b id="wpBeatNum">1</b><small id="wpBeatEight">1/4</small></button>
+        <button type="button" class="btn btn-outline btn-sm music-pill-btn" id="wpMusicBtn" title="Музыка для тренировки">
+          <svg class="btn-inline-svg music-note-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+          <span class="eq-bars" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span id="wpMusicLabel">Музыка</span>
+        </button>
+        <button class="btn btn-ghost btn-sm" id="wpSoundToggleBtn" title="Звук таймера">
+          <svg class="btn-inline-svg" viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+          <span>Звук вкл</span>
+        </button>
+        <button class="btn btn-primary btn-sm" id="wpFinishBtn">Завершить</button>
+      </div>
+    </div>
+    <div class="workout-progress-bar"><div class="workout-progress-fill" id="wpProgressBar"></div></div>
+
+    <div class="workout-body" id="wpActiveBody">
+      <!-- Left: Large live exercise animation -->
+      <div class="wp-stage-col">
+        <div class="wp-canvas-card">
+          <canvas id="wpAnimCanvas" width="560" height="420"></canvas>
+          <span class="phase-pill" id="wpPhasePill">Движение</span>
+        </div>
+        <div class="anim-controls">
+          <button class="btn btn-sm btn-outline" id="wpPlayPauseBtn">Пауза</button>
+          <div class="segmented segmented-sm" id="wpSpeedChoices">
+            <label><input type="radio" name="wpSpeed" value="0.5"><span>0.5×</span></label>
+            <label><input type="radio" name="wpSpeed" value="1" checked><span>1×</span></label>
+            <label><input type="radio" name="wpSpeed" value="1.5"><span>1.5×</span></label>
+          </div>
+          <label class="toggle-chip"><input type="checkbox" id="wpMusclesToggle" checked><span>Мышцы</span></label>
+        </div>
+        <div class="wp-cues-card">
+          <div class="wp-breathing" id="wpBreathingCue"></div>
+          <ol class="wp-steps" id="wpStepsList"></ol>
+        </div>
+      </div>
+
+      <!-- Right: Set tracker + Hold / Rest Timers -->
+      <div class="wp-tracker-col">
+        <div class="wp-ex-header">
+          <span class="pill-badge" id="wpSectionBadge">Основной блок</span>
+          <h2 id="wpExerciseTitle">Название упражнения</h2>
+          <p class="muted small" id="wpExerciseReason"></p>
+        </div>
+
+        <!-- Hold Timer (only for timed exercises like Plank) -->
+        <div class="timer-card hidden" id="wpHoldTimerCard">
+          <div class="timer-card-left">
+            <span class="timer-label">Таймер подхода (статика / интервал)</span>
+            <strong class="timer-big" id="wpHoldClock">00:45</strong>
+          </div>
+          <div class="timer-card-actions">
+            <button class="btn btn-primary btn-sm" id="wpHoldStartBtn">Старт</button>
+            <button class="btn btn-ghost btn-sm" id="wpHoldResetBtn">Сброс</button>
+          </div>
+        </div>
+
+        <!-- Rest Timer Banner -->
+        <div class="timer-card rest-card hidden" id="wpRestTimerCard">
+          <div class="rest-ring-wrap">
+            <svg viewBox="0 0 64 64" class="rest-ring">
+              <circle cx="32" cy="32" r="27" class="ring-track"/>
+              <circle cx="32" cy="32" r="27" class="ring-fill" id="wpRestArc"/>
+            </svg>
+            <span class="rest-sec" id="wpRestClock">60</span>
+          </div>
+          <div class="timer-card-left">
+            <span class="timer-label">Отдых между подходами</span>
+            <span class="muted small">Восстановите дыхание перед следующим подходом</span>
+            <span class="rest-hr hidden" id="wpRestHr"></span>
+          </div>
+          <div class="timer-card-actions">
+            <button class="btn btn-ghost btn-sm" id="wpRestPlusBtn">+15с</button>
+            <button class="btn btn-outline btn-sm" id="wpRestSkipBtn">Пропустить</button>
+          </div>
+        </div>
+
+        <div class="sets-list" id="wpSetsList"></div>
+
+        <div class="wp-nav-footer">
+          <button class="btn btn-outline" id="wpPrevExBtn">← Предыдущее</button>
+          <span class="muted small" id="wpExCounter">1 / 6</span>
+          <button class="btn btn-primary" id="wpNextExBtn">Следующее →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workout Completed Summary -->
+    <div class="workout-summary hidden" id="wpSummaryBody">
+      <div class="summary-card">
+        <div class="summary-badge">Тренировка завершена</div>
+        <h2>Отличная работа!</h2>
+        <p class="muted" id="wpSummarySubtitle">Сессия сохранена в вашу историю прогресса.</p>
+        <div class="summary-stats" id="wpSummaryStats"></div>
+        <div class="summary-actions">
+          <button class="btn btn-outline" id="wpViewHistoryBtn">Открыть прогресс</button>
+          <button class="btn btn-primary" id="wpDoneCloseBtn">Вернуться к плану</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: INSTALL HINT -->
+  <div class="modal-backdrop hidden" id="installModal" role="dialog" aria-modal="true" aria-labelledby="installModalTitle">
+    <div class="modal modal-sm install-modal">
+      <div class="modal-header">
+        <div>
+          <h3 id="installModalTitle">Установить Силуэтику</h3>
+          <p class="muted small">Иконка на экране, запуск без браузера и работа без сети</p>
+        </div>
+        <button class="btn btn-icon" data-close-modal="installModal" aria-label="Закрыть">✕</button>
+      </div>
+      <ol class="install-steps" id="installSteps"></ol>
+      <button type="button" class="btn btn-primary install-modal-done" data-close-modal="installModal">Понятно</button>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="meal-scan-screen hidden" id="mealScanScreen" role="dialog" aria-modal="true" aria-labelledby="mealScanTitle">
+    <div class="mss-column">
+      <div class="mss-top">
+        <button type="button" class="mss-back" id="mealScanCloseBtn" aria-label="Закрыть сканер">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <h2 id="mealScanTitle">Сканирование</h2>
+      </div>
+      <div class="mss-hint" role="status" aria-live="polite">
+        <span class="scan-label-dot" aria-hidden="true"></span>
+        <span id="mealScanHint">Ищем продукты на тарелке</span>
+      </div>
+      <div class="mss-stage">
+        <div class="mss-photo" id="mealScanPhoto">
+          <div class="mss-photo-clip">
+            <img id="mealScanImg" alt="Фото блюда">
+            <span class="scan-beam"></span>
+          </div>
+          <span class="scan-corner is-tl" aria-hidden="true"></span>
+          <span class="scan-corner is-tr" aria-hidden="true"></span>
+          <span class="scan-corner is-bl" aria-hidden="true"></span>
+          <span class="scan-corner is-br" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="mss-sheet" id="mealScanSheet">
+        <div class="mss-sheet-head">
+          <div class="mss-dish">
+            <h3 id="mssDish"></h3>
+            <p id="mssPortion"></p>
+          </div>
+          <div class="mss-kcal"><b id="mssKcal">0</b><span>ккал</span></div>
+        </div>
+        <div class="mss-macros" id="mssMacros"></div>
+        <ul class="mss-list" id="mssList"></ul>
+        <div class="mss-actions">
+          <button type="button" class="mss-save" id="mssSaveBtn">Сохранить в дневник</button>
+          <button type="button" class="mss-edit" id="mssEditBtn">Изменить граммы</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script>
+    window.__BODYCOACH_CONFIG__ = {
+      mode: 'cloud',
+      apiBase: 'https://ellhome-bot-api.onrender.com'
+    };
+  </script>
+  <script type="module" src="./js/app.js?v=20261124-43"></script>
+</body>
+</html>

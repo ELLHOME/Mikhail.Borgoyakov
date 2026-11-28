@@ -1,0 +1,273 @@
+/* Liquid glass: clear, crisp translucent surfaces over a soft colour field. */
+
+:root,
+[data-theme="light"] {
+  --text: #0e1a2a;
+  --text-muted: #4f6079;
+  --lg-base: #d3e1f0;
+  --lg-field:
+    radial-gradient(44% 38% at 10% 6%, rgba(0, 196, 255, 0.95) 0%, rgba(0, 196, 255, 0.6) 32%, transparent 66%),
+    radial-gradient(40% 34% at 94% 16%, rgba(118, 96, 255, 0.85) 0%, rgba(118, 96, 255, 0.5) 34%, transparent 68%),
+    radial-gradient(34% 26% at 68% 52%, rgba(255, 96, 176, 0.5) 0%, transparent 66%),
+    radial-gradient(48% 40% at 88% 92%, rgba(255, 138, 84, 0.9) 0%, rgba(255, 138, 84, 0.55) 34%, transparent 68%),
+    radial-gradient(42% 38% at 0% 76%, rgba(20, 214, 172, 0.85) 0%, rgba(20, 214, 172, 0.5) 34%, transparent 68%);
+  --lg-blur: blur(14px) saturate(210%) brightness(1.06);
+  --bg-card-grad:
+    linear-gradient(162deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.16) 34%, rgba(255, 255, 255, 0.08) 62%, rgba(255, 255, 255, 0.26) 100%),
+    rgba(255, 255, 255, 0.2);
+  --bg-card: rgba(255, 255, 255, 0.3);
+  --bg-elev: rgba(255, 255, 255, 0.4);
+  --bg-card-hover: rgba(255, 255, 255, 0.55);
+  --bg-subtle: rgba(255, 255, 255, 0.28);
+  --border: rgba(255, 255, 255, 0.9);
+  --lg-rim:
+    inset 0 1.5px 0 rgba(255, 255, 255, 1),
+    inset 1px 0 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.45),
+    inset -1px 0 0 rgba(255, 255, 255, 0.2),
+    0 0 0 0.5px rgba(10, 30, 60, 0.16);
+  --neu-raised: 0 10px 24px -10px rgba(16, 36, 70, 0.32), 0 1px 2px rgba(16, 36, 70, 0.1), var(--lg-rim);
+  --neu-raised-sm: 0 5px 12px -6px rgba(16, 36, 70, 0.3), 0 1px 1px rgba(16, 36, 70, 0.08), var(--lg-rim);
+  --neu-inset: inset 0 1px 2px rgba(16, 36, 70, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.6), 0 0 0 0.5px rgba(255, 255, 255, 0.7);
+  --obsidian: linear-gradient(150deg, rgba(20, 32, 50, 0.84) 0%, rgba(8, 13, 22, 0.9) 100%);
+  --obsidian-shadow: 0 14px 30px -10px rgba(8, 16, 30, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.25);
+  --lg-bar: rgba(255, 255, 255, 0.3);
+  --lg-bar-text: #33445c;
+  --lg-lens: rgba(255, 255, 255, 0.55);
+  --lg-shadow-bar: rgba(16, 36, 70, 0.4);
+}
+
+[data-theme="dark"] {
+  --text: #eef4fc;
+  --text-muted: #9cadc5;
+  --lg-base: #060a12;
+  --lg-field:
+    radial-gradient(44% 38% at 8% 4%, rgba(0, 180, 240, 0.75) 0%, rgba(0, 180, 240, 0.4) 32%, transparent 66%),
+    radial-gradient(40% 34% at 96% 20%, rgba(104, 72, 255, 0.72) 0%, rgba(104, 72, 255, 0.38) 34%, transparent 68%),
+    radial-gradient(34% 26% at 66% 54%, rgba(220, 60, 170, 0.3) 0%, transparent 66%),
+    radial-gradient(48% 40% at 86% 94%, rgba(240, 70, 130, 0.55) 0%, rgba(240, 70, 130, 0.28) 34%, transparent 68%),
+    radial-gradient(42% 38% at 0% 80%, rgba(16, 210, 176, 0.55) 0%, rgba(16, 210, 176, 0.26) 34%, transparent 68%);
+  --lg-blur: blur(14px) saturate(190%) brightness(0.95);
+  --bg-card-grad:
+    linear-gradient(162deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 34%, rgba(255, 255, 255, 0.02) 62%, rgba(255, 255, 255, 0.07) 100%),
+    rgba(10, 16, 28, 0.42);
+  --bg-card: rgba(12, 18, 30, 0.5);
+  --bg-elev: rgba(16, 24, 38, 0.55);
+  --bg-card-hover: rgba(30, 42, 62, 0.6);
+  --bg-subtle: rgba(0, 0, 0, 0.26);
+  --border: rgba(255, 255, 255, 0.2);
+  --lg-rim:
+    inset 0 1px 0 rgba(255, 255, 255, 0.42),
+    inset 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 0.5px rgba(0, 0, 0, 0.5);
+  --neu-raised: 0 12px 26px -10px rgba(0, 0, 0, 0.7), 0 1px 2px rgba(0, 0, 0, 0.3), var(--lg-rim);
+  --neu-raised-sm: 0 6px 14px -6px rgba(0, 0, 0, 0.65), var(--lg-rim);
+  --neu-inset: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  --obsidian: linear-gradient(150deg, rgba(6, 12, 20, 0.82) 0%, rgba(2, 5, 10, 0.9) 100%);
+  --obsidian-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.5);
+  --lg-bar: rgba(12, 18, 30, 0.36);
+  --lg-bar-text: rgba(214, 228, 246, 0.72);
+  --lg-lens: rgba(255, 255, 255, 0.12);
+  --lg-shadow-bar: rgba(0, 0, 0, 0.75);
+}
+
+html { background: var(--lg-base); }
+html body { background: transparent; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: -12%;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--lg-field);
+  animation: lgDrift 38s ease-in-out infinite alternate;
+}
+@keyframes lgDrift {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to { transform: translate3d(2%, 2%, 0) scale(1.06); }
+}
+
+::selection { background: rgba(9, 159, 212, 0.28); color: inherit; }
+
+.panel,
+.hero-card,
+.btn,
+.btn-outline,
+.angle-card,
+.angle-actions,
+.choice-card,
+.empty-state,
+.metric-box,
+.day-tab,
+.day-summary-bar,
+.exercise-card,
+.kpi-card,
+.modal,
+.workout-topbar,
+.wp-cues-card,
+.timer-card,
+.set-row,
+.summary-card,
+.date-step-btn,
+.macro-mini-card,
+.nutri-water-card,
+.water-btns .water-minus-btn,
+.meal-action-tile,
+.tile-orb,
+.meal-sec-btn,
+.meal-draft-card,
+.draft-ing-card,
+.gram-step-btn,
+.meal-log-card,
+.music-modal,
+.music-station-card,
+.cardio-log-row select,
+.cardio-minutes input,
+.hr-modal,
+.hr-zone-marker,
+.home-card,
+.wizard-step,
+.profile-hero,
+.settings-group,
+.plan-hero,
+.plan-day-pill,
+.ex-list,
+.progress-card {
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+.home-card, .panel { border-color: transparent; }
+
+/* Light glass over the dark modal scrim reads as muddy grey, so light-theme dialogs get a denser frost. */
+html:not([data-theme="dark"]) .modal {
+  background:
+    linear-gradient(162deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.76) 40%, rgba(255, 255, 255, 0.84) 100%),
+    rgba(234, 241, 250, 0.7);
+}
+
+/* The topbar holds the fixed mobile tab bar, so its glass lives on a pseudo-element:
+   a backdrop-filter on the bar itself would become the tab bar's containing block. */
+.topbar, html .topbar {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+}
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--lg-bar);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+.topbar-actions .btn, .topbar-actions button {
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+
+/* Tab bar with a sliding glass lens behind the active tab */
+@media (min-width: 821px) { .nav-tabs { position: relative; } }
+.nav-tabs {
+  isolation: isolate;
+  background: var(--lg-bar);
+  border-color: transparent;
+  box-shadow: var(--neu-raised-sm);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+}
+.nav-tab { position: relative; z-index: 1; }
+.nav-tab.active, .nav-tab.active:hover {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+  color: var(--text);
+}
+.nav-tab.active .nav-icon { color: var(--accent); filter: none; }
+.nav-lens {
+  position: absolute;
+  z-index: 0;
+  top: 5px;
+  left: 0;
+  height: calc(100% - 10px);
+  width: 0;
+  border-radius: 999px;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.7), transparent 55%),
+    var(--lg-lens);
+  box-shadow:
+    0 6px 18px -4px rgba(20, 40, 70, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -2px 6px rgba(255, 255, 255, 0.35),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(3px) saturate(160%);
+  backdrop-filter: blur(3px) saturate(160%);
+  transition:
+    transform 0.55s cubic-bezier(0.34, 1.45, 0.5, 1),
+    width 0.55s cubic-bezier(0.34, 1.45, 0.5, 1);
+}
+.nav-lens.is-moving { animation: lgSquish 0.55s cubic-bezier(0.3, 0.7, 0.3, 1); }
+@keyframes lgSquish {
+  35% { scale: 1.12 0.86; }
+  70% { scale: 0.97 1.04; }
+}
+[data-theme="dark"] .nav-lens {
+  background:
+    radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.22), transparent 55%),
+    var(--lg-lens);
+  box-shadow:
+    0 6px 18px -4px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+@media (max-width: 820px) {
+  .nav-tabs {
+    background: var(--lg-bar);
+    border-color: transparent;
+    box-shadow: 0 14px 30px -10px var(--lg-shadow-bar), var(--lg-rim);
+  }
+  .nav-tab { color: var(--lg-bar-text); }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); }
+  .nav-lens { top: 6px; height: calc(100% - 12px); }
+}
+
+/* Chromium only: refraction at the edges of the bars and the lens (see glass.js). */
+html.lg-refract .nav-lens {
+  -webkit-backdrop-filter: url(#lgRefract) saturate(170%);
+  backdrop-filter: url(#lgRefract) saturate(170%);
+}
+html.lg-refract .nav-tabs,
+html.lg-refract .topbar-actions .btn,
+html.lg-refract .topbar-actions button {
+  -webkit-backdrop-filter: url(#lgRefractBar) blur(6px) saturate(210%) brightness(1.06);
+  backdrop-filter: url(#lgRefractBar) blur(6px) saturate(210%) brightness(1.06);
+}
+[data-theme="dark"].lg-refract .nav-tabs,
+[data-theme="dark"].lg-refract .topbar-actions .btn,
+[data-theme="dark"].lg-refract .topbar-actions button {
+  -webkit-backdrop-filter: url(#lgRefractBar) blur(6px) saturate(190%) brightness(0.92);
+  backdrop-filter: url(#lgRefractBar) blur(6px) saturate(190%) brightness(0.92);
+}
+
+/* Workout card outside the hero (plan tab and fallbacks): dark tinted glass. */
+.home-workout {
+  border-color: transparent;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(46, 226, 255, 0.3), transparent 55%),
+    radial-gradient(circle at 0% 100%, rgba(46, 226, 255, 0.12), transparent 50%),
+    var(--obsidian);
+  box-shadow: 0 16px 32px -12px rgba(6, 14, 28, 0.55), inset 0 1.5px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 1px rgba(120, 230, 255, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.3);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  .nav-lens { transition: none; }
+  .nav-lens.is-moving { animation: none; }
+}
