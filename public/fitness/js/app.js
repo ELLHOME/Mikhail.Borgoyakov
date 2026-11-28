@@ -11,9 +11,9 @@ import {
   computeBodyMetrics,
   loadImageElement,
   renderAnalysisOverlay,
-} from './cv-analyzer.js?v=20261124-42';
-import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-42';
-import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-42';
+} from './cv-analyzer.js?v=20261124-43';
+import { ExerciseAnimationPlayer, preloadExerciseSprites } from './exercise-animator.js?v=20261124-43';
+import { EXERCISE_MAP, EXERCISES, MUSCLE_LABELS } from './exercises-db.js?v=20261124-43';
 import {
   buildCardioTarget,
   buildNutritionGuidance,
@@ -26,11 +26,11 @@ import {
   normalizePlan,
   PLAN_VERSION,
   selectPlanWeek,
-} from './plan-generator.js?v=20261124-42';
-import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-42';
-import { mountHeroOrb } from './hero-orb.js?v=20261124-42';
-import './glass.js?v=20261124-42';
-import { initPwa } from './pwa.js?v=20261124-42';
+} from './plan-generator.js?v=20261124-43';
+import { WORKOUT_STATIONS, WorkoutMusicController } from './music-player.js?v=20261124-43';
+import { mountHeroOrb } from './hero-orb.js?v=20261124-43';
+import './glass.js?v=20261124-43';
+import { initPwa } from './pwa.js?v=20261124-43';
 import {
   HeartRateMonitor,
   HeartRateSession,
@@ -39,8 +39,8 @@ import {
   isHeartRateSupported,
   recoveryHr,
   zoneForHr,
-} from './heart-rate.js?v=20261124-42';
-import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-42';
+} from './heart-rate.js?v=20261124-43';
+import { DEMO_PRESETS, generateDemoPhotoSet } from './sample-photos.js?v=20261124-43';
 import {
   addWorkoutLog,
   compressImageDataUrl,
@@ -64,7 +64,7 @@ import {
   saveProfile,
   saveTheme,
   saveWaterByDate,
-} from './storage.js?v=20261124-42';
+} from './storage.js?v=20261124-43';
 
 const ANGLES = [
   {
@@ -1792,7 +1792,7 @@ async function callVisionAiProxy() {
     try {
       resp = await fetch(`${CLOUD_API_BASE}/fitness/analyze`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Visitor-Id': visitorId() },
         signal: controller.signal,
         body: JSON.stringify({
           profile: state.profile,
@@ -3621,7 +3621,7 @@ async function callMealVisionApi() {
     try {
       resp = await fetch(`${CLOUD_API_BASE}/fitness/meal`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Visitor-Id': visitorId() },
         signal: controller.signal,
         body: JSON.stringify({
           photo: compactPhoto,
@@ -4965,6 +4965,48 @@ function initEvents() {
   });
 }
 
+const VISITOR_KEY = 'siluetika_visitor';
+
+// A random id kept on the device, so the owner's stats count people rather than page loads.
+function visitorId() {
+  try {
+    let id = localStorage.getItem(VISITOR_KEY);
+    if (!id) {
+      id = crypto.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(VISITOR_KEY, id);
+    }
+    return id;
+  } catch {
+    return '';
+  }
+}
+
+function trackVisit() {
+  if (!IS_CLOUD_MODE) return;
+  let ref = '';
+  try {
+    const params = new URLSearchParams(window.location.search);
+    ref = params.get('utm_source') || params.get('ref') || '';
+    if (!ref && document.referrer) {
+      const host = new URL(document.referrer).hostname;
+      if (host !== window.location.hostname) ref = host;
+    }
+  } catch {
+    // Malformed referrer: count the visit without a source.
+  }
+  const props = {
+    ref: ref.slice(0, 60),
+    mobile: window.matchMedia('(pointer: coarse)').matches,
+    pwa: window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true,
+  };
+  fetch(`${CLOUD_API_BASE}/event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    keepalive: true,
+    body: JSON.stringify({ name: 'fit_open', props, session: visitorId() }),
+  }).catch(() => {});
+}
+
 async function detectServerEnvProviders(notifyUser = false) {
   if (IS_CLOUD_MODE) {
     try {
@@ -5088,6 +5130,7 @@ function bootstrap() {
   renderNutritionTab();
   switchTab('home');
   detectServerEnvProviders();
+  trackVisit();
   preloadExerciseSprites(EXERCISES.slice(0, 6).map((e) => e.animId));
 }
 
